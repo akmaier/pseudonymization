@@ -197,6 +197,80 @@ CC-BY-NC seen earlier applies to the ELRA *proceedings paper*, not to the corpus
 
 ---
 
+## 5b. E-mail is mandatory (AM, 2026-09-06) — and both members have a defect
+
+*"We need mails in the corpus."* Recorded as a requirement, not a preference. What that requires:
+
+### CodEAlltag XL — the seven segments, and what "GERMAN" is
+
+All seven are German-language; the segment name is the **topic**, not the language. **GERMAN means
+e-mails about the German language itself** — grammar, usage, linguistics — the `de.etc.sprache.*`
+newsgroup family.
+
+| segment | topic, verbatim from the release | messages |
+|---|---|---:|
+| EVENTS | *"topics related to events of the day"* | ~246,000 |
+| **GERMAN** | *"topics related to the **German language**"* | ~241,000 |
+| TEENS | *"topics of interest for teenagers"* | ~239,000 |
+| PHILOSOPHY | *"philosophical issues"* | ~209,000 |
+| MOVIES | *"discussing movies"* | ~206,000 |
+| FINANCE | *"financial issues, including stock exchange news"* | ~174,000 |
+| TRAVELS | *"travel and tourism"* | ~154,000 |
+| | **total** | **~1,469,000** |
+
+Three caveats the release states itself:
+
+- **XL is Usenet, not private mail.** *"extracted from Usenet newsgroups and underwent merely
+  rudimentary data cleansing."* These are public postings in mail format. Only the small donated
+  **S** set (800 released) is private correspondence — and that is the set with no annotations.
+- **XL is *automatically* pseudonymised**; only S had manual annotation before substitution. So XL
+  surrogate quality is detector-limited, and detector errors are baked into the text we would treat
+  as input.
+- **A documented gender bias:** *"likely to contain a gender bias since taggers recognized more
+  mentions of male given names."* This bears directly on axis C level 3 (attribute-matched surrogates
+  preserving gender) and on H4 — the skew is in the data before we touch it, and must be reported.
+
+FINANCE also gives a **second financial slice** that is not synthetic, unlike AI4Privacy's FinPII.
+
+### Enron — what it actually is
+
+Enron Corporation was a Houston energy, commodities and services firm that collapsed in December 2001
+in one of the largest accounting-fraud scandals on record. The corpus is the **internal e-mail of
+about 150 employees, mostly senior management — executives, traders, schedulers — roughly 1998–2002,
+~500,000 messages**, made public by the **Federal Energy Regulatory Commission** during its
+investigation. Content is ordinary corporate correspondence: gas and power trading, deal
+confirmations, scheduling, market commentary, legal and HR traffic — plus a large amount of personal
+mail, because whole mailboxes were released, not a filtered selection.
+
+| | |
+|---|---|
+| distribution | CMU, `enron_mail_20150507.tar.gz`, **443 MB compressed** (~1.7 GB unpacked), dated 2015-05-07, live as of 2026-09-06 |
+| structure | per-user maildir folders → gives the **folder-classification task** and sender/recipient identity across messages |
+| cleanup | SRI (Melinda Gervasio) normalised invalid addresses to `user@enron.com` / `no_address@enron.com` |
+| deletions | *"as part of a redaction effort due to requests from affected employees"* — a partial, request-driven redaction only |
+| auxiliary | organisational hierarchy for ~184 employees with roles → the **A3 linkage** auxiliary record |
+| known issue | the CMU page itself notes a **2026 discovery of a vulnerability allowing impersonation of users, including executives**, judged *"probably does not affect NLP uses"* |
+
+Why it is the corpus the study wants: real names in natural frequency distribution, the same people
+recurring across thousands of messages (cross-document stability), a genuine downstream task, and a
+real public auxiliary record to link against. No other public e-mail corpus has all four.
+
+Why it is the corpus the study should hesitate over: none of those people consented, the redaction
+was request-driven rather than systematic, and 50,000 PII instances were still found in 2020.
+
+### The consequence of making e-mail mandatory
+
+**If Enron is excluded, the meta corpus has no English e-mail at all.** CodEAlltag is German;
+Avocado is LDC-licensed and unverified; the 2017 e-mail-header corpus is headers only; the e-mail
+slices in AI4Privacy, PIIBench and REDACT are synthetic (T5). So the requirement *"we need mails"*
+and the option *"exclude Enron"* cannot both hold unless we license **Avocado (LDC2015T03,
+~900 k messages)** as the substitute — which is a purchase decision with its own lead time.
+
+That is now the shape of the Enron question: not "do we want the largest corpus" but **"is there any
+English e-mail in this study at all, and if so under which licence."**
+
+---
+
 ## 6. Distribution: the meta corpus must be a build recipe, not a dataset
 
 The members' licences cannot be combined into one redistributable artefact:
