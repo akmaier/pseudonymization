@@ -24,7 +24,7 @@ distribution, so a result on it does not transfer.
 | tier | provenance | why it is or is not usable | corpora |
 |---|---|---|---|
 | **T1** | **real names, natural distribution** | the only tier where A1/A2 results mean what they claim | TAB/ECHR · Enron · OntoNotes |
-| **T2** | **realistic surrogates, consistently substituted** | natural *placement* and near-natural distribution; and because the substitution was rule-based from a known inventory, spans are recoverable by dictionary — **gold spans for free** | i2b2/n2c2 2014 · CodEAlltag |
+| **T2** | **realistic surrogates, consistently substituted** | natural *placement* and near-natural distribution. Rule-based span recovery works only where the surrogate inventory is published — it is for i2b2, **not** for CodEAlltag (§5) | i2b2/n2c2 2014 · CodEAlltag |
 | **T3** | **placeholder-masked** (`<NAME>`, `[Datum]`) | spans recoverable by rule, but the names are *gone* — the distribution is destroyed, and refilling them is insertion | CARDIO:DE · BRONCO150 |
 | **T4** | **PHI inserted into text that never had it** | placement is artificial as well as the names; MEDDOCAN is explicitly *"a synthetic corpus of clinical cases enriched with PHI expressions"*, added to published SciELO case reports by health documentalists | MEDDOCAN |
 | **T5** | **fully synthetic** | *"no real personal data. Every identifier is fabricated"* | MedDeID · REDACT · AI4Privacy |
@@ -43,11 +43,11 @@ Balanced on four things at once: **language · domain · downstream task · prov
 
 | corpus | lang | script | domain / genre | task for the utility axis | stability support | tier |
 |---|---|---|---|---|---|---|
-| **TAB / ECHR** | en | Latin | legal judgments | ECtHR **article-violation prediction** (join to LexGLUE ECtHR_A/B on case id) | **co-reference** (`entity_id`), DIRECT/QUASI/NO_MASK | T1 |
+| **TAB / ECHR** | en | Latin | legal judgments | **ECHR article classification, multi-label** — ships in `meta.articles`, 30 labels, no join needed (§5) | **co-reference** (`entity_id`), DIRECT/QUASI/NO_MASK | T1 |
 | **Enron** | en | Latin | corporate e-mail | **folder classification** (Klimt & Yang 2004) | **cross-document**: sender/recipient identity from headers; org chart (~184 employees) as A3 auxiliary | T1 |
 | **OntoNotes 5.0** | en, **zh**, **ar** | Latin, Han, Arabic | news · broadcast · weblog · telephone speech · usenet | **co-reference resolution + NER** (the task pseudonymisation most directly damages) | **co-reference**, 18 NE types | T1 |
-| **i2b2 / n2c2 2014** | en | Latin | clinical, **longitudinal** | heart-disease **risk-factor extraction** (Track 2, same records — *verify*) | **cross-document**: 1,304 records over **296 patients** | T2 |
-| **CodEAlltag** | de | Latin | e-mail (S+d donated) · usenet (XL) | **topic classification** from the XL segments; formality (*verify release*) | manual gold spans on S+d (1,390 mails); consistent surrogates | T2 |
+| **i2b2 / n2c2 2014** | en | Latin | clinical, **longitudinal** | heart-disease **risk-factor extraction** (Track 2 — **confirmed same records**, §5) | **cross-document**: 1,304 records over **296 patients** | T2 |
+| **CodEAlltag** | de | Latin | e-mail (donated) · usenet (XL) | **7-way topic classification** (XL segments) + **formality scores** (released separately) | **no gold spans in the release** (§5); consistent surrogates only | T2 |
 | **CARDIO:DE** | de | Latin | cardiology letters | German clinical NER | placeholders give free gold spans; no names | T3 |
 | **BRONCO150** | de | Latin | oncology discharge | **ICD-10 / OPS / ATC coding** | none — sentence-scrambled, no document | T3 |
 | **MEDDOCAN** | es | Latin | clinical case reports | Spanish clinical NER | none (no co-reference) | T4 |
