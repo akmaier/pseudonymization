@@ -30,10 +30,12 @@ hypotheses. Everything else here is supporting material.
 | path | contents |
 |---|---|
 | [`PLAN.md`](PLAN.md) | thesis, factors, metrics, attacks, hypotheses, deliverables |
-| [`AUTHORS.md`](AUTHORS.md) | author list — **three surnames still missing, do not guess them** |
+| `CLAUDE.md` | **operating rules** — scope is not negotiable, integrity, data, secrets, LLM endpoint, cluster. **Local only, gitignored** (it names infrastructure); ask AM for a copy |
+| [`AUTHORS.md`](AUTHORS.md) | author list — complete; middle order (2–5) still unsettled, **do not guess it** |
 | [`references/standards.md`](references/standards.md) | ISO 25237, ENISA, ISO/IEC 20889, GDPR |
 | [`references/text_pseudonymization.md`](references/text_pseudonymization.md) | detection benchmarks, surrogate generation, utility, leakage, email |
 | [`data/candidates.md`](data/candidates.md) | every corpus considered, including ones beyond the current plan |
+| `config/` | `*.example.toml` committed; the real `*.toml` are gitignored (no hostnames, usernames or keys in this repo) |
 | `experiments/` | empty; code lands here |
 
 ## For the agent picking this up
@@ -41,6 +43,8 @@ hypotheses. Everything else here is supporting material.
 - Every reference in `references/` was retrieved from Crossref, arXiv, ACL Anthology or the
   publisher during 2026-09-05/06. Where an abstract could **not** be retrieved it says so — those are
   title-level evidence only and must be opened before being relied on.
+- **Read `CLAUDE.md` before doing anything** — it is local-only and not in this repo. Its first rule: no agent may change the
+  scope or the number of experiments to save time, money or tokens. The budget is sufficient.
 - **No credentials in this repo, ever.** Corpora are not committed either: several are DUA-bound
   (BRONCO), licensed (Avocado, i2b2/n2c2) or contain real personal data (Enron). `.gitignore` covers
   `data/corpora/`.

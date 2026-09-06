@@ -7,7 +7,16 @@
 *.key
 *.pem
 config/*.local.*
+
+# No hostnames, usernames or keys in this repo. Real configs stay local;
+# only the *.example.toml templates are committed.
+config/*.toml
+!config/*.example.toml
 llm_api.toml
+cluster.toml
+
+# Local operating rules — readable, never pushed. Names infrastructure details.
+CLAUDE.md
 
 # No corpus data in git — corpora are licensed/DUA-bound and some are personal data.
 data/corpora/
