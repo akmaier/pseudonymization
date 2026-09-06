@@ -1,0 +1,50 @@
+# pseudonymization
+
+Experiment repository for a study on **text pseudonymisation**, evaluated end to end —
+**detection, utility and leakage** — across languages, domains, methods and *policies*.
+
+Target venue: **TrustFMI @ ACCV 2026** (workshop, Osaka, 14 Dec 2026). Submission **25 Sept 2026**;
+6–8 pages full / 4 pages short, LNCS, via OpenReview. Treat that deadline as the near-term target,
+not as a limit on the study — compute is available and the work is intended to outlive the workshop.
+
+**Read [`PLAN.md`](PLAN.md) first.** It carries the thesis, the factor design, the metrics and the
+hypotheses. Everything else here is supporting material.
+
+## Decisions already taken
+
+- **Public data only.** No Erlangen clinical data in this paper (AM, 2026-09-06). This removes the
+  data-protection dependency, makes every result reproducible, and lets us release everything.
+- **Not another detection benchmark.** REDACT, PIIBench and the OpenAI-Privacy-Filter evaluation all
+  landed in 2026 and own that ground. Our independent variable is the **pseudonymisation function
+  and policy**, not the detector.
+- **Ensemble detection is in.** In the group's own tests an ensemble across LLMs plus the baseline
+  methods outperformed any single detector; it belongs in the detector axis as both a strong
+  baseline and a recall upper bound. See `PLAN.md` §Factors, axis D.
+- **Images are in scope for the reference base, not for this paper.** A second, separate paper on
+  defacing/CT was discussed; the references are collected in
+  [`references/image_deidentification.md`](references/image_deidentification.md) so the ground is not
+  lost. The group's own chest X-ray re-identification work is the anchor there.
+
+## Layout
+
+| path | contents |
+|---|---|
+| [`PLAN.md`](PLAN.md) | thesis, factors, metrics, attacks, hypotheses, deliverables |
+| [`AUTHORS.md`](AUTHORS.md) | author list — **three surnames still missing, do not guess them** |
+| [`references/standards.md`](references/standards.md) | ISO 25237, ENISA, ISO/IEC 20889, GDPR |
+| [`references/text_pseudonymization.md`](references/text_pseudonymization.md) | detection benchmarks, surrogate generation, utility, leakage, email |
+| [`references/image_deidentification.md`](references/image_deidentification.md) | X-ray, MRI, CT, DICOM — for the companion paper |
+| [`data/candidates.md`](data/candidates.md) | every corpus considered, including ones beyond the current plan |
+| `experiments/` | empty; code lands here |
+
+## For the agent picking this up
+
+- Every reference in `references/` was retrieved from Crossref, arXiv, ACL Anthology or the
+  publisher during 2026-09-05/06. Where an abstract could **not** be retrieved it says so — those are
+  title-level evidence only and must be opened before being relied on.
+- **No credentials in this repo, ever.** Corpora are not committed either: several are DUA-bound
+  (BRONCO), licensed (Avocado, i2b2/n2c2) or contain real personal data (Enron). `.gitignore` covers
+  `data/corpora/`.
+- The **Enron question is open and deliberate** — see `data/candidates.md`. It is the largest public
+  English e-mail corpus and it is itself an unresolved privacy incident. Decide it explicitly; do not
+  drift into using it silently.

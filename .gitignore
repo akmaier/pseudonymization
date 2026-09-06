@@ -1,0 +1,24 @@
+# No credentials, ever.
+*.env
+.env*
+*secret*
+*credential*
+*token*
+*.key
+*.pem
+config/*.local.*
+llm_api.toml
+
+# No corpus data in git — corpora are licensed/DUA-bound and some are personal data.
+data/corpora/
+data/raw/
+*.zip
+*.tar.gz
+
+# Artefacts
+__pycache__/
+.venv/
+*.pyc
+results/*.csv
+results/*.parquet
+.DS_Store
