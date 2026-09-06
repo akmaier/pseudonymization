@@ -4,42 +4,126 @@ Everything considered, **including corpora beyond the current plan**, so nothing
 rediscovered. Public-data-only is a project decision (AM, 2026-09-06). Access column is the first
 thing to check — several are DUA-bound or licensed, and none is committed to this repo.
 
+**Verification pass 2026-09-06.** Rows marked *verified* were checked against the corpus paper,
+repository or record page on that date. Everything else remains title-level.
+
+---
+
+## What the corpora do and do not support
+
+Three facts emerged from the verification pass that constrain `PLAN.md` and should be settled before
+any download.
+
+**1. Only TAB annotates co-reference.** The stability metrics — collision rate and fragmentation
+rate — are functions of the *mapping*, and scoring them needs co-reference-resolved gold: you must
+know that *Dr. Weber*, *Weber* and *F. Weber* are one person. TAB annotates `entity_id` co-reference
+explicitly. MEDDOCAN, CARDIO:DE, BRONCO150, E3C and MedDeID annotate spans and types only. So
+`PLAN.md` §Measurements/2 is measurable on **TAB alone**, unless we resolve co-reference ourselves on
+the others — which would be a new annotation effort, not a run.
+
+**2. BRONCO150 is sentence-scrambled.** *"The original documents were scrambled at the sentence level
+to make reconstruction of individual reports impossible."* There is therefore no document and no
+document order in BRONCO. Consequences: the **document-randomised policy level (axis A) is undefined**
+on it, cross-document stability cannot be measured, and A3 linkage has no co-occurrence structure to
+exploit. BRONCO remains excellent for **utility** — it is normalised to ICD-10 / OPS / ATC, i.e. a
+ready-made downstream task — but it cannot carry the stability or linkage axes.
+
+**3. Almost every public corpus is already synthetic or already pseudonymised.** This is the big one.
+
+| corpus | what the identifiers actually are |
+|---|---|
+| MEDDOCAN | *"a **synthetic** corpus of clinical cases enriched with PHI expressions"* — published SciELO case reports, PHI **inserted** by health documentalists |
+| CARDIO:DE | real letters, but PHI already **replaced by semantic placeholders**, dates shifted, ages shifted |
+| MedDeID | fully synthetic — *"contain no real patient notes or personal information"* |
+| REDACT | fully synthetic, LLM-generated — *"no real personal data. Every identifier is fabricated"* |
+| AI4Privacy | synthetic, human-in-the-loop validated |
+| CodEAlltag | real donated e-mail, but **already pseudonymised**: spans manually annotated, then automatically substituted with *realistic surrogates* |
+| TAB | **real** — ECHR judgments are public records naming real people |
+| Enron | **real**, non-consenting, and unremediated |
+
+This matters directly for the leakage attacks. **A1 (dictionary) and A2 (frequency analysis) both
+consume the *name-frequency distribution*.** A2 in particular works because, under a deterministic
+policy, pseudonym frequency mirrors real-name frequency. Inserted or generated identifiers do not
+carry a natural surname distribution, so a successful A2 on MEDDOCAN or REDACT proves less than a
+successful A2 on natural text.
+
+**Consequence for the Enron decision (open question below): Enron and TAB are the only two public
+corpora in the plan with real, naturally distributed personal names.** Excluding Enron leaves the
+frequency attack testable on English legal text and essentially nowhere else. That is a stronger
+argument for inclusion than the "largest corpus" one, and it should be weighed as such.
+
+**4. E3C carries no PII annotation at all.** Its layers annotate clinical entities (SNOMED-CT,
+ICD-10) and temporal information/factuality — not personal identifiers. E3C can supply multilingual
+clinical *text*, but it cannot supply the gold-span oracle level of axis D.
+
+---
+
 ## In the plan
 
 ### Clinical
 
 | corpus | language | access | note |
 |---|---|---|---|
-| **CARDIO:DE** | de | distributable | `10.1038/s41597-023-02128-9`. German **cardiology routine doctor's letters**. Two-pass de-identification, PHI → semantic placeholders, date shifting, age shifted by random > 300, lab-value outliers removed by z-score. *Paper read.* One of only two distributable German clinical corpora |
-| **BRONCO150** | de | **DUA** (Ulf Leser, HU Berlin) | 150 German oncology discharge summaries, Charité + Tübingen; scrambled sentences, manually anonymised with both DPOs' approval; annotated to ICD10 / OPS / ATC → **ready-made downstream utility task**. *DUA read* |
-| **MEDDOCAN** | es | public | the Spanish clinical de-identification shared task: corpus, guidelines, evaluation |
-| **i2b2 / n2c2** (2006, 2014, 2016) | en | licensed, registration | the field standard; every paper benchmarks against it |
-| **E3C** | en, it, el, pl, sk, sl | public | European Clinical Case Corpus; train splits held for six languages |
-| **MedDeID** | nl | public (Zenodo) | `10.5281/zenodo.21992866`, Aug 2026: 6,493 synthetic docs + 300-doc physician-reviewed benchmark + bilingual guidelines |
+| **MEDDOCAN** | es | **public, CC-BY-4.0** *(verified)* | 1,000 Spanish clinical case studies, **29 entity types**; train 500 / dev 250 / test 250, plus a 3,501-doc background set. BRAT + i2b2 XML. IAA 98 %. PHI is **inserted, not real** (see above). No co-reference. `meddocan.zip`, 11.7 MB, Zenodo `10.5281/zenodo.4279323` |
+| **CARDIO:DE** | de | **DUA** *(verified)* | `10.1038/s41597-023-02128-9`. **500** German cardiology routine doctor's letters, Heidelberg. Two-pass de-identification, PHI → semantic placeholders, date shifting, age shifted by random > 300, lab-value outliers removed by z-score. *Paper read.* One of only two distributable German clinical corpora |
+| **BRONCO150** | de | **DUA** (Ulf Leser, HU Berlin) *(verified)* | 150 German oncology discharge summaries (HCC / melanoma), Charité + Tübingen. **11,434 sentences, 89,942 tokens, 11,124 entity + 3,118 attribute annotations**; normalised to **ICD-10 / OPS / ATC** → ready-made downstream utility task. **Sentence-scrambled** — see finding 2 |
+| **MedDeID** | nl | **public, CC-BY-4.0** *(verified)* | Zenodo `10.5281/zenodo.21992866`. **6,493 synthetic development docs + 300 physician-reviewed benchmark docs**, ProductionLabels_v1 schema, nested sub-annotations on the benchmark, bilingual NL/EN guidelines. 12.0 MB zip, JSONL. Fully synthetic |
+| **E3C** | it, en, fr, es, eu (+ el, pl, sk, sl semi-automatic) | **public, via European Language Grid** *(verified)* | European Clinical Case Corpus. Layer 1 ≈ 25 K tokens/language fully manual. Annotates **clinical entities + temporal/factuality — no PII layer** (finding 4) |
+| **i2b2 / n2c2** (2006, 2014, 2016) | en | **registration + DUA**, per individual user *(verified)* | The field standard. 2014 set: 1,304 records from 296 diabetic patients (Partners Healthcare RPDR). Now hosted on the DBMI Data Portal, not i2b2.org |
 
 ### Legal
 
 | corpus | language | access | note |
 |---|---|---|---|
-| **TAB / ECHR** | en | public | 1,268 European Court of Human Rights judgments. **Annotates co-reference and confidential attributes** — the only resource that supports the stability metrics in `PLAN.md` |
+| **TAB / ECHR** | en | **public, MIT licence, direct clone** *(verified)* | 1,268 English ECHR judgments. Annotates semantic category, **identifier type (DIRECT / QUASI / NO_MASK)**, confidential attributes **and co-reference (`entity_id`)**. Standoff JSON with train/dev/test splits and a `quality_checked` flag. **The only corpus that supports the stability metrics** — and one of only two with real names |
 | LGPD Benchmark | pt-BR | check | Brazilian legal text, personal-data pseudonymisation |
 
 ### E-mail
 
 | corpus | language | access | note |
 |---|---|---|---|
-| **CodEAlltag** | de | check | German e-mail corpus built for **forensic linguistics** (2016). The corpus of the R19-1030 pseudonymisation baseline |
-| **Enron** | en | public | ~500k messages. **See the open question below before using** |
+| **CodEAlltag** | de | **public, CC-BY-SA-4.0, GitHub** *(verified)* | German e-mail, built for forensic linguistics. `CodEAlltag_pS` = **800 pseudonymised e-mails from 460 donors**, spans manually annotated then substituted with realistic surrogates automatically; `pXL_*` are the larger topical segments (FINANCE, GERMAN, MOVIES, PHILOSOPHY, TEENS, TRAVELS, EVENTS), ~1.47 M e-mails across all segments. **Open: does the release ship the span annotations / surrogate mapping?** If yes it is gold spans *and* a gold mapping for German e-mail |
+| **Enron** | en | public | ~500 k messages. Real, non-consenting, unremediated. **See the open question below before using** |
 | Email-header corpus | en | check | *A Corpus of Email Headers with Personal Privacy Protection* (2017) |
-| Avocado (LDC2015T03) | en | **licensed** | ~900k messages — *not verified* |
+| Avocado (LDC2015T03) | en | **licensed** | ~900 k messages — *not verified* |
 
 ### General / synthetic / financial
 
 | corpus | language | access | note |
 |---|---|---|---|
-| **AI4Privacy** (pii-masking-200k/300k) | multi | public | synthetic multilingual PII; used as a benchmark by the OPF evaluation |
-| **PIIBench** | multi | public | ten corpora unified, 48 canonical types — usable as a *source of slices*, including a **financial** one |
-| **REDACT** | 25 langs | public | 51 entity types, nine controlled generation axes |
+| **AI4Privacy** (pii-masking-200k/300k) | 6 langs, 8 jurisdictions | **public on HF; academic use free, commercial licence separate** *(verified)* | 300k = OpenPII-220k + **FinPII-80k** (the financial slice). ~220 k examples, 30.4 M tokens, 27 PII classes (+~20 finance/insurance). Synthetic |
+| **REDACT** | 25 langs / 9 scripts | **public, CC-BY-SA-4.0** *(verified)* | `github.com/guneeshvats/REDACT-PII-Benchmark`. 13,427 records, 324,078 annotations, 51 entity types, nine controlled generation axes, GDPR sensitivity tiers. **Fully synthetic, LLM-generated** |
+| **PIIBench** | multi | check release *(not verified)* | Ten English sources unified; 2,369,883 sequences, 3.35 M mentions, 48 canonical types. Usable as a source of slices — **repository not located yet** |
+
+---
+
+## Access routes — what to do, and the lead time
+
+**Group 1 — no permission, download today.** Total footprint is small: MEDDOCAN 11.7 MB, MedDeID
+12.0 MB, TAB a single JSON. Disk pressure on the cluster is not a constraint for these.
+
+| corpus | route |
+|---|---|
+| TAB / ECHR | clone `NorskRegnesentral/text-anonymization-benchmark` |
+| MEDDOCAN | Zenodo `10.5281/zenodo.4279323` (`meddocan.zip`); guidelines at `10.5281/zenodo.4279338`; scripts at `PlanTL-GOB-ES/SPACCC_MEDDOCAN` |
+| MedDeID | Zenodo `10.5281/zenodo.21992866` |
+| CodEAlltag | clone the `codealltag` GitHub organisation (`CodEAlltag_pS`, `CodEAlltag_pXL_*`) |
+| REDACT | clone `guneeshvats/REDACT-PII-Benchmark` |
+| AI4Privacy | HuggingFace `ai4privacy/pii-masking-300k` — academic use; note the commercial clause |
+| E3C | European Language Grid, corpus 2.0.0 |
+| PIIBench | release location still to be found |
+| Enron | public — **blocked on the ethics decision, not on access** |
+
+**Group 2 — applications, and these set the schedule.** Send on the same day; they run in parallel.
+
+| corpus | who / where | what they need | stated lead time |
+|---|---|---|---|
+| **CARDIO:DE** | `data@uni-heidelberg.de`, approved by study director Christoph Dieterich | signed DUA form + **group description** (name, affiliation, position, institution e-mail and website) + **project description** | **≥ 1 week** |
+| **BRONCO150** | Prof. Ulf Leser, HU Berlin | the DUA form from the BRONCO page, signed; academic German clinical NLP use | not stated |
+| **i2b2 / n2c2** | DBMI Data Portal, `portal.dbmi.hms.harvard.edu` | account, Rules of Conduct, DUA, **human approval; each user applies individually** | not stated |
+| Avocado | LDC licence | institutional LDC membership or purchase | not stated |
+
+---
 
 ## Beyond the current plan — recorded, not adopted
 
@@ -55,6 +139,9 @@ thing to check — several are DUA-bound or licensed, and none is committed to t
 | Icelandic / Norwegian / Danish **Dynaword** | general-language, for out-of-domain contrast |
 | **ASQ-PHI** (`10.1016/j.dib.2026.112586`) | adversarial *synthetic* clinical benchmark — closest thing to the "inject synthetic identifiers" method |
 | **SPY** medical benchmark, **Kiji** (non-English) | named in the OPF evaluation; provenance not yet checked |
+| **CARMEN-I** (Zenodo, es/en) | anonymisation protocol for clinical reports; surfaced during the 2026-09-06 verification pass, not yet assessed |
+
+---
 
 ## Open question — Enron
 
@@ -71,3 +158,10 @@ Two defensible positions, and the paper must pick one **explicitly**:
    finding rather than a gap.
 
 Drifting into silent use is the one option that is not available at a trustworthy-ML venue.
+
+**New input from the verification pass (2026-09-06):** the choice is no longer only about corpus
+size. Enron and TAB are the **only two corpora in the plan with real, naturally distributed personal
+names**; everything else is synthetic, PHI-inserted, or already pseudonymised. Excluding Enron
+therefore narrows the naturalistic test of the A2 frequency attack to a single English legal corpus.
+That cuts both ways — it strengthens the scientific case for inclusion and sharpens the ethical
+objection to it — but it must be part of the decision.
