@@ -20,10 +20,10 @@ hypotheses. Everything else here is supporting material.
 - **Ensemble detection is in.** In the group's own tests an ensemble across LLMs plus the baseline
   methods outperformed any single detector; it belongs in the detector axis as both a strong
   baseline and a recall upper bound. See `PLAN.md` §Factors, axis D.
-- **Images are in scope for the reference base, not for this paper.** A second, separate paper on
-  defacing/CT was discussed; the references are collected in
-  [`references/image_deidentification.md`](references/image_deidentification.md) so the ground is not
-  lost. The group's own chest X-ray re-identification work is the anchor there.
+- **Text only.** This repository is the pseudonymisation study and nothing else (AM, 2026-09-06).
+  Image de-identification — defacing, CT, MRI, DICOM — is a separate paper with a separate team; its
+  reference base was moved out of this repo to
+  `mailassist/projects/trustfmi_paper_deid/literature_image_deidentification.md`.
 
 ## Layout
 
@@ -33,7 +33,6 @@ hypotheses. Everything else here is supporting material.
 | [`AUTHORS.md`](AUTHORS.md) | author list — **three surnames still missing, do not guess them** |
 | [`references/standards.md`](references/standards.md) | ISO 25237, ENISA, ISO/IEC 20889, GDPR |
 | [`references/text_pseudonymization.md`](references/text_pseudonymization.md) | detection benchmarks, surrogate generation, utility, leakage, email |
-| [`references/image_deidentification.md`](references/image_deidentification.md) | X-ray, MRI, CT, DICOM — for the companion paper |
 | [`data/candidates.md`](data/candidates.md) | every corpus considered, including ones beyond the current plan |
 | `experiments/` | empty; code lands here |
 

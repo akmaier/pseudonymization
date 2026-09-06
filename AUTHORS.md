@@ -5,8 +5,8 @@ Order set by AM, 2026-09-06: **AM first, Siming Bayer last.** The middle four ar
 | # | name | affiliation | role in the thread |
 |---|---|---|---|
 | 1 | **Andreas Maier** | FAU Erlangen-Nürnberg, Pattern Recognition Lab | first author |
-| 2–5 | **Franziska Weber** | FAU Erlangen-Nürnberg | originated the thread; works on thoracic CT |
-| | **Niklas Lackner** | Universitätsklinikum Erlangen | compared defacing tools; summer school on the topic, Sept 2026 |
+| 2–5 | **Franziska Weber** | FAU Erlangen-Nürnberg | originated the thread |
+| | **Niklas Lackner** | Universitätsklinikum Erlangen | clinical de-identification, UK Erlangen |
 | | **Matthias May** | Universitätsklinikum Erlangen | Prof. Dr. med. habil., EBIR, Leitender Oberarzt, Radiologisches Institut; supplied the clinical and data-protection framing |
 | | **Bernhard Kainz** | FAU Erlangen-Nürnberg / Imperial College London | added by AM |
 | last | **Siming Bayer** | **FAU Erlangen-Nürnberg** | last author |
