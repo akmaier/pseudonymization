@@ -124,25 +124,117 @@ either populate them or declare them null, and a corpus with both null cannot en
 
 ---
 
-## 5. Open, and needing a decision or a check
+## 5. Check results (run 2026-09-06)
+
+All four pre-acquisition checks were run. TAB and CodEAlltag were cloned and inspected directly;
+i2b2 was settled from the corpus paper.
+
+### ✅ TAB carries the legal task itself — no join needed
+
+TAB's `meta` block already contains the ECHR articles, so the downstream task ships with the corpus:
+
+| | |
+|---|---|
+| documents | **1,268** (1,014 train / dev / test), all with `meta.articles` and `meta.applicant` |
+| task labels | **30 distinct articles**, multi-label; **752 of 1,268 documents carry more than one** |
+| label skew | Art. 6 → 792 docs · Art. 41 → 578 · Art. 5 → 234 · Art. 29 → 200 · long tail to n=1 |
+| spread | **17 respondent countries**, judgments **1975–2017** |
+| `doc_id` | the **HUDOC ITEMID** (e.g. `001-90194`) — so a join to the Chalkidis/LexGLUE ECHR set (~11.5 k cases, same HUDOC source) is still available |
+| annotators | 994 documents single-annotated; **274 have 2–10 annotators** → inter-annotator variation is measurable on the oracle itself |
+| entity types | DATETIME 53,668 · ORG 40,695 · **PERSON 24,322** · **LOC 9,982** · DEM 8,683 · MISC 7,044 · CODE 6,471 · QUANTITY 4,141 |
+| identifier class | QUASI 98,244 · NO_MASK 50,023 · **DIRECT 6,739** |
+| co-reference | `entity_id` chains present per annotator |
+
+**One caveat.** The README calls `meta.articles` the *"legal articles involved"* — that is ECtHR_A
+semantics (allegedly violated), not ECtHR_B (actually violated). For an outcome-prediction task
+rather than an issue-classification task, join on `doc_id` to the Chalkidis set. Either way the legal
+task exists.
+
+PERSON (24,322) and LOC (9,982) are exactly the two classes `PLAN.md` singles out as carrying the
+stability requirement, and they are co-reference-chained. This is the strongest single member.
+
+### ✅ i2b2 / n2c2 2014 — Track 1 and Track 2 are the same records
+
+Confirmed from the corpus paper: the records *"were selected for use in Track 2 … identification of
+risk factors for Coronary Artery Disease in diabetic patients"*, and *"the resulting annotations were
+used both to de-identify the data and to set the gold standard for the de-identification track"*.
+
+**1,304 records · 296 patients · 805,118 tokens**, real longitudinal clinical narratives, PHI replaced
+by realistic surrogates (automatic, then manually corrected), double-annotated with arbitration.
+
+That makes it the strongest clinical cell in the design: real longitudinal documents, gold PHI, and a
+downstream clinical task **on identical documents** — the only member where the utility axis and the
+detection axis cannot be confounded by using different data.
+
+### ❌ CodEAlltag ships no annotations
+
+`CodEAlltag_pS` contains `emails/`, `LICENSE`, `README.md` and nothing else: **800 plain `.txt` files,
+zero annotation files** of any format. The manually annotated set described in the paper
+(CodE Alltag<sub>S+d</sub>, 1,390 e-mails) is not what was released. So CodEAlltag is T2 text
+**without gold spans** and cannot supply the oracle level of axis D.
+
+What the release *does* give, found while checking (all CC-BY-SA-4.0 unless noted):
+
+| repository | what it is |
+|---|---|
+| `CodEAlltag_pS` | 800 pseudonymised donated e-mails, plain text |
+| `CodEAlltag_pXL_{EVENTS, FINANCE, GERMAN, MOVIES, PHILOSOPHY, TEENS, TRAVELS}` | seven topical segments, ~590 MB total → **7-class topic classification task** |
+| `CodEAlltag_formality_scores` | **formality scores** → a second German e-mail task, regression or ordinal |
+| `privacy_tagger` (**MIT**) | the authors' own flair-based German e-mail PII tagger, fine-tuned on 3,000 pseudonymised CodEAlltag e-mails; model 2.6 GB, hosted off-repo. A strong **domain-matched detector for axis D** — but a detector, not gold |
+
+No surrogate inventory or gazetteer is published, so AM's rule-based recovery route is not directly
+available for this corpus. Three ways forward, and they are not exclusive: **ask Eder / Krieg-Holz /
+Hahn for the annotated S+d subset**; use `privacy_tagger` as a strong domain detector and accept
+detector-only cells here; or keep CodEAlltag purely as a utility-task corpus and let German gold
+spans come from CARDIO:DE.
+
+### ✅ Licence resolved — CC-BY-SA-4.0, not NC
+
+The `LICENSE` file in every CodEAlltag repository is **Attribution-ShareAlike 4.0 International**. The
+CC-BY-NC seen earlier applies to the ELRA *proceedings paper*, not to the corpus. No NC constraint.
+
+**But ShareAlike is now the binding constraint on what we can release** — see §6.
+
+---
+
+## 6. Distribution: the meta corpus must be a build recipe, not a dataset
+
+The members' licences cannot be combined into one redistributable artefact:
+
+| licence | members |
+|---|---|
+| MIT | TAB |
+| CC-BY-4.0 | MEDDOCAN · MedDeID |
+| **CC-BY-SA-4.0 (copyleft)** | CodEAlltag · REDACT |
+| custom, academic free / commercial separate | AI4Privacy |
+| **DUA, per individual user** | i2b2/n2c2 · CARDIO:DE · BRONCO150 |
+| LDC licence | OntoNotes |
+| public | Enron |
+
+A single distributed blob would have to satisfy ShareAlike *and* three separate DUAs at once, which
+is not possible. So the deliverable is:
+
+- **converters** — one per source, source format → the §3 schema;
+- **a manifest** — exact versions, URLs, DOIs, splits and checksums;
+- **a builder** that assembles the meta corpus locally once the user has obtained each source under
+  their own agreement;
+- **derived artefacts only** where the licence permits — statistics, span offsets, mappings, results.
+
+This is the same pattern PIIBench and BigBIO use, and it should be stated in `PLAN.md` §Deliverables
+so the release plan is not built on an assumption that turns out to be illegal.
+
+---
+
+## 7. Still open
 
 - **Balance means capping.** Enron has ~500 k messages and TAB has 1,268 documents. A balanced meta
   corpus requires sampling the large members. **This is a design decision for AM, not a cost saving**
   — `CLAUDE.md` §1 forbids reducing a corpus to save time, and a deliberate balance criterion is a
   different thing. It must be written down as a stated rule (per-corpus cap? per-cell cap? equal
   token budget per language?) before any sampling happens.
-- **Enron is still undecided** (`candidates.md` §Open question) — and it is now load-bearing twice
-  over: it is one of only two T1 corpora with a natural name distribution, and one of only two with
-  cross-document identity.
-- **Verify:** does TAB's 1,268 ECHR cases join to LexGLUE ECtHR_A/B by case id? Without the join
-  there is no legal downstream task.
-- **Verify:** are i2b2 2014 Track 1 and Track 2 the same documents? If yes, the strongest cell in the
-  design — gold PHI *and* a clinical task on identical longitudinal records.
-- **Verify:** does the CodEAlltag public release ship the manual span annotations, or only the
-  substituted text? The GitHub repo shows `emails/`, `LICENSE`, `README.md` and nothing that looks
-  like standoff annotation. Without the spans it is T2 text without gold.
-- **Licence conflict to resolve:** the CodEAlltag 2.0 paper is ELRA **CC-BY-NC**; the GitHub
-  repository footer shows **CC-BY-SA-4.0**. NC would constrain what we can release.
+- **Enron is still undecided** (`candidates.md` §Open question) — load-bearing twice over: one of only
+  two T1 corpora with a natural name distribution, and one of only two with cross-document identity.
+- **Ask the CodEAlltag authors** for the annotated S+d subset (see above).
 - **OntoNotes is free to non-members** from LDC (no licence fee, shipping/handling only) — confirm
   FAU's LDC status and whether the download route is now electronic.
 - **PIIBench release location not yet found**; needed both as a corpus slice and as the taxonomy.
