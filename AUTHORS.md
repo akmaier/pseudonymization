@@ -6,7 +6,7 @@ Order set by AM, 2026-09-06: **AM first, Siming Bayer last.** The middle four ar
 |---|---|---|---|
 | 1 | **Andreas Maier** | FAU Erlangen-Nürnberg, Pattern Recognition Lab | first author |
 | 2–5 | **Franziska Weber** | FAU Erlangen-Nürnberg | originated the thread; works on thoracic CT |
-| | **Nicklas Lackner** | Universitätsklinikum Erlangen | compared defacing tools; summer school on the topic, Sept 2026 |
+| | **Niklas Lackner** | Universitätsklinikum Erlangen | compared defacing tools; summer school on the topic, Sept 2026 |
 | | **Matthias May** | Universitätsklinikum Erlangen | Prof. Dr. med. habil., EBIR, Leitender Oberarzt, Radiologisches Institut; supplied the clinical and data-protection framing |
 | | **Bernhard Kainz** | FAU Erlangen-Nürnberg / Imperial College London | added by AM |
 | last | **Siming Bayer** | **FAU Erlangen-Nürnberg** | last author |
@@ -16,9 +16,8 @@ she holds both roles and the FAU one applies here.
 
 ## Notes
 
-- **Spelling of "Nicklas".** In the mail thread Franziska writes *"Niklas und ich hätten zwei Ideen"*
-  — one **k**. The spelling above is AM's. Worth one confirmation before submission, since an author
-  list is the wrong place to guess.
+- **Spelling settled:** *Niklas*, one **k** — as Franziska writes it in the thread. Confirmed by AM,
+  2026-09-06.
 - **The other Bernhard.** The thread refers to *"Bernhards Tool"* for report de-identification, with
   a journal paper planned. That person is **not a participant in the thread** — its recipients are
   Franziska, Nicklas, Matthias and AM — and, since the study moved to **public data only**, the tool
