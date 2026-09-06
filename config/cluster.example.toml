@@ -1,0 +1,20 @@
+# Copy to config/cluster.toml and fill in real values locally.
+# The real file is gitignored. No hostnames or usernames in this repo.
+
+[cluster]
+name          = "<cluster description>"
+host          = "<login-host>"
+user          = "<username>"
+ssh_alias     = "<alias from ~/.ssh/config>"
+head_node     = "<current DNS target; do not hard-code in code>"
+slurm_version = "<x.y.z>"
+partition     = "<default partition>"
+account       = "<slurm account>"
+qos           = "<qos list>"
+
+work_dir      = "/cluster/<user>/pseudonymization"
+home_dir      = "/home/<user>"
+scratch_dir   = "/scratch"
+
+[cluster.probe]
+command = "ssh -o BatchMode=yes -o ConnectTimeout=10 <alias> 'hostname; whoami; sinfo -s'"

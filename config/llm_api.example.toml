@@ -1,0 +1,10 @@
+# Copy to config/llm_api.toml and fill in the real key locally.
+# The real file is gitignored and must never be committed.
+# Ask AM for the key; it is not distributed with this repo.
+
+[llm]
+provider        = "nhr_fau"
+base_url        = "<OpenAI-compatible gateway base URL>"
+model           = "<default model id>"
+api_key         = "replace-with-your-api-key"
+timeout_seconds = 60
