@@ -155,7 +155,28 @@ because the effective attack is distributional, not cryptanalytic.
 | **B. Technique** (ENISA) | counter · RNG + mapping table · cryptographic hash · HMAC · symmetric encryption |
 | **C. Surrogate form** | opaque tag (`[PERSON_1]`) · realistic surrogate (*John Doe → Bill Powers*) · attribute-matched surrogate (gender/locale preserved) |
 | **D. Detector** | rule-based (Presidio) · fine-tuned NER (XLM-R / GLiNER) · single LLM · **ensemble across LLMs + baselines** · **gold spans** (oracle) |
-| **E. Corpus** | clinical: MEDDOCAN (es), CARDIO:DE (de), BRONCO (de), E3C (multi), MedDeID (nl), i2b2/n2c2 (en) · legal: TAB/ECHR (en) · e-mail: CodEAlltag (de), Enron (en) · general/financial: PIIBench slice |
+| **E. Corpus** | the **meta corpus** — one balanced assembly across language, domain, task and provenance, in a single schema. Members: legal TAB/ECHR (en) · e-mail Enron (en), CodEAlltag (de) · multi-genre OntoNotes (en, **zh**, **ar**) · clinical i2b2/n2c2 2014 (en, longitudinal), CARDIO:DE (de), BRONCO150 (de), MEDDOCAN (es), MedDeID (nl), E3C (multi) · general/financial AI4Privacy, PIIBench slice, REDACT. See [`data/metacorpus.md`](data/metacorpus.md) |
+| **F. Identifier provenance** | real · realistic-surrogate · placeholder-masked · PHI-inserted · fully synthetic |
+
+**On the meta corpus (axis E) and provenance (axis F).** AM, 2026-09-06: rather than pick corpora
+one at a time, assemble a **single balanced meta corpus** spanning tasks and languages in one unified
+schema, so the study's questions are answered in one pass and the cells become comparable across
+languages for the first time. Two criteria came with the decision — *"PHI-inserted is not great. Same
+for synthetic. Pseudonymised is ok, we can revert with rule-based approaches"*, and **task coverage
+beyond medical, e-mail included**.
+
+That makes **identifier provenance an axis in its own right (F)**, not a filter. A1 and A2 consume
+the *name-frequency distribution*, so a corpus whose identifiers were generated or inserted cannot
+support a claim about them. Real and realistic-surrogate corpora carry the primary result;
+PHI-inserted and fully synthetic ones become the **control** that measures how much a benchmark's own
+construction distorts apparent privacy — which every 2026 detection benchmark needs, since all of
+them are fully synthetic.
+
+Three consequences already fixed by the data (see `data/candidates.md`): only **TAB** and
+**OntoNotes** annotate co-reference; only **i2b2 2014** (longitudinal, 296 patients) and **Enron**
+(mailbox identity) support *cross-document* stability; **E3C** has no PII layer at all and so cannot
+supply the gold-span oracle. **BRONCO150 is sentence-scrambled**, so the document-randomised policy
+level is undefined on it.
 
 The **gold-spans** level of D is essential: it separates *detector* error from *pseudonymisation*
 error, which no prior work does. Everything downstream is otherwise confounded by a 0.40-F1 name
@@ -233,7 +254,11 @@ no new detector: the contribution is the axis nobody varied.
 
 ## Open questions
 
-- Is the full A×B×C×D×E factorial affordable, or do we fix a sensible default per axis and vary one
+- **Balance implies capping.** Enron has ~500 k messages, TAB has 1,268 documents. A balanced meta
+  corpus means sampling the large members — a *design* decision, explicitly not the cost saving that
+  `CLAUDE.md` §1 forbids. The rule (per-corpus cap? equal token budget per language?) has to be
+  written down by AM before any sampling happens.
+- Is the full A×B×C×D×E×F factorial affordable, or do we fix a sensible default per axis and vary one
   at a time around it? Compute is available; annotation-limited corpora may not support every cell.
 - Which E3C languages carry enough PII density to be worth including?
 - **Enron**: use it and make the ethics point explicitly, or exclude it and lose the largest English
