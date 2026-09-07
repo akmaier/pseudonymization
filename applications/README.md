@@ -5,8 +5,8 @@ Drafts below are ready for AM to check, sign and send. **Nothing here has been s
 
 | corpus | to | status | who must act |
 |---|---|---|---|
-| **BRONCO150** | Prof. Dr. Ulf Leser, `leser@informatik.hu-berlin.de` | [draft ready](bronco150_dua.md) — **read the conflict note first** | AM signs + sends |
-| **CARDIO:DE** | heiDATA, `data@uni-heidelberg.de` | [draft ready](cardiode_request.md); the DUA form itself still has to be fetched | AM signs + sends |
+| **BRONCO150** | Prof. Dr. Ulf Leser, `leser@informatik.hu-berlin.de` | [draft ready](bronco150_dua.md) | AM signs + sends |
+| **CARDIO:DE** | **`christoph.dieterich@uni-heidelberg.de`** (study director) | [draft ready](cardiode_request.md); DUA downloaded + MD5-verified | AM signs + sends; **needs the infrastructure-responsible person** |
 | **i2b2 / n2c2 2014** | DBMI Data Portal | [text ready](n2c2_request.md) | **AM only** — per-individual registration |
 | **OntoNotes 5.0** | LDC | [blocked on one fact](ontonotes_ldc.md) | AM: is FAU an LDC member? |
 
@@ -22,37 +22,55 @@ Taken from the Pattern Recognition Lab's own materials; **confirm before sending
 | E-mail | `andreas.maier@fau.de` |
 | Institution website | `lme.tf.fau.de` |
 
-**Open question for AM:** do the applications name **you alone**, or the full author list? It matters
-— BRONCO clause 2 and the n2c2 portal both grant access **per individual**, so every co-author or
-HiWi who touches those corpora needs their own signed agreement. Naming only you is simplest and can
-be extended later; naming everyone front-loads the paperwork but avoids a blocked collaborator in
-week three.
+**Decided (AM, 2026-09-07):** AM applies **in his own name, for the lab**. See "Applying for the
+lab" below for what that does and does not cover.
 
-## The thing that matters more than the paperwork
+## Two clauses, both cleared by AM (2026-09-07)
 
-**Three of the four DUAs restrict what we may do, not just who may hold the data.** BRONCO's terms are
-in hand and explicit; CARDIO:DE's and n2c2's are expected to be similar. Two clauses bite:
+Both agreements were read in full. Each has a no-re-identification clause and a no-third-party
+clause; neither blocks the study.
 
-- **No re-identification.** BRONCO clause 3: the Data User will *"not attempt to identify or
-  re-identify individual persons, hospitals or doctors"*. Our leakage attacks A1–A4 are
-  re-identification procedures — even though they target *our own pseudonyms* rather than the
-  corpus. **On DUA corpora we should run the utility axis only**, and ask the provider explicitly
-  before assuming otherwise.
-- **No transmission to external services.** BRONCO clause 8: the corpus *"must not be transmitted
-  electronically to other services not under administration of the Data User, such as online
-  translation services"*. The NHR@FAU LLM gateway is such a service. **That rules out the LLM
-  detector levels of axis D and attack A4 on BRONCO**, and probably on CARDIO:DE and n2c2 too.
+| | AM's ruling |
+|---|---|
+| BRONCO 3 · CARDIO:DE 1.4 — no attempt to identify individuals | *"De-ID means to find the true identity of the patients. We are not doing that."* The attacks invert **pseudonyms we generate ourselves**. CARDIO:DE 1.4 is explicit: identifying individuals *"based on the Data received"* |
+| BRONCO 8 · CARDIO:DE 2.2 — no third parties / outside services | *"Our data stays in house. We don't use third party APIs."* The LLM endpoint is NHR@FAU, the university's own HPC centre |
 
-Per `CLAUDE.md` §1 these cells are **reported as licence-blocked, not silently dropped**, and the
-question is put to each provider in writing rather than decided by us. See the per-corpus drafts.
+**No cells are licence-blocked.** Both points are still stated plainly in the covering letters, so
+the providers see what we intend rather than discovering it later.
+
+## Applying for the lab — what the agreements actually allow
+
+AM, 2026-09-07: *"I need to apply in my name for my entire lab."* That works for the **request**;
+it does not remove the per-person signature, and both texts are explicit:
+
+> BRONCO **2.** Usage of BRONCO150 is granted to **individual Data Users only**. All prospective Data
+> Users must fill out this data usage agreement **individually**.
+>
+> CARDIO:DE **1.2** Access to data is granted to **individual Recipients only**. Any Recipients or
+> User must fill out this data usage agreement **individually**.
+
+So the shape is:
+
+- **AM is the applicant and Data User**, and — for CARDIO:DE — also the person signing as responsible
+  for the infrastructure. The **group description** is where the lab is represented; CARDIO:DE asks
+  for one explicitly, which fits a lab-level application well.
+- **Anyone else who actually processes the corpus signs their own copy.** Not a formality we can
+  route around: it is one sentence in each agreement.
+- Both covering letters therefore **ask the question directly** — whether staff working under AM's
+  responsibility on the named infrastructure are covered by his signature, or whether each needs a
+  separate agreement, which we would then supply. That gets an authoritative answer instead of an
+  assumption, and costs one paragraph.
+
+The same is true of **n2c2**: the DBMI portal grants access per registered individual, and there is
+no lab-level route at all. Every person who touches it registers and is approved separately.
 
 ## Storage
 
-AM, 2026-09-07: the cluster is exclusive to the group, so **data protection is not a concern**. The
-DUA restrictions are a separate matter — they are contractual limits owed to the corpus providers,
-not privacy law, and they survive the fact that the machine is private. BRONCO clause 4 requires a
-**single copy under the Data User's own administration**, and clause 8 forbids sharing with anyone
-who has not signed.
+AM, 2026-09-07: the cluster is exclusive to the group and processing stays in house, so data
+protection is not a concern. What remains is narrower and purely contractual: BRONCO clause 4 wants a
+**single copy under the Data User's own administration**, and both agreements restrict access to
+people who have signed. That argues for keeping the DUA corpora out of the world-readable shared
+folder — not because of privacy law, but because the agreements say who may read them.
 
 So, two locations:
 
@@ -66,6 +84,8 @@ So, two locations:
 - **BRONCO clause 5:** the corpus must be **deleted twelve months after signing**, and Leser informed
   that deletion has happened. Extension requires re-signing. Put it in a calendar the day the
   agreement is signed.
+- **CARDIO:DE clause 8.1:** term is **5 years**, extendable — far more generous. Clause 6.3: on
+  completion the data is returned or deleted, and a further project needs a new application.
 - **BRONCO clause 11:** actual research activity must adhere to the stated purpose; a different kind
   of research requires a new agreement. This is why the purpose text below is written narrowly and
   honestly rather than broadly.
