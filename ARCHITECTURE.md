@@ -17,7 +17,7 @@ src/pseudonymkit/
   metrics/         stability, detection              pure functions over the domain
   detectors/       axis D: the port, span-level rules, and token-level (ROVER-style) voting
     alignment.py   the shared voting grid: tokenise, BIO projection, per-token vote, LLM grounding
-tests/             59 tests, stdlib + pytest, no network, no models
+tests/             70 tests, stdlib + pytest, no network, no models
 ```
 
 ## The four patterns, and why each is here
