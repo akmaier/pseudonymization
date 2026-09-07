@@ -1,6 +1,6 @@
 # Corpus access applications
 
-Four applications, all on the critical path — nothing else in the schedule absorbs their latency.
+Four corpora needed access. **Two are sent, one is blocked, one turned out to need nothing.** All were on the critical path — nothing else in the schedule absorbs their latency.
 Drafts below are ready for AM to check, sign and send. **Nothing here has been sent.**
 
 | corpus | to | status | who must act |
@@ -8,7 +8,7 @@ Drafts below are ready for AM to check, sign and send. **Nothing here has been s
 | **BRONCO150** | Prof. Dr. Ulf Leser, `leser@informatik.hu-berlin.de` | [draft ready](bronco150_dua.md) | AM signs + sends |
 | **CARDIO:DE** | **`christoph.dieterich@uni-heidelberg.de`** (study director) | [complete](cardiode_request.md) — DUA downloaded + MD5-verified, all fields filled | AM signs + sends |
 | **i2b2 / n2c2 2014** | DBMI Data Portal | ⛔ **[BLOCKED](n2c2_request.md)** — registration closed, datasets "temporarily unavailable" | AM: e-mail DBMI to ask when it reopens |
-| **OntoNotes 5.0** | `ldc@ldc.upenn.edu` | [complete](ontonotes_ldc.md) — **fee verified $0.00**; one signature covers the whole chair | AM signs + e-mails |
+| **OntoNotes 5.0** | — | ✅ **[no application needed](ontonotes_ldc.md)** — already licensed to FAU since 2020-02-06, downloaded 2026-09-07 | done |
 
 ## PDFs on disk — for signing
 

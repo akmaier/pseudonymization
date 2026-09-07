@@ -1,94 +1,46 @@
-# OntoNotes 5.0 (LDC2013T19) — LDC, non-member route
+# OntoNotes 5.0 (LDC2013T19) — already licensed, no application needed
 
-**AM, 2026-09-07: FAU is not an LDC member.** So this goes through the non-member route, which is
-short: create an account, sign one agreement, order, download.
-
-**Delivery is Web Download only** — no physical media, so no shipping to arrange.
+> ## ✅ RESOLVED 2026-09-07 — the corpus was already in FAU's LDC account
+>
+> Signed in, `catalog.ldc.upenn.edu/organization/downloads` lists **LDC2013T19, OntoNotes Release
+> 5.0, invoice date 2020-02-06** as available for download. It was licensed six years ago; no
+> agreement had to be signed and no fee was payable.
+>
+> | | |
+> |---|---|
+> | file | `ontonotes-release-5.0_LDC2013T19` |
+> | size | **890 MB** |
+> | MD5 | `d9c9b6a8063f8274b5c6e135021aa070` |
+>
+> Downloaded and transferred to the cluster alongside the other public corpora. The LDC non-member
+> agreement (`applications/forms/LDC_nonmember_agreement_blank.pdf`) is therefore **not needed** and
+> was never sent.
+>
+> **Also already licensed to FAU**, seen on the same page and noted in case they are ever wanted:
+> CHiME3, CSR-I (WSJ0), WSJCAM0, TIMIT, CALLHOME Mandarin/Spanish/Japanese, CELEX2, Buckwalter
+> Arabic Morphological Analyzer. So FAU does hold LDC licences even without a current membership —
+> which means **Avocado (LDC2015T03)** would be obtainable by the same route if the e-mail domain
+> ever needs a second English corpus.
 
 ---
 
-## The agreement — and it is the least restrictive of the four
+## Licence terms that still bind
 
-*LDC User Agreement for Non-Members* (`catalog.ldc.upenn.edu/license/ldc-non-members-agreement.pdf`),
-a single page. Read in full 2026-09-07.
-
-**It covers a research group under one signature.** The agreement defines *User* as a named
-individual at an affiliation, and *User's Research Group* as a specific department or area within
-the university — then restricts redistribution only to people **outside** that group:
-
-> Unless explicitly permitted herein, User shall not otherwise publish, retransmit, disclose,
-> display, copy, reproduce or redistribute the LDC Databases to others **outside of User's Research
-> Group**.
-
-That is exactly the lab-level application AM asked for, and it is the opposite of BRONCO clause 2 and
-CARDIO:DE clause 1.2, which both require every user to sign individually. **One signature covers the
-Pattern Recognition Lab.**
-
-Other terms:
+*LDC User Agreement for Non-Members*, one page, read in full 2026-09-07. The least restrictive of the
+four corpora:
 
 | | |
 |---|---|
-| permitted use | *"non-commercial linguistic education, research and technology development"* |
-| publication | limited excerpts may appear in articles and reports describing the results |
-| commercial use | requires joining LDC as a For-Profit Member and paying applicable fees — not our case |
-| citation | required in scholarly publications |
-| warranty | none; provided "AS IS" |
-| **re-identification** | **no clause** — unlike BRONCO 3 and CARDIO:DE 1.4 |
-| **third-party services** | **no clause** — unlike BRONCO 8 and CARDIO:DE 2.2 |
-| deletion | **no deletion deadline** — unlike BRONCO's 12 months |
+| permitted use | non-commercial linguistic education, research and technology development |
+| redistribution | only within **User's Research Group** — so the group's shared dataset folder is fine |
+| publication | limited excerpts may appear in articles and reports |
+| citation | required |
+| **re-identification** | **no clause** |
+| **third-party services** | **no clause** |
+| deletion | **no deadline** |
 
-So OntoNotes carries no design constraints at all beyond "do not redistribute outside the lab", which
-the build-recipe distribution model (`metacorpus.md` §6) already satisfies — we ship converters and a
-manifest, never corpus text.
-
-## Signature block
-
-Signed **for the organization**, so a title is required — AM as chair holder fits:
-
-```
-For the organization: Friedrich-Alexander-Universität Erlangen-Nürnberg,
-                      Pattern Recognition Lab (Computer Science 5)
-Signature:            ____________
-Date:                 ____________
-Name:                 Andreas Maier
-Title:                Chair, Computer Science 5 (Pattern Recognition)
-
-User (individual):    Andreas Maier
-Affiliation:          Friedrich-Alexander-Universität Erlangen-Nürnberg
-User's research group: Pattern Recognition Lab (Computer Science 5)
-
-EXHIBIT A — CORPORA RECEIVED
-1  OntoNotes Release 5.0, LDC2013T19
-```
-
-Return by e-mail to `ldc@ldc.upenn.edu` (or fax +1 215 573 2175).
-
-## Fee — verified 2026-09-07, logged in
-
-**$0.00.** The catalogue's Fees box, visible once signed in, reads:
-
-| category | fee |
-|---|---|
-| 2013 Member | $0.00 |
-| **Non-Member** | **$0.00** |
-| Reduced-License | $0.00 |
-| Extra Copy | $0.00 |
-
-Available Media: **Web Download**. So OntoNotes costs nothing and there is nothing to ship — the
-earlier "unverified" caveat is resolved.
-
-## How it is actually obtained — by e-mail, not a web order
-
-There is **no cart or checkout button** on the catalogue page for this corpus. The page carries the
-fee table and a link to the *LDC User Agreement for Non-Members*, and nothing else. The route is the
-same shape as BRONCO and CARDIO:DE:
-
-1. Sign `applications/forms/LDC_nonmember_agreement_blank.pdf`, with **Exhibit A line 1 =
-   "OntoNotes Release 5.0, LDC2013T19"**.
-2. E-mail the signed agreement to **`ldc@ldc.upenn.edu`** (fax +1 215 573 2175 is the alternative).
-3. LDC enables the web download on the account.
-
-Field values are in `applications/forms/LDC_OntoNotes_fill_sheet.pdf`.
+The only constraint is no redistribution outside the group, which the build-recipe distribution model
+(`metacorpus.md` §6) already satisfies: we ship converters and a manifest, never corpus text.
 
 ## What it contributes
 
