@@ -48,7 +48,7 @@ Balanced on four things at once: **language · domain · downstream task · prov
 | **OntoNotes 5.0** | en, **zh**, **ar** | Latin, Han, Arabic | news · broadcast · weblog · telephone speech · usenet | **co-reference resolution + NER** (the task pseudonymisation most directly damages) | **co-reference**, 18 NE types | T1 |
 | **i2b2 / n2c2 2014** | en | Latin | clinical, **longitudinal** | heart-disease **risk-factor extraction** (Track 2 — **confirmed same records**, §5) | **cross-document**: 1,304 records over **296 patients** | T2 |
 | **CodEAlltag** | de | Latin | e-mail (donated) · usenet (XL) | **7-way topic classification** (XL segments) + **formality scores** (released separately) | **no gold spans in the release** (§5); consistent surrogates only | T2 |
-| **CARDIO:DE** | de | Latin | cardiology letters | German clinical NER | placeholders give free gold spans; no names | T3 |
+| **CARDIO:DE** | de | Latin | cardiology letters | **medication information extraction** (ActiveIng, Dosage, Drug, Duration, Form, Frequency, Reason, Route, Strength) + **CDA section classification** (14 classes); V1.1.2 adds token-level Diagnosis/Therapy/Medical_Finding | placeholders give free gold spans; no names | T3 |
 | **BRONCO150** | de | Latin | oncology discharge | **ICD-10 / OPS / ATC coding** | none — sentence-scrambled, no document | T3 |
 | **MEDDOCAN** | es | Latin | clinical case reports | Spanish clinical NER | none (no co-reference) | T4 |
 | **MedDeID** | nl | Latin | clinical (synthetic) | Dutch de-identification NER | none | T5 |
@@ -296,6 +296,31 @@ is not possible. So the deliverable is:
 
 This is the same pattern PIIBench and BigBIO use, and it should be stated in `PLAN.md` §Deliverables
 so the release plan is not built on an assumption that turns out to be illegal.
+
+---
+
+## 6b. DUA clauses constrain the design, not just the storage
+
+Found while preparing the applications (`applications/`). BRONCO150's agreement is in hand and
+explicit; CARDIO:DE's and n2c2's are expected to be similar and must be read the same way.
+
+> **3.** The Data User agrees that he/she will … **not attempt to identify or re-identify individual
+> persons, hospitals or doctors from BRONCO150.**
+>
+> **8.** BRONCO150 **must not be transmitted electronically to other services not under
+> administration of the Data User**, such as online translation services.
+
+| axis | on a DUA corpus with these clauses |
+|---|---|
+| Utility | ✅ unaffected |
+| Detection — rule-based, local NER | ✅ unaffected |
+| Detection — **LLM levels and ensemble** | ❌ clause 8: the NHR@FAU gateway is an external service |
+| **Leakage A1–A4** | ❌ clause 3: these are re-identification procedures |
+
+Per `CLAUDE.md` §1 those cells are **reported as licence-blocked, never silently dropped**, and both
+questions are put to the providers in writing rather than settled by us. Until answered, assume the
+restriction applies. It is coherent for BRONCO in any case — T3 provenance and sentence-scrambled, so
+it was never going to carry leakage or stability.
 
 ---
 
