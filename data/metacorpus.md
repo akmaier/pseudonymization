@@ -324,6 +324,32 @@ it was never going to carry leakage or stability.
 
 ---
 
+## 6c. Acquisition status (2026-09-07)
+
+Public members fetched to the group shared dataset folder by
+[`scripts/fetch_corpora.sh`](../scripts/fetch_corpora.sh) (idempotent — re-running skips what is
+present). **Zero failures.** ~8.9 GB total.
+
+| corpus | landed | size |
+|---|---|---|
+| Enron | `enron_mail_20150507.tar.gz`, byte-exact at 443,254,787 B | 423 MB |
+| TAB / ECHR | full repo, 3 split JSONs | 77 MB |
+| CodEAlltag | `pS`, all seven `pXL_*` segments, `formality_scores`, `privacy_tagger` | 6.6 GB |
+| E3C | full corpus repo | 924 MB |
+| AI4Privacy | 15 files incl. per-language JSONL (en, nl, fr, de, it, es) | 767 MB |
+| MEDDOCAN | `meddocan.zip` + guidelines + converter scripts | 78 MB |
+| MedDeID | synthetic data zip + EN/NL annotation guidelines | 13 MB |
+| REDACT | benchmark repo | 7.5 MB |
+| PIIBench | pipeline + taxonomy | 6.1 MB |
+
+CodEAlltag dominates the footprint because the git working trees hold ~1.4 M individual message
+files; note that any `du` or recursive scan over that tree is slow.
+
+**Not fetched, by design:** BRONCO150, CARDIO:DE, n2c2 2014, OntoNotes — DUA- or licence-bound,
+obtained per signatory and stored outside the shared folder. See [`applications/`](../applications/).
+
+---
+
 ## 7. Still open
 
 - **Balance means capping.** Enron has ~500 k messages and TAB has 1,268 documents. A balanced meta
