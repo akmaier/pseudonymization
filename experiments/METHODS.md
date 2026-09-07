@@ -45,10 +45,39 @@ metrics measure anything:
 | **raw surface form** | *Dr. Weber*, *Weber*, *F. Weber* are three keys → three pseudonyms. This is what a real deployed system does, and it is exactly the failure `PLAN.md` §Measurements/2 wants to quantify |
 | **normalised surface form** | a middle position: casefolding, title stripping, initial expansion. Realistic for a good implementation |
 
-**Recommendation: the entity key is the normalised surface form, with the normaliser itself a
-reported setting** (`none` / `casefold` / `casefold+titles+initials`). The **gold co-reference id is
-the ground truth** the fragmentation metric is scored against, never the key. That way fragmentation
-is a measured property of the function, not an artefact of being handed the answer.
+**Decided (AM, 2026-09-07): choose from the data.** Measured on TAB's gold co-reference chains —
+8,701 PERSON chains over 15,955 mentions, 3,603 LOC chains over 6,436 mentions, collisions counted
+within document because TAB's `entity_id` is document-scoped:
+
+| normaliser | fragmentation (chains split) | collisions | | LOC split | LOC collisions |
+|---|---:|---:|---|---:|---:|
+| N0 raw surface form | 11.8 % | 0.00 % | | 0.7 % | 0.00 % |
+| N1 + casefold | 11.8 % | 0.10 % | | 0.7 % | 0.28 % |
+| **N2 + strip titles & punctuation** | **9.8 %** | **2.32 %** | | 0.7 % | 0.28 % |
+| N3 + drop single-letter initials | 5.2 % | 4.70 % | | 0.7 % | 0.30 % |
+| N4 surname only | 1.4 % | 9.02 % | | 0.5 % | 4.54 % |
+
+**The normaliser alone traces a collision–fragmentation frontier, monotonically, before any
+cryptography is involved.** That is the paper's thesis in miniature and it is worth reporting in its
+own right: the trade-off practitioners attribute to the choice of function is already present in the
+key-construction step nobody documents.
+
+Two further observations from the same measurement:
+
+- **11.8 % of PERSON chains carry more than one surface form** (mean 1.13 distinct forms, up to 10),
+  so fragmentation is a real phenomenon on real text, not a hypothetical.
+- **LOC barely varies — 0.7 %.** Place names are written the same way each time, so the LOC arm is
+  dominated by *collisions* and the PERSON arm by *fragmentation*. The two entity types that
+  `PLAN.md` singles out for stability fail in opposite directions, which no prior work reports.
+
+**Default: N2** — casefold, strip punctuation and honorifics — which halves nothing but removes the
+free 2 % of fragmentation that pure casefolding leaves on the table, at 2.3 % collisions. **The
+normaliser is run as a reported sub-axis N0–N4**, since it costs almost nothing and traces the
+frontier directly.
+
+Caveat to carry into the paper: these collision figures are **within document**. Corpus-wide, under a
+deterministic policy, collisions will be substantially higher — that measurement needs a corpus with
+cross-document entity identity, i.e. Enron.
 
 This also separates the two causes of fragmentation, which no prior work does:
 
@@ -79,9 +108,9 @@ would destroy stability outright and the cell would be meaningless. Two defensib
   can map to a name-shaped string. Closer to what practitioners mean by "encrypt the identifier",
   and it interacts with axis C in an interesting way.
 
-**AM's call.** I would run **AES-SIV as the axis-B level** (it is the honest comparator to HMAC) and
-note FF1 as related work, because FF1's format preservation is really a *surrogate form* property and
-would confound B with C.
+**Decided (AM, 2026-09-07): AES-SIV is the axis-B level; FF1 is cited as related work.** FF1's
+format preservation is really a surrogate-form property and would confound B with C. AES-SIV is
+available in `cryptography` (verified 49.0.0, `AESSIV`, deterministic output confirmed).
 
 ---
 
@@ -180,13 +209,95 @@ Every run writes a manifest: config hash, seed, key id, library versions, corpus
 
 ## 8. Decisions needed before coding starts
 
-1. **Entity key** — normalised surface form, with the normaliser as a reported setting? (§2)
-2. **Encryption mode** — AES-SIV as the axis-B level, FF1 noted as related work? (§3)
-3. **Collision policy for the mapping table** — draw-without-replacement (no collisions, so ENISA's
-   warning is untestable) or draw-with-replacement (collisions occur and are measured)? Measuring
-   them is the only way to test ENISA's claim, so I would run **both** as two sub-levels and report
-   the difference. (§7)
-4. **Balance / capping rule** — still open from the meta corpus, and it gates the corpus side but not
-   §1–§6.
+1. ~~Entity key~~ — **decided: N2 default, N0–N4 as a reported sub-axis**, chosen from the TAB measurement in §2.
+2. ~~Encryption mode~~ — **decided: AES-SIV**, FF1 cited.
+3. ~~Collision policy for the mapping table~~ — **decided: both**, as two sub-levels.
+   Draw-without-replacement makes ENISA's collision warning untestable; draw-with-replacement lets it
+   be measured. Running both and reporting the difference is the only way to test the claim.
+4. **Balance / capping rule** — still open from the meta corpus. Gates the corpus side, not §1–§6.
 
-Nothing else is blocked.
+Decisions 1–3 are settled. Only the capping rule remains, and it does not block the engine.
+
+---
+
+## 9. Concrete methods, branch by branch
+
+### 9.1 Detection / de-identification (axis D)
+
+The detector is **not** the independent variable, so the levels are chosen to span the families the
+field uses, not to be exhaustive.
+
+| level | method | notes |
+|---|---|---|
+| rule-based | **Microsoft Presidio** — regex + checksum recognisers over a spaCy NER backbone | REDACT reports rule-based recall **0.07** on HIGH-sensitivity entities; it is the floor, and belongs in the paper as such |
+| fine-tuned NER | **XLM-RoBERTa-large** token classifier, fine-tuned per language on the corpus's own train split | the standard multilingual baseline; one model per language arm |
+| zero-shot NER | **GLiNER** (and GLiNER2-PII, arXiv 2605.09973) | covers entity types with no training data, which matters for the long tail of 48 types |
+| domain-specific | **CodEAlltag `privacy_tagger`** (flair, German e-mail) | the authors' own tagger, already on disk — a strong in-domain baseline for the German e-mail arm and an honest comparator |
+| LLM, single | via the **NHR@FAU gateway**, free: `gpt-oss-120b`, `Qwen3.6-35B-A3B`, `RedHatAI/gemma-4-31B`, `Mistral-Small-3.2-24B`, `DeepSeek-V4-Flash-0731` | JSON span extraction with offset validation and retry; at least two distinct models run individually, per `PLAN.md` axis D |
+| **ensemble** | union **and** majority vote over {Presidio, XLM-R, GLiNER, ≥2 LLMs} | reported separately — union maximises recall, vote maximises precision, and the gap between them is the privacy/utility trade-off appearing at the detector level |
+| **gold spans** | oracle | separates detector error from pseudonymisation error; without it everything downstream is confounded by a 0.40-F1 name detector |
+
+Spans are normalised to the meta-corpus schema (character offsets, harmonised type) before anything
+downstream sees them, so detectors are interchangeable by construction.
+
+### 9.2 Pseudonymisation (axes A · B · C)
+
+| axis | level | implementation |
+|---|---|---|
+| **A** | deterministic · document-randomised · fully-randomised | scope key `(entity_key)` / `(entity_key, doc_id)` / `(entity_key, mention_id)` — §1 |
+| **B** | counter | ordinal per `(type, scope)`, fixed iteration order, order reported |
+| | RNG + mapping table | seeded `numpy.random.Generator`; table in SQLite; **two sub-levels**, draw-with- and draw-without-replacement |
+| | cryptographic hash | `SHA-256(scope_key)` → index |
+| | HMAC | `HMAC-SHA256(key, scope_key)` → index |
+| | symmetric encryption | **AES-SIV**, `cryptography.hazmat.primitives.ciphers.aead.AESSIV`, 256-bit key, entity type as associated data |
+| **C** | opaque tag | `[PERSON_1]`, index only |
+| | realistic surrogate | index → inventory lookup by type and language |
+| | attribute-matched | index → inventory lookup **stratified** by inferred gender / locale / frequency band |
+| **key** | N0–N4 normaliser | reported sub-axis; **N2 default** (§2) |
+
+Key material lives in `config/`, never in code or results; each run records a key id, not a key.
+
+### 9.3 Stability
+
+Pure set operations over `gold chain → entity keys → pseudonyms`, no learning:
+
+- **collision** — distinct gold chains sharing a pseudonym within a scope
+- **fragmentation** — one gold chain, several pseudonyms within a scope
+- **drift** — one gold chain, different pseudonyms across scopes
+
+Reported per entity type, PERSON and LOC separately, and labelled per policy as defect or as
+specified behaviour (§5). Bootstrap confidence intervals over documents.
+
+### 9.4 Utility
+
+Two regimes throughout: **train-pseudo / test-pseudo** (deployment) and **train-orig / test-pseudo**
+(transfer).
+
+| corpus | task | method | metric |
+|---|---|---|---|
+| TAB / ECHR | ECHR **article classification**, 30 labels, multi-label, ships in `meta.articles` | XLM-R or Legal-BERT fine-tune | micro / macro F1 |
+| Enron | **folder classification** (Klimt & Yang 2004) | linear SVM on TF-IDF as the published baseline, plus a transformer | accuracy, macro F1 |
+| CodEAlltag | **7-way topic** (XL segments) and **formality** (released scores) | XLM-R fine-tune; regression head for formality | macro F1; Spearman ρ |
+| OntoNotes | **co-reference + NER** | a standard neural coref model; XLM-R for NER | CoNLL F1; entity F1 |
+| BRONCO150 *(pending)* | **ICD-10 / OPS / ATC coding** | multi-label classifier | micro F1 |
+| CARDIO:DE *(pending)* | **medication IE** and **section classification** | token classifier; sequence classifier | F1 |
+
+Task-independent proxies, run on every corpus: **LM perplexity shift** (a small causal LM, same model
+across cells) and **embedding drift** — cosine displacement of document embeddings, using
+`intfloat/multilingual-e5-large` on the free gateway, which keeps the proxy identical across all six
+languages.
+
+### 9.5 Leakage
+
+| attack | method | metric |
+|---|---|---|
+| **A1 dictionary** | enumerate the §4 inventory, apply the *public* function, match | inversion rate as a function of **name frequency** and **name length**. Defined only against unkeyed techniques — hash and counter; HMAC and AES-SIV need the key, and saying so is part of the threat model, not a null result |
+| **A2 frequency** | rank pseudonyms by corpus frequency, rank candidate names by reference frequency, align | top-1 / top-5 accuracy; Spearman ρ; **Hungarian matching** for the optimal global assignment. Applies to **all five** techniques — this is H1 |
+| **A3 linkage** | co-occurrence graph over pseudonymised documents, matched to an auxiliary record | seeded graph matching; precision@k of recovered pairs. Auxiliary: Enron's ~184-employee org chart, the only real one we have |
+| **A4 LLM re-identification** | pseudonymised document → gateway LLM → "who is this?", with and without auxiliary context | recovery of the **corpus surface form**, never external facts; **stratified by public-figure status**, which doubles as a memorisation test against arXiv 2602.20580 |
+
+### 9.6 Harness
+
+One YAML per cell; every run emits a manifest with config hash, seed, key id, corpus versions,
+library versions and the commit. Slurm array jobs over cells, checkpointed against the 24 h wall
+clock. Results are parquet on disk, never numbers in prose.
