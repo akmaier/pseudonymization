@@ -17,13 +17,18 @@ Drafts below are ready for AM to check, sign and send. **Nothing here has been s
 
 | file | what it is |
 |---|---|
-| `BRONCO150_DUA_blank.pdf` | the official form, 3 pp — sign page 3 |
-| `BRONCO150_fill_sheet.pdf` | the values to enter, purpose text, covering e-mail |
-| `CARDIODE_DUA_blank.pdf` | the official agreement, 4 pp — fields on page 4 (MD5 verified against heiDATA) |
-| `CARDIODE_fill_sheet.pdf` | values, group + project description, infrastructure block, covering e-mail |
-| `LDC_nonmember_agreement_blank.pdf` | the LDC non-member agreement, 1 p |
+| **`BRONCO150_DUA_FILLED.pdf`** | **filled** — name, affiliation, position, e-mail and the 93-word purpose typed onto page 3. **Print, sign, scan.** |
+| **`CARDIODE_DUA_FILLED.pdf`** | **filled** — Recipient named on page 1; page 4 carries both blocks, the group description and the 146-word project description, plus Sven Grünke as co-administrator. **Print, sign, scan.** |
+| `BRONCO150_DUA_blank.pdf` | the untouched original, for reference |
+| `CARDIODE_DUA_blank.pdf` | the untouched original (MD5-verified against heiDATA) |
+| `LDC_nonmember_agreement_blank.pdf` | LDC non-member agreement, 1 p — fields are few, fill by hand or type |
 | `LDC_OntoNotes_fill_sheet.pdf` | fields, ordering steps, corpus summary |
+| `BRONCO150_fill_sheet.pdf` · `CARDIODE_fill_sheet.pdf` | the same values as plain text, plus the covering e-mails to paste |
 | `n2c2_portal_text.pdf` | nothing to sign — the research summary to paste into the portal |
+
+**Left blank on purpose:** every signature, and both `Date:` fields on CARDIO:DE page 4 — the date
+should be the day it is actually signed, and BRONCO's twelve-month deletion clock (clause 5) runs
+from it.
 
 The blanks came from `www2.informatik.hu-berlin.de/~leser/bronco/`, heiDATA `doi:10.11588/DATA/AFYQDY`
 and `catalog.ldc.upenn.edu/license/ldc-non-members-agreement.pdf`. Not committed: they are other
