@@ -1,108 +1,145 @@
 # CARDIO:DE — data request
 
-**To:** heiDATA, `data@uni-heidelberg.de` · approved by the study director, **Christoph Dieterich**
-**Stated lead time:** at least one week. **Send early.**
+**Send to: `christoph.dieterich@uni-heidelberg.de`** — the study director, directly. *(Correction: an
+earlier note in this repo said `data@uni-heidelberg.de`; the heiDATA terms of use say the request
+goes to the study director.)*
 
-**Still needed:** the signed DUA form itself. It is `DUA_en.pdf` (229 KB) on the heiDATA dataset page
-(`doi:10.11588/DATA/AFYQDY`, Terms → Terms of Use). The page is behind an Anubis bot-check that
-blocks scripted fetching, so it has to be downloaded from a browser.
+**Agreement:** *CARDIO.de Data Transfer Agreement*, `DUA_en.pdf`, 4 pages — downloaded 2026-09-07,
+MD5 `9b3f59448c6360573fe2d24463c69c08`, verified. Local copy: `~/Downloads/DUA_en.pdf`.
 
-**Corpus, as listed on heiDATA 2026-09-07 — now V1.1.2, newer than our notes:**
+**Stated lead time:** at least one week. **Term: 5 years** from signature (clause 8.1).
 
-| file | size |
-|---|---|
-| `cardiode.zip` | 21.8 MB |
-| `cardiode_1.1.2_extension_becker.zip` | 19.2 MB — community annotations, Becker et al. |
-| `cardiode_dependencies_inception.zip` | 6.1 KB |
-| `DUA_en.pdf` | 229 KB — the agreement |
-
-500 German cardiology routine doctor's letters, manually de-identified, **temporal information
-deliberately preserved**. Gold annotation layers:
-
-- **medication information** — ActiveIng, Dosage, Drug, Duration, Form, Frequency, Reason, Route,
-  Strength
-- **CDA-compliant section classes** — Abschluss, Anamnese, Anrede, Diagnosen, AufnahmeMedikation,
-  Befunde, EchoBefunde, AktuellDiagnosen, EntlassMedikation, KuBefunde, Labor, Mix,
-  AllergienUnverträglichkeitenRisiken, Zusammenfassung
-- **V1.1.2 extension**: token-level Diagnostic, Diagnosis, Drug, Medical_Finding, Therapy
-
-That is **two downstream tasks, not one** — medication information extraction and section
-classification — which is better than the "German clinical NER" our corpus table currently claims.
-Both are updated in `data/metacorpus.md`.
+Parties: University Hospital Heidelberg AdöR, executing institution Medical Clinic — Internal
+Medicine III, project manager Prof. Dr. rer. nat. Christoph Dieterich.
 
 ---
 
-## Group description
+## What the terms of use require, verbatim
 
-> The **Pattern Recognition Lab** at Friedrich-Alexander-Universität Erlangen-Nürnberg
-> (`lme.tf.fau.de`) is a research group in the Department of Computer Science working on machine
-> learning for medical data, headed by Prof. Dr.-Ing. Andreas Maier.
+> **The corpus must be formally requested following three steps:** 1. Sending a data request mail to
+> the study director (christoph.dieterich@uni-heidelberg.de) including a signed DUA … 2. including a
+> group description and a project description … 3. After a positive decision … the data requestor
+> will receive detailed instructions how to download the corpus via heiDATA.
 >
-> - Requester: **Prof. Dr.-Ing. Andreas Maier**
-> - Position: Professor, Head of the Pattern Recognition Lab
-> - Affiliation: Friedrich-Alexander-Universität Erlangen-Nürnberg, Pattern Recognition Lab,
->   Martensstraße 3, 91058 Erlangen, Germany
-> - E-mail: `andreas.maier@fau.de`
-> - Institution website: `lme.tf.fau.de`
+> The data request needs to contain the following information: 1. A signed DUA, **signed by each data
+> user individually**. 2. A group description including the requestor's (data user's) name,
+> affiliation, position and email address and website of the institution. 3. A project description of
+> the research purpose (**max. 150 words**). 4. **Name, affiliation, position, email address and
+> signature of the responsible person to administer and manage the infrastructure on which CARDIO:de
+> will be stored.**
 
-## Project description
+## Clauses that matter for our design
 
-> **End-to-end evaluation of text pseudonymisation: detection, utility and leakage.**
+| clause | text | effect on us |
+|---|---|---|
+| **1.2** | *"Access to data is granted to individual Recipients only. Any Recipients or User must fill out this data usage agreement individually."* | **each lab member who processes the data signs their own copy** — see below |
+| **1.4** | *"Under no circumstances may the Recipient attempt to identify specific individuals **based on the Data received**."* | ✅ satisfied — we attack pseudonyms **we generate**, never the identity of a patient |
+| **2.2** | no disclosure to third parties without prior written consent | ✅ satisfied — processing is in-house on FAU infrastructure |
+| **3.3** | Heidelberg may request a copy of derived data/variables | keep derived artefacts retrievable |
+| **4.1** | publication permitted; must cite the CARDIO:DE publication | — |
+| **6.3** | on completion, all Data returned or deleted per instruction; a further project needs a **new application** | scope the project description to cover the whole study |
+| **8.1** | term **5 years**, extendable | far more generous than BRONCO's 12 months |
+
+Clause 1.4 is narrower than BRONCO's equivalent — it prohibits identifying *specific individuals
+based on the Data*, which is exactly the thing we are not doing.
+
+---
+
+## Page 4 — Recipient (data user)
+
+```
+Name:         Prof. Dr.-Ing. Andreas Maier
+Affiliation:  Friedrich-Alexander-Universität Erlangen-Nürnberg,
+              Pattern Recognition Lab, Department of Computer Science
+Position:     Professor, Head of the Pattern Recognition Lab
+Email:        andreas.maier@fau.de
+Website:      lme.tf.fau.de
+Date:         ____________
+```
+
+**Group description:**
+
+> The Pattern Recognition Lab at Friedrich-Alexander-Universität Erlangen-Nürnberg is a research group
+> in the Department of Computer Science, headed by Prof. Dr.-Ing. Andreas Maier, working on machine
+> learning and pattern recognition for medical data — medical imaging, clinical text and speech. The
+> lab hosts approximately [N] researchers and doctoral candidates. Data are processed exclusively on
+> the lab's own compute cluster, administered within the group.
+
+## Project description (max. 150 words)
+
+> We evaluate text pseudonymisation end to end: detection, utility and residual risk. Research on
+> clinical de-identification varies the *detector* and holds the replacement step fixed; we invert
+> that and treat the **pseudonymisation function and policy** as the independent variable, using the
+> technique and policy taxonomies of ENISA (2021) and DIN EN ISO 25237 — deterministic,
+> document-randomised and fully randomised policies, crossed with counter, mapping table, hash, HMAC
+> and symmetric encryption, and three surrogate forms.
 >
-> Current work on clinical de-identification varies the *detector* and holds the replacement step
-> fixed. We invert that. Taking the technique and policy taxonomies of ENISA (2021) and
-> DIN EN ISO 25237, we treat the **pseudonymisation function and policy** as the independent
-> variable — deterministic versus document-randomised versus fully randomised, crossed with counter,
-> RNG-with-mapping-table, hash, HMAC and symmetric encryption, and with three surrogate forms
-> (opaque tag, realistic surrogate, attribute-matched surrogate).
->
-> For each combination we measure three things on the same documents: detection quality, **utility**
-> — downstream task performance on pseudonymised text — and residual leakage. The distinctive
-> requirement we study is **pseudonym stability**: one person must keep one pseudonym across a corpus
-> and must never collapse into another person.
->
-> **CARDIO:DE would serve the utility axis in German.** Its medication-information and section-class
-> annotation layers give us two downstream tasks on real clinical routine text, which we would
-> evaluate on pseudonymised versus unmodified documents in two regimes (train and test both
-> pseudonymised; train on original, test on pseudonymised). Because CARDIO:DE is already
-> de-identified with semantic placeholders, it also lets us measure what placeholder-style masking
-> costs relative to realistic surrogates — a comparison for which we know of no published figures.
->
-> The study uses **public data only**; no clinical data from Erlangen is involved. Results are
-> aggregate performance figures. We will not attempt to identify or re-identify any person,
-> physician or institution, and we will not transfer the corpus to any third party. Code and
-> aggregate results will be released; no corpus text will be redistributed.
->
-> Target venue: TrustFMI workshop at ACCV 2026.
+> CARDIO:DE serves the **utility** measurement in German. Using its medication-information and
+> section-class annotation layers as downstream tasks, we compare task performance on pseudonymised
+> against unmodified text, in two regimes. No attempt is made to identify any individual; the study
+> operates on surrogates we generate ourselves. Processing is in-house on FAU infrastructure. Only
+> aggregate figures are published, and no corpus text is redistributed.
+
+*(146 words.)*
+
+## Responsible person for the infrastructure
+
+```
+Name:         ____________   ← AM: yourself, or the i5 cluster administrator?
+Affiliation:  Friedrich-Alexander-Universität Erlangen-Nürnberg, Pattern Recognition Lab
+Position:     ____________
+Email:        ____________
+Date:         ____________
+Signature:    ____________
+```
+
+**Decide this before sending.** The form says *"e.g. research unit leader"*, so AM signing both blocks
+is normal — but if the lab cluster is administered by i5 IT rather than the lab, name that person.
+
+---
 
 ## Covering e-mail
 
 > **Subject:** CARDIO:DE data request — Pattern Recognition Lab, FAU Erlangen-Nürnberg
 >
-> Sehr geehrte Damen und Herren, sehr geehrter Herr Prof. Dieterich,
+> Sehr geehrter Herr Prof. Dieterich,
 >
-> hiermit beantragen wir Zugang zu CARDIO:DE. Anbei die unterschriebene Data Usage Agreement sowie
-> Gruppen- und Projektbeschreibung.
+> hiermit beantrage ich Zugang zu CARDIO:DE. Anbei die unterschriebene Data Transfer Agreement mit
+> Gruppen- und Projektbeschreibung sowie den Angaben zur verantwortlichen Person für die
+> Infrastruktur.
 >
-> Wir untersuchen, wie sich Verfahren und Politik der Pseudonymisierung (nach ENISA und
-> ISO 25237) auf Erkennung, Nutzbarkeit und Restrisiko klinischer Texte auswirken. CARDIO:DE würden
-> wir für die Nutzbarkeitsmessung im Deutschen verwenden — Medikationsextraktion und
-> Abschnittsklassifikation auf pseudonymisiertem gegenüber unverändertem Text.
+> Wir untersuchen am Lehrstuhl für Mustererkennung der FAU Erlangen-Nürnberg, wie sich Verfahren und
+> Politik der Pseudonymisierung (Terminologie nach ENISA 2021 und DIN EN ISO 25237) auf Erkennung,
+> Nutzbarkeit und Restrisiko von Texten auswirken. CARDIO:DE möchten wir für die Nutzbarkeitsmessung
+> im Deutschen einsetzen: Medikationsextraktion und Abschnittsklassifikation auf pseudonymisiertem
+> gegenüber unverändertem Text. Die Verarbeitung erfolgt ausschließlich auf dem lehrstuhleigenen
+> Rechencluster; eine Weitergabe an Dritte findet nicht statt. Ein Versuch, Personen zu
+> identifizieren, ist nicht Gegenstand der Studie — untersucht werden ausschließlich die von uns
+> selbst erzeugten Pseudonyme.
 >
-> Eine Rückfrage: Wir verwenden für einen Teil der Studie einen LLM-Endpunkt des NHR@FAU
-> (universitär betrieben, kein kommerzieller Dienst). Falls die Nutzungsbedingungen eine
-> Verarbeitung außerhalb der eigenen Administration ausschließen, würden wir CARDIO:DE davon
-> ausnehmen. Wir wären für eine kurze Klarstellung dankbar.
+> Eine organisatorische Rückfrage zu Ziffer 1.2: Ich beantrage den Zugang als Leiter des Lehrstuhls
+> für die Arbeit meiner Gruppe. Sind Mitarbeitende, die unter meiner Verantwortung und auf der
+> genannten Infrastruktur arbeiten, durch meine Unterschrift abgedeckt, oder benötigt jede Person
+> eine eigene unterzeichnete Vereinbarung? Im letzteren Fall reichen wir die weiteren Vereinbarungen
+> gerne nach.
 >
 > Mit freundlichen Grüßen
 > Andreas Maier
 
 ---
 
-## Checklist
+## Corpus contents (heiDATA, V1.1.2, 2026-09-07)
 
-- [ ] Download `DUA_en.pdf` from the heiDATA page (browser needed — Anubis blocks scripts)
-- [ ] Read it for re-identification and third-party clauses, as with BRONCO
-- [ ] Sign, scan
-- [ ] Send with group + project description to `data@uni-heidelberg.de`
-- [ ] Storage: **not** the shared folder if the DUA restricts access to signatories
+500 German cardiology routine doctor's letters, Heidelberg University Hospital, manually
+de-identified, **temporal information deliberately preserved**.
+
+- **medication information** — ActiveIng, Dosage, Drug, Duration, Form, Frequency, Reason, Route,
+  Strength
+- **CDA-compliant section classes** — 14 types (Abschluss, Anamnese, Anrede, Diagnosen,
+  AufnahmeMedikation, Befunde, EchoBefunde, AktuellDiagnosen, EntlassMedikation, KuBefunde, Labor,
+  Mix, AllergienUnverträglichkeitenRisiken, Zusammenfassung)
+- **V1.1.2 extension** (Becker et al., `10.1016/j.ijmedinf.2025.106009`) — token-level Diagnostic,
+  Diagnosis, Drug, Medical_Finding, Therapy
+
+Files: `cardiode.zip` 22.8 MB · `cardiode_1.1.2_extension_becker.zip` 20.1 MB (both **restricted**) ·
+`cardiode_dependencies_inception.zip` 6.3 KB · `DUA_en.pdf` · two READMEs.

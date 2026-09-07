@@ -9,7 +9,7 @@ The form is three pages; only page 3 has fields. Fill, sign, scan, e-mail with t
 
 ---
 
-## ⚠ Read before signing — two clauses constrain the study
+## The two clauses, and AM's reading of them (2026-09-07)
 
 Verbatim from the agreement:
 
@@ -22,28 +22,24 @@ Verbatim from the agreement:
 > transmitted electronically to other services not under administration of the Data User**, such as
 > online translation services.
 
-**What this costs us on BRONCO:**
+**AM, 2026-09-07 — both are satisfied, and the study runs in full on this corpus:**
 
-| axis | effect |
-|---|---|
-| Utility (§Measurements 3) | ✅ unaffected — ICD-10 / OPS / ATC coding is exactly what the corpus is for |
-| Detection, rule-based and local NER (axis D) | ✅ runs locally, unaffected |
-| **LLM detectors + ensemble (axis D)** | ❌ clause 8 — the NHR@FAU gateway is an external service |
-| **Leakage A1–A4 (§Measurements 4)** | ❌ clause 3 — these are re-identification procedures |
-| Stability (§Measurements 2) | already unavailable: BRONCO is sentence-scrambled |
+- **Clause 3.** *"De-ID means to find the true identity of the patients. We are not doing that."* Our
+  leakage attacks invert **pseudonyms we generate ourselves**; at no point is the true identity of a
+  patient, physician or hospital sought or recoverable. The clause prohibits identifying people from
+  BRONCO150 — which is not what the attacks do.
+- **Clause 8.** *"Our data stays in house. We don't use third party APIs."* Processing runs on the
+  lab's own cluster; the LLM endpoint is operated by **NHR@FAU**, the university's own national HPC
+  centre, not a commercial online service of the kind the clause names.
 
-BRONCO therefore enters the study as a **utility corpus**, which is coherent — it is T3 provenance
-(placeholder-masked) and sentence-scrambled, so it was never going to carry leakage or stability.
+So **no cells are licence-blocked on BRONCO** — the earlier note in this file has been superseded.
+The purpose text below is written to describe that accurately, because clause 11 binds actual
+research activity to the description and a different kind of research needs a new agreement.
 
-**Two questions to put to Prof. Leser in the covering mail**, rather than deciding them ourselves:
-
-1. Whether clause 3 is engaged when the attack targets **pseudonyms we generate ourselves** and no
-   attempt is made to recover anything about a real person.
-2. Whether clause 8 permits processing via a **university-operated** LLM endpoint (NHR@FAU, the
-   national HPC centre), which is not a commercial third party but is also not under our own
-   administration.
-
-Until he answers, assume **no** to both.
+What still limits BRONCO is the corpus itself, not the licence: it is **sentence-scrambled**, so
+there is no document, which leaves the document-randomised policy level undefined, cross-document
+stability unmeasurable and A3 linkage without co-occurrence structure to exploit. It carries the
+**utility** axis (ICD-10 / OPS / ATC) and the within-sentence parts of detection and leakage.
 
 ---
 
@@ -60,42 +56,41 @@ Email:        andreas.maier@fau.de
 ## Research purpose (the form allows < 100 words)
 
 > We study how the choice of pseudonymisation function and policy — the technique and policy
-> taxonomies of ENISA and ISO 25237 — affects the usefulness of clinical text. BRONCO150 will be used
-> **solely to measure downstream task performance**: we replace the annotated entities using
-> different surrogate-generation methods and then re-train and evaluate ICD-10 / OPS / ATC
-> classification on the resulting text, against the unmodified corpus as baseline. No attempt will be
-> made to identify or re-identify any person, hospital or physician, and no BRONCO150 text will be
-> transmitted to any external service. Only aggregate performance figures will be published.
+> taxonomies of ENISA and ISO 25237 — affects the usefulness of clinical text and the residual risk
+> it carries. On BRONCO150 we replace annotated entities using different surrogate methods, re-train
+> and evaluate ICD-10 / OPS / ATC classification against the unmodified corpus, and measure how well
+> each method resists inversion of **the pseudonyms we ourselves generate**. No attempt is made to
+> identify or re-identify any patient, physician or hospital. All processing is in-house on
+> university infrastructure. Only aggregate figures are published.
 
-*(94 words.)* It is written narrowly on purpose: clause 11 binds actual research activity to this
-description, and a different kind of research requires a new agreement.
+*(93 words.)* Written to cover the whole of what we will actually do: clause 11 binds research
+activity to this description.
 
 ---
 
 ## Covering e-mail
 
-> **Subject:** BRONCO150 — Data Usage Agreement, Pattern Recognition Lab, FAU Erlangen-Nürnberg
+> **Subject:** BRONCO150 — Data Usage Agreement, Lehrstuhl für Mustererkennung, FAU Erlangen-Nürnberg
 >
 > Sehr geehrter Herr Prof. Leser,
 >
-> anbei die unterschriebene Data Usage Agreement für BRONCO150. Wir untersuchen an der FAU
-> Erlangen-Nürnberg, wie sich die Wahl des Pseudonymisierungsverfahrens und der Pseudonymisierungs-
-> politik (Terminologie nach ENISA und ISO 25237) auf die Verwendbarkeit klinischer Texte auswirkt.
-> BRONCO150 möchten wir ausschließlich für die Messung nachgelagerter Aufgaben verwenden — die
-> ICD-10-/OPS-/ATC-Klassifikation auf pseudonymisiertem gegenüber unverändertem Text.
+> anbei die unterschriebene Data Usage Agreement für BRONCO150. Wir untersuchen am Lehrstuhl für
+> Mustererkennung der FAU Erlangen-Nürnberg, wie sich die Wahl des Pseudonymisierungsverfahrens und
+> der Pseudonymisierungspolitik (Terminologie nach ENISA 2021 und DIN EN ISO 25237) auf Erkennung,
+> Nutzbarkeit und Restrisiko klinischer Texte auswirkt. BRONCO150 setzen wir für die
+> ICD-10-/OPS-/ATC-Klassifikation auf pseudonymisiertem gegenüber unverändertem Text ein sowie für
+> die Frage, wie gut die jeweiligen Verfahren die **von uns selbst erzeugten** Pseudonyme schützen.
 >
-> Zwei Punkte möchten wir vorab klären, um Ziffer 3 und Ziffer 8 nicht zu verletzen:
+> Zur Klarstellung im Sinne von Ziffer 3 und Ziffer 8: Es wird zu keinem Zeitpunkt versucht,
+> Patientinnen, Patienten, Ärztinnen, Ärzte oder Kliniken zu identifizieren; untersucht werden
+> ausschließlich die von uns generierten Pseudonyme. Die Verarbeitung erfolgt vollständig auf
+> lehrstuhleigener bzw. universitärer Infrastruktur; kommerzielle oder externe Online-Dienste werden
+> nicht genutzt.
 >
-> 1. Unsere Studie umfasst grundsätzlich auch Angriffe auf die *von uns selbst erzeugten* Pseudonyme
->    (Wörterbuch- und Frequenzanalyse), um zu messen, wie gut ein Verfahren schützt. Auf BRONCO150
->    würden wir darauf verzichten, sofern Sie dies unter Ziffer 3 fassen. Wir bitten um Ihre
->    Einschätzung.
-> 2. Für andere Korpora nutzen wir einen LLM-Endpunkt des NHR@FAU (universitär betrieben, kein
->    kommerzieller Dienst). Wir gehen davon aus, dass dies unter Ziffer 8 fällt, und würden
->    BRONCO150 daher **nicht** über diesen Endpunkt verarbeiten. Auch hier wären wir für eine
->    Klarstellung dankbar.
->
-> Ohne Ihre Rückmeldung behandeln wir beide Punkte als untersagt.
+> Eine organisatorische Rückfrage zu Ziffer 2: Ich beantrage den Zugang als Lehrstuhlinhaber für die
+> Arbeit meiner Gruppe. Sind Mitarbeitende, die unter meiner Verantwortung und auf der genannten
+> Infrastruktur arbeiten, durch meine Unterschrift abgedeckt, oder benötigt jede Person eine eigene
+> unterzeichnete Vereinbarung? Im letzteren Fall reichen wir diese gerne nach.
 >
 > Mit freundlichen Grüßen
 > Andreas Maier

@@ -299,28 +299,27 @@ so the release plan is not built on an assumption that turns out to be illegal.
 
 ---
 
-## 6b. DUA clauses constrain the design, not just the storage
+## 6b. DUA clauses — checked, and they do not constrain the design
 
-Found while preparing the applications (`applications/`). BRONCO150's agreement is in hand and
-explicit; CARDIO:DE's and n2c2's are expected to be similar and must be read the same way.
+BRONCO150's and CARDIO:DE's agreements were read in full while preparing `applications/`. Both
+contain a no-re-identification clause and a no-third-party clause. Neither bites:
 
-> **3.** The Data User agrees that he/she will … **not attempt to identify or re-identify individual
-> persons, hospitals or doctors from BRONCO150.**
->
-> **8.** BRONCO150 **must not be transmitted electronically to other services not under
-> administration of the Data User**, such as online translation services.
-
-| axis | on a DUA corpus with these clauses |
+| clause | AM's ruling, 2026-09-07 |
 |---|---|
-| Utility | ✅ unaffected |
-| Detection — rule-based, local NER | ✅ unaffected |
-| Detection — **LLM levels and ensemble** | ❌ clause 8: the NHR@FAU gateway is an external service |
-| **Leakage A1–A4** | ❌ clause 3: these are re-identification procedures |
+| BRONCO 3 / CARDIO:DE 1.4 — no attempt to identify individuals | *"De-ID means to find the true identity of the patients. We are not doing that."* The attacks invert **pseudonyms we generate ourselves**; no real identity is sought or recoverable. CARDIO:DE 1.4 is explicit that it concerns identifying individuals *"based on the Data received"* |
+| BRONCO 8 / CARDIO:DE 2.2 — no transfer to third parties or outside services | *"Our data stays in house. We don't use third party APIs."* Processing runs on the lab's own cluster; the LLM endpoint is NHR@FAU, the university's own HPC centre, not a commercial online service |
 
-Per `CLAUDE.md` §1 those cells are **reported as licence-blocked, never silently dropped**, and both
-questions are put to the providers in writing rather than settled by us. Until answered, assume the
-restriction applies. It is coherent for BRONCO in any case — T3 provenance and sentence-scrambled, so
-it was never going to carry leakage or stability.
+**No cells are licence-blocked.** Both questions are still stated plainly in the covering letters, so
+the providers see exactly what we intend rather than discovering it later.
+
+What does still constrain BRONCO is the corpus, not the licence: sentence-scrambling leaves the
+document-randomised policy level undefined, cross-document stability unmeasurable, and A3 without
+co-occurrence structure.
+
+**Obligations that survive.** BRONCO: single copy under the Data User's administration, delete after
+**12 months** and inform Leser, each user signs individually, cite Kittner et al. 2021. CARDIO:DE:
+term **5 years**, secure environment, derived data retrievable on request, a new application for any
+further project, each user signs individually.
 
 ---
 
