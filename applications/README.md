@@ -8,7 +8,7 @@ Drafts below are ready for AM to check, sign and send. **Nothing here has been s
 | **BRONCO150** | Prof. Dr. Ulf Leser, `leser@informatik.hu-berlin.de` | [draft ready](bronco150_dua.md) | AM signs + sends |
 | **CARDIO:DE** | **`christoph.dieterich@uni-heidelberg.de`** (study director) | [complete](cardiode_request.md) — DUA downloaded + MD5-verified, all fields filled | AM signs + sends |
 | **i2b2 / n2c2 2014** | DBMI Data Portal | [text ready](n2c2_request.md) | **AM only** — per-individual registration |
-| **OntoNotes 5.0** | LDC catalogue, non-member route | [complete](ontonotes_ldc.md) — one signature covers the whole chair | AM: account, sign, download |
+| **OntoNotes 5.0** | `ldc@ldc.upenn.edu` | [complete](ontonotes_ldc.md) — **fee verified $0.00**; one signature covers the whole chair | AM signs + e-mails |
 
 ## PDFs on disk — for signing
 

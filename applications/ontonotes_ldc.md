@@ -63,17 +63,32 @@ EXHIBIT A — CORPORA RECEIVED
 
 Return by e-mail to `ldc@ldc.upenn.edu` (or fax +1 215 573 2175).
 
-## Ordering steps
+## Fee — verified 2026-09-07, logged in
 
-1. Create an account at `catalog.ldc.upenn.edu` (organisational e-mail).
-2. Add **LDC2013T19** to the bin; the applicable non-member licence is presented as a click-through.
-3. **Check the fee at checkout.** LDC's published statement for this corpus has been that non-members
-   may license it at no charge subject to shipping and handling — and delivery is web download, so
-   there is nothing to ship. But the catalogue shows fees only to logged-in users, so **this is
-   unverified**: confirm at checkout before assuming zero. If a fee does appear, LDC accepts
-   institutional purchase orders and issues quotes.
-4. Sign and return the non-member agreement.
-5. Download.
+**$0.00.** The catalogue's Fees box, visible once signed in, reads:
+
+| category | fee |
+|---|---|
+| 2013 Member | $0.00 |
+| **Non-Member** | **$0.00** |
+| Reduced-License | $0.00 |
+| Extra Copy | $0.00 |
+
+Available Media: **Web Download**. So OntoNotes costs nothing and there is nothing to ship — the
+earlier "unverified" caveat is resolved.
+
+## How it is actually obtained — by e-mail, not a web order
+
+There is **no cart or checkout button** on the catalogue page for this corpus. The page carries the
+fee table and a link to the *LDC User Agreement for Non-Members*, and nothing else. The route is the
+same shape as BRONCO and CARDIO:DE:
+
+1. Sign `applications/forms/LDC_nonmember_agreement_blank.pdf`, with **Exhibit A line 1 =
+   "OntoNotes Release 5.0, LDC2013T19"**.
+2. E-mail the signed agreement to **`ldc@ldc.upenn.edu`** (fax +1 215 573 2175 is the alternative).
+3. LDC enables the web download on the account.
+
+Field values are in `applications/forms/LDC_OntoNotes_fill_sheet.pdf`.
 
 ## What it contributes
 
