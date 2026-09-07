@@ -10,6 +10,25 @@ Drafts below are ready for AM to check, sign and send. **Nothing here has been s
 | **i2b2 / n2c2 2014** | DBMI Data Portal | [text ready](n2c2_request.md) | **AM only** — per-individual registration |
 | **OntoNotes 5.0** | LDC catalogue, non-member route | [complete](ontonotes_ldc.md) — one signature covers the whole chair | AM: account, sign, download |
 
+## PDFs on disk — for signing
+
+`applications/forms/` (**gitignored**, local only). Absolute path:
+`~/Documents/code/pseudonymization/applications/forms/`
+
+| file | what it is |
+|---|---|
+| `BRONCO150_DUA_blank.pdf` | the official form, 3 pp — sign page 3 |
+| `BRONCO150_fill_sheet.pdf` | the values to enter, purpose text, covering e-mail |
+| `CARDIODE_DUA_blank.pdf` | the official agreement, 4 pp — fields on page 4 (MD5 verified against heiDATA) |
+| `CARDIODE_fill_sheet.pdf` | values, group + project description, infrastructure block, covering e-mail |
+| `LDC_nonmember_agreement_blank.pdf` | the LDC non-member agreement, 1 p |
+| `LDC_OntoNotes_fill_sheet.pdf` | fields, ordering steps, corpus summary |
+| `n2c2_portal_text.pdf` | nothing to sign — the research summary to paste into the portal |
+
+The blanks came from `www2.informatik.hu-berlin.de/~leser/bronco/`, heiDATA `doi:10.11588/DATA/AFYQDY`
+and `catalog.ldc.upenn.edu/license/ldc-non-members-agreement.pdf`. Not committed: they are other
+people's documents and the repo is meant to be released.
+
 ## Applicant details used in every draft
 
 Taken from the Pattern Recognition Lab's own materials; **confirm before sending**.

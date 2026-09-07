@@ -24,6 +24,9 @@ data/raw/
 *.zip
 *.tar.gz
 
+# Third-party agreement forms and generated fill-in sheets: local only.
+applications/forms/
+
 # Artefacts
 __pycache__/
 .venv/
