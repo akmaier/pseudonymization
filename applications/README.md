@@ -16,9 +16,9 @@ Taken from the Pattern Recognition Lab's own materials; **confirm before sending
 
 | field | value |
 |---|---|
-| Name | Prof. Dr.-Ing. Andreas Maier |
+| Name | Prof. Dr.-Ing. habil. Andreas Maier |
 | Affiliation | Friedrich-Alexander-Universität Erlangen-Nürnberg, Pattern Recognition Lab |
-| Position | Professor, Head of the Pattern Recognition Lab |
+| Position | Chair, Computer Science 5 (Pattern Recognition) |
 | E-mail | `andreas.maier@fau.de` |
 | Institution website | `lme.tf.fau.de` |
 

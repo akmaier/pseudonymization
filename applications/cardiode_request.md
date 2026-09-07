@@ -48,10 +48,10 @@ based on the Data*, which is exactly the thing we are not doing.
 ## Page 4 — Recipient (data user)
 
 ```
-Name:         Prof. Dr.-Ing. Andreas Maier
+Name:         Prof. Dr.-Ing. habil. Andreas Maier
 Affiliation:  Friedrich-Alexander-Universität Erlangen-Nürnberg,
-              Pattern Recognition Lab, Department of Computer Science
-Position:     Professor, Head of the Pattern Recognition Lab
+              Pattern Recognition Lab (Computer Science 5)
+Position:     Chair, Computer Science 5 (Pattern Recognition)
 Email:        andreas.maier@fau.de
 Website:      lme.tf.fau.de
 Date:         ____________
@@ -59,11 +59,11 @@ Date:         ____________
 
 **Group description:**
 
-> The Pattern Recognition Lab at Friedrich-Alexander-Universität Erlangen-Nürnberg is a research group
-> in the Department of Computer Science, headed by Prof. Dr.-Ing. Andreas Maier, working on machine
-> learning and pattern recognition for medical data — medical imaging, clinical text and speech. The
-> lab hosts approximately [N] researchers and doctoral candidates. Data are processed exclusively on
-> the lab's own compute cluster, administered within the group.
+> The Pattern Recognition Lab is the chair of Computer Science 5 at Friedrich-Alexander-Universität
+> Erlangen-Nürnberg, held by Prof. Dr.-Ing. habil. Andreas Maier. It works on machine learning and
+> pattern recognition for medical data — medical imaging, clinical text and speech — and hosts
+> approximately [N] researchers and doctoral candidates. Data are processed exclusively on the
+> chair's own compute cluster, administered within the group.
 
 ## Project description (max. 150 words)
 

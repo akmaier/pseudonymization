@@ -46,10 +46,10 @@ stability unmeasurable and A3 linkage without co-occurrence structure to exploit
 ## Page 3 — fields
 
 ```
-Name:         Prof. Dr.-Ing. Andreas Maier
+Name:         Prof. Dr.-Ing. habil. Andreas Maier
 Affiliation:  Friedrich-Alexander-Universität Erlangen-Nürnberg,
-              Pattern Recognition Lab, Department of Computer Science
-Position:     Professor, Head of the Pattern Recognition Lab
+              Pattern Recognition Lab (Computer Science 5)
+Position:     Chair, Computer Science 5 (Pattern Recognition)
 Email:        andreas.maier@fau.de
 ```
 

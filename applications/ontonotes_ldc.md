@@ -1,32 +1,99 @@
-# OntoNotes 5.0 (LDC2013T19) — LDC
+# OntoNotes 5.0 (LDC2013T19) — LDC, non-member route
 
-**Blocked on one fact:** is FAU an LDC member, and if so through which department?
+**AM, 2026-09-07: FAU is not an LDC member.** So this goes through the non-member route, which is
+short: create an account, sign one agreement, order, download.
 
-LDC states that **non-members may license OntoNotes 5.0 at no charge**, subject to shipping and
-handling. Members get it as part of the membership corpora. Either way the cost is negligible; the
-question is which route is faster and who at FAU already holds the membership.
+**Delivery is Web Download only** — no physical media, so no shipping to arrange.
 
-## Why it is in the meta corpus
+---
 
-It is the only member that supplies all three of these at once:
+## The agreement — and it is the least restrictive of the four
+
+*LDC User Agreement for Non-Members* (`catalog.ldc.upenn.edu/license/ldc-non-members-agreement.pdf`),
+a single page. Read in full 2026-09-07.
+
+**It covers a research group under one signature.** The agreement defines *User* as a named
+individual at an affiliation, and *User's Research Group* as a specific department or area within
+the university — then restricts redistribution only to people **outside** that group:
+
+> Unless explicitly permitted herein, User shall not otherwise publish, retransmit, disclose,
+> display, copy, reproduce or redistribute the LDC Databases to others **outside of User's Research
+> Group**.
+
+That is exactly the lab-level application AM asked for, and it is the opposite of BRONCO clause 2 and
+CARDIO:DE clause 1.2, which both require every user to sign individually. **One signature covers the
+Pattern Recognition Lab.**
+
+Other terms:
+
+| | |
+|---|---|
+| permitted use | *"non-commercial linguistic education, research and technology development"* |
+| publication | limited excerpts may appear in articles and reports describing the results |
+| commercial use | requires joining LDC as a For-Profit Member and paying applicable fees — not our case |
+| citation | required in scholarly publications |
+| warranty | none; provided "AS IS" |
+| **re-identification** | **no clause** — unlike BRONCO 3 and CARDIO:DE 1.4 |
+| **third-party services** | **no clause** — unlike BRONCO 8 and CARDIO:DE 2.2 |
+| deletion | **no deletion deadline** — unlike BRONCO's 12 months |
+
+So OntoNotes carries no design constraints at all beyond "do not redistribute outside the lab", which
+the build-recipe distribution model (`metacorpus.md` §6) already satisfies — we ship converters and a
+manifest, never corpus text.
+
+## Signature block
+
+Signed **for the organization**, so a title is required — AM as chair holder fits:
+
+```
+For the organization: Friedrich-Alexander-Universität Erlangen-Nürnberg,
+                      Pattern Recognition Lab (Computer Science 5)
+Signature:            ____________
+Date:                 ____________
+Name:                 Andreas Maier
+Title:                Chair, Computer Science 5 (Pattern Recognition)
+
+User (individual):    Andreas Maier
+Affiliation:          Friedrich-Alexander-Universität Erlangen-Nürnberg
+User's research group: Pattern Recognition Lab (Computer Science 5)
+
+EXHIBIT A — CORPORA RECEIVED
+1  OntoNotes Release 5.0, LDC2013T19
+```
+
+Return by e-mail to `ldc@ldc.upenn.edu` (or fax +1 215 573 2175).
+
+## Ordering steps
+
+1. Create an account at `catalog.ldc.upenn.edu` (organisational e-mail).
+2. Add **LDC2013T19** to the bin; the applicable non-member licence is presented as a click-through.
+3. **Check the fee at checkout.** LDC's published statement for this corpus has been that non-members
+   may license it at no charge subject to shipping and handling — and delivery is web download, so
+   there is nothing to ship. But the catalogue shows fees only to logged-in users, so **this is
+   unverified**: confirm at checkout before assuming zero. If a fee does appear, LDC accepts
+   institutional purchase orders and issues quotes.
+4. Sign and return the non-member agreement.
+5. Download.
+
+## What it contributes
+
+The only member of the meta corpus that supplies all three of these at once:
 
 - **real names** in natural distribution (tier T1);
 - **co-reference annotation** — one of only two corpora in the set that has it, the other being TAB;
-- **non-Latin scripts with real names** — English, **Chinese** and **Arabic**, across news, broadcast,
-  weblog, telephone speech and usenet.
+- **non-Latin scripts with real names**.
 
-That last point is why it was added. The OpenAI Privacy Filter evaluation reports detector collapse
-on non-Latin scripts (Arabic F1 0.04, Cyrillic 0.03), which is exactly where H1 and H2 are stressed
-hardest — and before OntoNotes we had no non-Latin corpus with real names at all.
+Contents per LDC, ~2.9 M words total:
 
-English portion: 3,637 documents, ~2 M tokens, 18 named-entity types.
+| language | words | genres |
+|---|---:|---|
+| English | 1.445 M | news · broadcast news · broadcast conversation · web · telephone |
+| **Mandarin Chinese** | 1.0 M | news · broadcast news · broadcast conversation · web · telephone · pivot texts |
+| **Arabic** | 0.3 M | **news only** |
 
-## Next step
+Annotation layers: Penn-Treebank-style syntax, PropBank predicate-argument structure, word sense,
+ontology links, and **co-reference**. English NER portion: 3,637 documents, 18 entity types.
 
-1. AM checks FAU's LDC status (the Technische Fakultät or the university library will know).
-2. If a member: request through the existing membership.
-3. If not: apply as a non-member — no licence fee, confirm the current delivery route is electronic
-   rather than physical media.
-4. Read the licence for the same two clauses as BRONCO — re-identification and third-party transfer —
-   before assuming the leakage axis runs here. OntoNotes is a general NLP corpus rather than a
-   clinical one, so the terms are likely looser, but check rather than assume.
+**Note for the balance rule:** Arabic is a quarter the size of Chinese and news-only, so the
+non-Latin arm of the meta corpus is lopsided before any sampling. That is a fact for AM's capping
+decision, not something to fix silently.
