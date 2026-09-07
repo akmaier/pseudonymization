@@ -14,7 +14,7 @@ repository or record page on that date. Everything else remains title-level.
 Three facts emerged from the verification pass that constrain `PLAN.md` and should be settled before
 any download.
 
-**1. Only TAB annotates co-reference.** The stability metrics — collision rate and fragmentation
+**1. Only TAB and OntoNotes annotate co-reference.** The stability metrics — collision rate and fragmentation
 rate — are functions of the *mapping*, and scoring them needs co-reference-resolved gold: you must
 know that *Dr. Weber*, *Weber* and *F. Weber* are one person. TAB annotates `entity_id` co-reference
 explicitly. MEDDOCAN, CARDIO:DE, BRONCO150, E3C and MedDeID annotate spans and types only. So
@@ -47,10 +47,9 @@ policy, pseudonym frequency mirrors real-name frequency. Inserted or generated i
 carry a natural surname distribution, so a successful A2 on MEDDOCAN or REDACT proves less than a
 successful A2 on natural text.
 
-**Consequence for the Enron decision (open question below): Enron and TAB are the only two public
-corpora in the plan with real, naturally distributed personal names.** Excluding Enron leaves the
-frequency attack testable on English legal text and essentially nowhere else. That is a stronger
-argument for inclusion than the "largest corpus" one, and it should be weighed as such.
+**This decided the Enron question (AM, 2026-09-07 — Enron is in): Enron and TAB are the only two
+public corpora in the plan with real, naturally distributed personal names.** Excluding Enron would
+have left the frequency attack testable on English legal text and essentially nowhere else.
 
 **4. E3C carries no PII annotation at all.** Its layers annotate clinical entities (SNOMED-CT,
 ICD-10) and temporal information/factuality — not personal identifiers. E3C can supply multilingual
@@ -82,8 +81,8 @@ clinical *text*, but it cannot supply the gold-span oracle level of axis D.
 
 | corpus | language | access | note |
 |---|---|---|---|
-| **CodEAlltag** | de | **public, CC-BY-SA-4.0, GitHub** *(verified)* | German e-mail, built for forensic linguistics. `CodEAlltag_pS` = **800 pseudonymised e-mails from 460 donors**, spans manually annotated then substituted with realistic surrogates automatically; `pXL_*` are the larger topical segments (FINANCE, GERMAN, MOVIES, PHILOSOPHY, TEENS, TRAVELS, EVENTS), ~1.47 M e-mails across all segments. **Open: does the release ship the span annotations / surrogate mapping?** If yes it is gold spans *and* a gold mapping for German e-mail |
-| **Enron** | en | public | ~500 k messages. Real, non-consenting, unremediated. **See the open question below before using** |
+| **CodEAlltag** | de | **public, CC-BY-SA-4.0, GitHub** *(verified)* | German e-mail. `CodEAlltag_pS` = **800 pseudonymised donated e-mails**, plain text; `pXL_*` = seven **topical** segments from Usenet (EVENTS, GERMAN = *about the German language*, TEENS, PHILOSOPHY, MOVIES, FINANCE, TRAVELS), ~1.47 M mails, **automatically** pseudonymised, documented gender bias. **Checked 2026-09-06: the release ships NO annotations** — 800 `.txt` files and nothing else. Separate repos add **formality scores** and the authors' MIT-licensed **`privacy_tagger`**. See `metacorpus.md` §5 |
+| **Enron** | en | **public, CMU** *(verified)* | ~500 k messages from ~150 mostly senior staff, 1998–2002, released by FERC. `enron_mail_20150507.tar.gz`, **443 MB** (~1.7 GB unpacked). Per-user maildirs → folder-classification task + cross-message identity; ~184-employee org chart as the A3 auxiliary. Redaction was request-driven only. **In, with safeguards** (AM, 2026-09-07) |
 | Email-header corpus | en | check | *A Corpus of Email Headers with Personal Privacy Protection* (2017) |
 | Avocado (LDC2015T03) | en | **licensed** | ~900 k messages — *not verified* |
 
