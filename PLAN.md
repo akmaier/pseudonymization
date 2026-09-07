@@ -288,6 +288,13 @@ following hold, which cost the study nothing:
 
 - **H1** Under a deterministic policy, A2 succeeds regardless of technique — hash and HMAC leak
   comparably. *Consequence: the field optimises the wrong axis.*
+  **Measured 2026-09-07 and split in two** (`experiments/RESULTS_enron_vs_tab.md`):
+  **H1a** the frequency signal survives *completely and identically* across all five techniques —
+  Spearman ρ = 1.000 on both TAB and Enron, every technique the same. **H1b** whether that signal
+  *identifies* anyone is a property of the corpus's frequency skew, not of the function: A2 top-1 is
+  0.013 on TAB, whose entities are mentioned once or twice, and **0.201 on Enron**, whose people
+  recur across thousands of messages. The practitioner's question is not which hash was used but how
+  often the corpus's people recur.
 - **H2** Detector recall dominates total leakage: a missed name leaks fully whatever the function.
   Measurable by comparing each detector — including the ensemble — against the gold-span oracle.
   If the ensemble closes most of the gap to the oracle, detection ceases to be the bottleneck and
