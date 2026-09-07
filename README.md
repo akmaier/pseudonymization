@@ -24,6 +24,10 @@ hypotheses. Everything else here is supporting material.
 - **Ensemble detection is in.** In the group's own tests an ensemble across LLMs plus the baseline
   methods outperformed any single detector; it belongs in the detector axis as both a strong
   baseline and a recall upper bound. See `PLAN.md` §Factors, axis D.
+- **Enron is in** (AM, 2026-09-07), and the paper states the ethics position explicitly rather than
+  using the corpus silently. Excluding it would have protected nobody while removing the only public
+  e-mail corpus with real names in a natural frequency distribution. Five safeguards bind — see
+  `PLAN.md`. This closes the repo's oldest open question.
 - **Text only.** This repository is the pseudonymisation study and nothing else (AM, 2026-09-06).
   Image de-identification — defacing, CT, MRI, DICOM — is a separate paper with a separate team; its
   reference base was moved out of this repo to
@@ -49,6 +53,3 @@ hypotheses. Everything else here is supporting material.
 - **No credentials in this repo, ever.** Corpora are not committed either: several are DUA-bound
   (BRONCO), licensed (Avocado, i2b2/n2c2) or contain real personal data (Enron). `.gitignore` covers
   `data/corpora/`.
-- The **Enron question is open and deliberate** — see `data/candidates.md`. It is the largest public
-  English e-mail corpus and it is itself an unresolved privacy incident. Decide it explicitly; do not
-  drift into using it silently.

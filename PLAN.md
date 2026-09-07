@@ -230,7 +230,39 @@ perplexity shift and embedding drift as task-independent proxies.
   co-occurrence structure.
 - **A4 LLM re-identification.** Give a modern LLM the pseudonymised document and ask who it is,
   with and without auxiliary context. This is the threat model of 2026 and the one the workshop cares
-  about.
+  about. **Scored as recovery of the surface form already present in the corpus**, never as inference
+  of new facts about an individual — see the Enron safeguards below. **Stratified by public-figure
+  status**, because a corpus subject the model has memorised and one it has not are different
+  experiments; that split also tests *Personal Information Parroting in Language Models*
+  (arXiv 2602.20580) directly.
+
+### Enron is in — decided, with safeguards
+
+**AM, 2026-09-07: Enron is included, and the ethics point is made explicitly in the paper.**
+
+The reasoning, recorded because the paper has to state it: excluding Enron protects nobody. The
+corpus stays public, the field keeps citing it silently, and the people in it are no safer. What
+exclusion would cost is concrete — it is the only public e-mail corpus with real names in a natural
+frequency distribution, the same people recurring across thousands of messages, a genuine downstream
+task, and a real public auxiliary record to link against. E-mail is a required domain (AM,
+2026-09-06), and no other English e-mail corpus supplies those four.
+
+The attack target is **our own pipeline output**, not the corpus. We pseudonymise Enron ourselves and
+then invert *our* pseudonyms; recovering a name that has sat on a public web server for twenty years
+discloses nothing new. Marginal harm is what matters, and it is close to zero — provided the
+following hold, which cost the study nothing:
+
+1. **No real name from the corpus appears anywhere** in the paper, figures, tables, appendices or
+   released artefacts. Attacks are reported as aggregate rates only.
+2. **No released artefact re-exposes PII** — no mapping tables, no worked inversions, no example
+   documents reproduced verbatim.
+3. **A4 is scored against the corpus surface form**, not against external knowledge of the person,
+   and is **stratified by public-figure status**.
+4. **The 2020 audit is cited** (arXiv 2001.10374, 50,000 previously unreported PII instances) and the
+   position is stated in the paper rather than left implicit.
+5. **One written check with the FAU DPO.** Public US data processed in the EU for research is routine
+   under GDPR Art. 89, but "it is public" is not itself a lawful basis. Ask once, in writing, cite
+   the answer.
 
 ### Hypotheses (falsifiable, and the paper is interesting either way)
 
@@ -261,8 +293,6 @@ no new detector: the contribution is the axis nobody varied.
 - Is the full A×B×C×D×E×F factorial affordable, or do we fix a sensible default per axis and vary one
   at a time around it? Compute is available; annotation-limited corpora may not support every cell.
 - Which E3C languages carry enough PII density to be worth including?
-- **Enron**: use it and make the ethics point explicitly, or exclude it and lose the largest English
-  e-mail corpus? See `data/candidates.md`. This must be a stated decision, not a drift.
 - Does the **2026 revision of ISO 25237** change any recommendation we would make? Somebody needs a
   copy — it is not open access.
 - Ensemble composition: which LLMs, and is the combination rule fixed across languages or tuned per

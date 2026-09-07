@@ -266,8 +266,8 @@ slices in AI4Privacy, PIIBench and REDACT are synthetic (T5). So the requirement
 and the option *"exclude Enron"* cannot both hold unless we license **Avocado (LDC2015T03,
 ~900 k messages)** as the substitute — which is a purchase decision with its own lead time.
 
-That is now the shape of the Enron question: not "do we want the largest corpus" but **"is there any
-English e-mail in this study at all, and if so under which licence."**
+**Resolved, AM 2026-09-07: Enron is in**, with the safeguards in `PLAN.md`. English e-mail is
+therefore covered and Avocado is not needed.
 
 ---
 
@@ -306,9 +306,9 @@ so the release plan is not built on an assumption that turns out to be illegal.
   — `CLAUDE.md` §1 forbids reducing a corpus to save time, and a deliberate balance criterion is a
   different thing. It must be written down as a stated rule (per-corpus cap? per-cell cap? equal
   token budget per language?) before any sampling happens.
-- **Enron is still undecided** (`candidates.md` §Open question) — load-bearing twice over: one of only
-  two T1 corpora with a natural name distribution, and one of only two with cross-document identity.
 - **Ask the CodEAlltag authors** for the annotated S+d subset (see above).
 - **OntoNotes is free to non-members** from LDC (no licence fee, shipping/handling only) — confirm
   FAU's LDC status and whether the download route is now electronic.
-- **PIIBench release location not yet found**; needed both as a corpus slice and as the taxonomy.
+- **PIIBench located:** `github.com/pritesh-2711/pii-bench` — the *construction pipeline and
+  evaluation code*, which is what we want for the 80+ → 48 canonical label mapping. Confirm whether
+  the assembled corpus ships or has to be rebuilt from the ten sources.

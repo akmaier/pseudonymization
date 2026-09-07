@@ -143,25 +143,23 @@ clinical *text*, but it cannot supply the gold-span oracle level of axis D.
 
 ---
 
-## Open question — Enron
+## Decided — Enron is in (AM, 2026-09-07)
 
-*The Enron Corpus: Where the Email Bodies are Buried?* (arXiv 2001.10374, 2020) reports **50,000
-previously unreported instances of exposed PII** in the corpus. It is the field's most-used public
-e-mail dataset, contains real data about non-consenting individuals, and is cited routinely without
-comment.
+**Enron is included, and the ethics point is made explicitly in the paper.** This closes the repo's
+oldest open question. The full reasoning and the five binding safeguards are in `PLAN.md`
+§"Enron is in — decided, with safeguards"; the short form:
 
-Two defensible positions, and the paper must pick one **explicitly**:
+- Excluding it protects nobody — the corpus stays public and the field keeps using it silently.
+- It is the only public e-mail corpus with **real names in natural frequency**, **the same people
+  recurring across thousands of messages**, **a downstream task**, and **a public auxiliary record**
+  to link against. E-mail is a required domain, so exclusion would have meant licensing Avocado
+  (LDC2015T03) or having no English e-mail at all.
+- The attacks target **our own pseudonyms**, not the corpus, so the marginal disclosure is ~zero.
+- Safeguards: no real name published anywhere · no artefact that re-exposes PII · A4 scored against
+  the corpus surface form and stratified by public-figure status · the 2020 audit
+  (arXiv 2001.10374, 50,000 unreported PII instances) cited and the position stated · one written
+  FAU DPO check.
 
-1. **Use it and say so** — the most-used public e-mail corpus being an unresolved privacy incident is
-   itself evidence for the paper's thesis about how the field evaluates privacy.
-2. **Exclude it** — and lose the largest English e-mail corpus, with the exclusion stated as a
-   finding rather than a gap.
-
-Drifting into silent use is the one option that is not available at a trustworthy-ML venue.
-
-**New input from the verification pass (2026-09-06):** the choice is no longer only about corpus
-size. Enron and TAB are the **only two corpora in the plan with real, naturally distributed personal
-names**; everything else is synthetic, PHI-inserted, or already pseudonymised. Excluding Enron
-therefore narrows the naturalistic test of the A2 frequency attack to a single English legal corpus.
-That cuts both ways — it strengthens the scientific case for inclusion and sharpens the ethical
-objection to it — but it must be part of the decision.
+*The most-used public e-mail corpus in the field being an unresolved privacy incident is itself
+evidence for this paper's thesis about how the field evaluates privacy.* That is the point the paper
+makes, rather than the silence that is standard practice.
