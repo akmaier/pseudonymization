@@ -349,6 +349,29 @@ obtained per signatory and stored outside the shared folder. See [`applications/
 
 ---
 
+## 6d. n2c2 is blocked, and it costs the design more than one corpus
+
+Checked on the portal 2026-09-07, signed in: **registration for the i2b2/n2c2 notes is closed** and
+the datasets are marked *"temporarily unavailable"*. The 2014 set is still listed, so this is a
+suspension rather than a withdrawal, but there is no route in today. Reported, not substituted
+(`CLAUDE.md` §1).
+
+What that removes, until it reopens:
+
+| what is lost | why it matters |
+|---|---|
+| **Cross-document stability in the clinical domain** | i2b2 2014 is longitudinal — 1,304 records over 296 patients — and was one of only two members where the same person recurs across documents. The other is **Enron**. So cross-document stability, the metric `PLAN.md` calls essentially unevaluated, now rests on **e-mail alone**, with no clinical evidence at all |
+| **The one cell where detection and utility share documents** | Track 1 and Track 2 annotate the *same* records, so utility could be measured without confounding by corpus. Nothing else in the meta corpus has that property |
+| **The only T2 clinical corpus** | with n2c2 gone the clinical arm is CARDIO:DE and BRONCO150 (T3, placeholder-masked), MEDDOCAN (T4, PHI-inserted) and MedDeID (T5, synthetic). **No clinical corpus with real or realistically substituted names remains** — which is precisely the tier the A1/A2 attacks need |
+| **English clinical** | disappears entirely |
+
+**H3 is the hypothesis most affected.** It predicts that document-randomisation costs little for tasks
+that do not need cross-document linkage and a great deal for those that do — patient timelines being
+the named example. Without i2b2 there is no patient timeline in the study.
+
+**One lever:** ask DBMI when registration reopens and whether a named project can be granted access
+meanwhile. See `applications/n2c2_request.md`. Everything else here is AM's call, not ours.
+
 ## 7. Still open
 
 - **Balance means capping.** Enron has ~500 k messages and TAB has 1,268 documents. A balanced meta

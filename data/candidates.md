@@ -68,7 +68,7 @@ clinical *text*, but it cannot supply the gold-span oracle level of axis D.
 | **BRONCO150** | de | **DUA** (Ulf Leser, HU Berlin) *(verified)* | 150 German oncology discharge summaries (HCC / melanoma), Charité + Tübingen. **11,434 sentences, 89,942 tokens, 11,124 entity + 3,118 attribute annotations**; normalised to **ICD-10 / OPS / ATC** → ready-made downstream utility task. **Sentence-scrambled** — see finding 2 |
 | **MedDeID** | nl | **public, CC-BY-4.0** *(verified)* | Zenodo `10.5281/zenodo.21992866`. **6,493 synthetic development docs + 300 physician-reviewed benchmark docs**, ProductionLabels_v1 schema, nested sub-annotations on the benchmark, bilingual NL/EN guidelines. 12.0 MB zip, JSONL. Fully synthetic |
 | **E3C** | it, en, fr, es, eu (+ el, pl, sk, sl semi-automatic) | **public, via European Language Grid** *(verified)* | European Clinical Case Corpus. Layer 1 ≈ 25 K tokens/language fully manual. Annotates **clinical entities + temporal/factuality — no PII layer** (finding 4) |
-| **i2b2 / n2c2** (2006, 2014, 2016) | en | **registration + DUA**, per individual user *(verified)* | The field standard. 2014 set: 1,304 records from 296 diabetic patients (Partners Healthcare RPDR). Now hosted on the DBMI Data Portal, not i2b2.org |
+| **i2b2 / n2c2** (2006, 2014, 2016) | en | ⛔ **registration CLOSED, "temporarily unavailable"** (portal, 2026-09-07) | The field standard. 2014 set: 1,304 records from 296 diabetic patients (Partners Healthcare RPDR). Now hosted on the DBMI Data Portal, not i2b2.org |
 
 ### Legal
 

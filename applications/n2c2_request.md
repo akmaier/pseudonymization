@@ -1,6 +1,31 @@
 # i2b2 / n2c2 2014 — DBMI Data Portal
 
-**Route:** register at `portal.dbmi.hms.harvard.edu`, sign the Rules of Conduct and the Data Use
+> ## ⛔ BLOCKED — registration is closed (checked 2026-09-07, signed in)
+>
+> The portal lists the corpus but will not accept a request. Verbatim from
+> `portal.dbmi.hms.harvard.edu/projects/n2c2-nlp/`:
+>
+> > **"Registration is not open for Unstructured notes from the Research Patient Data Registry at
+> > Partners Healthcare (originally developed during the i2b2 project) at this time."**
+> >
+> > **"Temporarily Unavailable — The n2c2 datasets are temporarily unavailable.** If you are trying to
+> > access data from the 2019 Challenge, tracks 1 (Clinical Semantic Textual Similarity) and 2 (Family
+> > History Extraction) are available directly through Mayo Clinic."
+>
+> The 2014 Deidentification & Heart Disease challenge is still listed among the datasets, with its
+> three citations, so this is a suspension of access rather than a withdrawal of the corpus. Only the
+> 2019 tracks have an alternative route, and neither is a de-identification set.
+>
+> **Not substituted** (`CLAUDE.md` §1). The consequences are recorded in `data/metacorpus.md`.
+>
+> **Next action:** ask DBMI directly — the page carries a "Need help? Contact us!" link — when
+> registration is expected to reopen and whether access can be granted in the meantime for a named
+> research project. That is a one-paragraph e-mail and the only lever we have.
+
+---
+
+
+**Route (when it reopens):** register at `portal.dbmi.hms.harvard.edu`, sign the Rules of Conduct and the Data Use
 Agreement, wait for human approval.
 
 **Only AM can do this.** Access is granted **per individual user** — every co-author or HiWi who
