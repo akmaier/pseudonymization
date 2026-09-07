@@ -155,7 +155,7 @@ because the effective attack is distributional, not cryptanalytic.
 | **B. Technique** (ENISA) | counter · RNG + mapping table · cryptographic hash · HMAC · symmetric encryption |
 | **C. Surrogate form** | opaque tag (`[PERSON_1]`) · realistic surrogate (*John Doe → Bill Powers*) · attribute-matched surrogate (gender/locale preserved) |
 | **D. Detector pool** | rule-based (Presidio) · fine-tuned NER (XLM-R) · zero-shot NER (GLiNER) · domain-specific (CodEAlltag `privacy_tagger`) · ≥2 individual LLMs · **gold spans** (oracle) |
-| **D′. Combination rule** | union · majority vote (k) · intersection · weighted vote · cascade — swept over **subsets** of the pool |
+| **D′. Combination rule** | *span-level:* union · majority vote (k) · intersection · weighted vote · cascade · *token-level (ROVER-style):* per-token BIO voting — all swept over **subsets** of the pool |
 | **E. Corpus** | the **meta corpus** — one balanced assembly across language, domain, task and provenance, in a single schema. Members: legal TAB/ECHR (en) · e-mail Enron (en), CodEAlltag (de) · multi-genre OntoNotes (en, **zh**, **ar**) · clinical i2b2/n2c2 2014 (en, longitudinal), CARDIO:DE (de), BRONCO150 (de), MEDDOCAN (es), MedDeID (nl), E3C (multi) · general/financial AI4Privacy, PIIBench slice, REDACT. See [`data/metacorpus.md`](data/metacorpus.md) |
 | **F. Identifier provenance** | real · realistic-surrogate · placeholder-masked · PHI-inserted · fully synthetic |
 

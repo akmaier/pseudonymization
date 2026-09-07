@@ -18,9 +18,11 @@ from typing import Callable, Mapping, Protocol, Sequence, runtime_checkable
 
 from ..domain import Span
 from ..registry import Registry
+from ..domain import Document
+from .alignment import bio_to_spans, spans_to_bio, tokenise, vote_labels
 from .base import DetectorOutput
 
-__all__ = ["Combinator", "COMBINATORS", "cluster_spans", "combination_grid"]
+__all__ = ["Combinator", "COMBINATORS", "cluster_spans", "combination_grid", "TokenVote"]
 
 
 @runtime_checkable
@@ -64,13 +66,27 @@ class Cluster:
         return next(s for s in self.spans if (s.start, s.end) == best)
 
 
-def cluster_spans(outputs: Sequence[DetectorOutput]) -> list[Cluster]:
-    """Group spans into transitively-overlapping clusters, per entity type.
+def cluster_spans(
+    outputs: Sequence[DetectorOutput], link: str = "single", iou: float = 0.5
+) -> list[Cluster]:
+    """Group spans into clusters, per entity type.
 
     Two spans join the same cluster when they share the entity type and overlap.  Overlap rather
     than exact match is the right criterion because detectors disagree about boundaries far more
     often than about the presence of an entity — treating *Dr. Weber* and *Weber* as disagreement
     would understate agreement badly.
+
+    ``link`` controls how far that tolerance extends:
+
+    * ``"single"`` — transitive overlap. Simple, but it **chains**: ``A(0,10)``, ``B(8,20)``,
+      ``C(18,30)`` land in one cluster although A and C are disjoint. On dense text this can merge
+      two adjacent people into one entity.
+    * ``"iou"`` — a span joins a cluster only if its intersection-over-union with a member reaches
+      ``iou``. Chaining stops, at the price of splitting genuine boundary disagreements when one
+      detector is much more generous than another.
+
+    Which is right is an empirical question about the detector pool, so it is a reported setting
+    rather than a hard-coded choice.
     """
     tagged: list[tuple[Span, str]] = [(s, o.detector) for o in outputs for s in o.spans]
     clusters: list[Cluster] = []
@@ -79,7 +95,10 @@ def cluster_spans(outputs: Sequence[DetectorOutput]) -> list[Cluster]:
         current: list[tuple[Span, str]] = []
         end = -1
         for span, detector in items:
-            if current and span.start < end:
+            joins = bool(current) and span.start < end and (
+                link == "single" or any(_iou(span, m) >= iou for m, _ in current)
+            )
+            if joins:
                 current.append((span, detector))
                 end = max(end, span.end)
             else:
@@ -90,6 +109,13 @@ def cluster_spans(outputs: Sequence[DetectorOutput]) -> list[Cluster]:
         if current:
             clusters.append(_make(entity_type, current))
     return clusters
+
+
+def _iou(a: Span, b: Span) -> float:
+    """Intersection over union of two character ranges."""
+    inter = max(0, min(a.end, b.end) - max(a.start, b.start))
+    union = max(a.end, b.end) - min(a.start, b.start)
+    return inter / union if union else 0.0
 
 
 def _make(entity_type: str, items: Sequence[tuple[Span, str]]) -> Cluster:
@@ -237,3 +263,48 @@ def combination_grid(
             for rule in rules:
                 grid.append((members, rule))
     return grid
+
+
+@COMBINATORS.register("token_vote")
+class TokenVote:
+    """Per-token voting on a shared grid — the ROVER analogue for sequence labelling.
+
+    ROVER aligns recognisers' outputs into a transition network and votes at each slot.  Here the
+    alignment is free, because every detector read the same string, so the token sequence *is* the
+    network.  Voting on it rather than on whole spans buys three things the span-level rules cannot
+    give:
+
+    * **partial credit** — a detector that got three tokens of a four-token name right contributes
+      to those three, instead of being counted as disagreeing about the whole span;
+    * **type disagreement resolved as a tie**, not as two separate minorities that both fail their
+      threshold, which is what per-type span clustering does to it;
+    * **boundaries decided by the vote** rather than by a representative-picking heuristic.
+
+    Requires the document, because tokens are positions in its text.  Where a span-level rule is
+    enough this is more machinery than the problem needs — which of the two wins is exactly the
+    ensembling question this study is meant to answer, so both are levels of axis D'.
+    """
+
+    name = "token_vote"
+
+    def __init__(
+        self, weights: Mapping[str, float] | None = None, threshold: float | None = None
+    ) -> None:
+        self._weights = dict(weights or {})
+        self._threshold = threshold
+
+    def combine_document(
+        self, document: Document, outputs: Sequence[DetectorOutput]
+    ) -> tuple[Span, ...]:
+        tokens = tokenise(document.text)
+        if not tokens or not outputs:
+            return ()
+        sequences = [spans_to_bio(o.spans, tokens) for o in outputs]
+        weights = [self._weights.get(o.detector, 1.0) for o in outputs]
+        voted = vote_labels(sequences, weights, self._threshold)
+        return tuple(bio_to_spans(voted, tokens, document.text))
+
+    def combine(self, outputs: Sequence[DetectorOutput]) -> tuple[Span, ...]:
+        raise TypeError(
+            "token_vote needs the document text; call combine_document(document, outputs)"
+        )

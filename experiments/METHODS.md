@@ -253,6 +253,39 @@ Treating *Dr. Weber* and *Weber* as disagreement would understate agreement badl
 | **weighted vote** | summed detector weights ≥ threshold | most-agreed span | whichever detector is trusted |
 | **cascade** | ordered fallback: later detectors fill gaps only | first found | cost |
 
+**Do we need forced alignment, as in ROVER?** Fiscus's ROVER (1997) aligns recognisers' word
+sequences into a transition network by dynamic programming before voting, because ASR systems emit
+*unaligned* sequences over a reference nobody has. Our detectors all read the same string and emit
+character offsets into it, so **the common coordinate system is given and no dynamic programming is
+needed**. That is the one respect in which this problem is easier than ASR's.
+
+What ROVER does *after* aligning is still needed, and span-level clustering only does part of it. So
+axis D′ carries **two families**, and which wins is itself a result:
+
+| | span-level rules | **token-level voting** (the ROVER analogue) |
+|---|---|---|
+| unit | whole spans, clustered by overlap | BIO labels on a shared tokenisation |
+| partial credit | none — three tokens of a four-token name right counts as disagreement | yes, per token |
+| type disagreement | per-type clustering splits the evidence into two minorities and can drop both | **presence pooled first, type settled second** |
+| boundaries | picked by a heuristic (widest / narrowest / most-agreed) | decided by the vote |
+| cost | cheap | a tokenisation pass per document |
+
+The two-stage vote matters for a pseudonymisation study specifically. Four detectors split two
+PERSON / two ORG all agree an entity is present; per-type clustering sees two minorities and
+discards both, losing an entity that every detector saw. **A missed entity leaks; a mislabelled one
+is still replaced** — so presence must be decided before type.
+
+Two further alignment issues that ROVER's framing surfaces and that we do have to handle:
+
+- **Single-link chaining.** Transitive overlap merges `A(0,10)`, `B(8,20)`, `C(18,30)` into one
+  cluster although A and C are disjoint, which on dense text can fuse two adjacent people. An IoU
+  linkage criterion is available as a reported setting.
+- **Grounding LLM output.** A language model returns *text*, not offsets, and normalises whitespace,
+  quotation marks and diacritics on the way. A literal `str.find` silently drops correct spans and
+  depresses that detector's recall, corrupting the whole ensemble comparison. `ground_snippets()`
+  matches exactly first, then against a Unicode-folded, whitespace-collapsed view, mapping hits back
+  to original offsets. **This is the one place a real alignment problem remains.**
+
 `combination_grid()` enumerates (subset, rule) pairs and takes a `require=` argument, which is how
 **LLMs-only** and **LLMs + ≥1 classical detector** are compared on equal footing rather than by
 anecdote. Weighted vote is where a classical detector can earn its place: a high-precision rule-based

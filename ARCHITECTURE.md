@@ -15,7 +15,8 @@ src/pseudonymkit/
   inventories.py   the surrogate pool port           ListInventory · SyntheticInventory
   engine.py        composes one cell                 Pseudonymiser
   metrics/         stability, detection              pure functions over the domain
-  detectors/       axis D: the port and the ensembles
+  detectors/       axis D: the port, span-level rules, and token-level (ROVER-style) voting
+    alignment.py   the shared voting grid: tokenise, BIO projection, per-token vote, LLM grounding
 tests/             59 tests, stdlib + pytest, no network, no models
 ```
 
@@ -92,13 +93,13 @@ for members, rule in combination_grid(pool, rules=("union", "vote", "weighted_vo
 | a technique | subclass nothing; write a class with `name`, `keyed` and `index()`, decorate with `@TECHNIQUES.register("…")` |
 | a surrogate form | class with `name` and `render()`, register in `SURROGATES` |
 | a detector | class with `name`, `family` and `detect()`, register in `DETECTORS` |
-| a combination rule | subclass `_RuleBase` and implement `_keep()`, or implement `combine()` directly |
+| a combination rule | subclass `_RuleBase` and implement `_keep()`, or implement `combine()` directly; token-level rules implement `combine_document()` |
 | a corpus | write an adapter producing `Document` objects; nothing downstream changes |
 | a name inventory | implement the `Inventory` port (`size`, `surface`) |
 
 ## Testing
 
-`python -m pytest tests -q` — 59 tests, no network, no model downloads, under a second. Fixtures
+`python -m pytest tests -q` — 70 tests, no network, no model downloads, under a second. Fixtures
 build documents by **locating entity strings in the text** rather than by hand-counted offsets, so a
 fixture cannot silently drift out of alignment with its own text. (It caught a real bug on the first
 run: `Weber` matching inside `Dr. Weber`.)
