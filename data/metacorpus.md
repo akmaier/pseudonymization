@@ -360,6 +360,22 @@ with the public corpora rather than apart from them.
 **Ten of the twelve meta-corpus members are now local.** The two clinical DUA corpora are in flight;
 n2c2 is the only one with no route at all.
 
+### Two gaps found on inspection (2026-09-07)
+
+- **AI4Privacy's FinPII-80k is not in the public release.** The HuggingFace repo
+  `ai4privacy/pii-masking-300k` holds 18 files, all **OpenPII** — six languages, train and
+  validation, plus a QA file and two charts. There is no financial split to download; the licence
+  page directs commercial use to `licensing@ai4privacy.com`. So the **synthetic** financial slice is
+  unobtainable. The financial domain survives instead through **CodEAlltag `pXL_FINANCE`** —
+  174,182 German e-mails on financial topics and stock-exchange news — which is real text at tier T2
+  rather than synthetic, and therefore the better source for A1/A2 anyway.
+- **PIIBench ships no corpus, only the pipeline** (confirmed: `run_data_pipeline.py`, `src/`, no
+  parquet or JSONL anywhere). It contributes the **80+ → 48 canonical label mapping** the schema
+  depends on, and a corpus slice only if we rebuild it from its ten sources. Its role in axis E
+  should be read as *taxonomy*, not *data*.
+- Minor: the E3C repository carries five annotated languages (Basque, English, French, Italian,
+  Spanish), not the nine the project page describes. It has no PII layer either way.
+
 Storage note: the OntoNotes tarball is left **packed**. `/cluster` is at 95 % and unpacking is part of
 the build step, not acquisition — check free space before expanding it.
 
