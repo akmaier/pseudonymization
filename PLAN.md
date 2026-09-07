@@ -154,7 +154,8 @@ because the effective attack is distributional, not cryptanalytic.
 | **A. Policy** (ENISA) | deterministic · document-randomised · fully-randomised |
 | **B. Technique** (ENISA) | counter · RNG + mapping table · cryptographic hash · HMAC · symmetric encryption |
 | **C. Surrogate form** | opaque tag (`[PERSON_1]`) · realistic surrogate (*John Doe → Bill Powers*) · attribute-matched surrogate (gender/locale preserved) |
-| **D. Detector** | rule-based (Presidio) · fine-tuned NER (XLM-R / GLiNER) · single LLM · **ensemble across LLMs + baselines** · **gold spans** (oracle) |
+| **D. Detector pool** | rule-based (Presidio) · fine-tuned NER (XLM-R) · zero-shot NER (GLiNER) · domain-specific (CodEAlltag `privacy_tagger`) · ≥2 individual LLMs · **gold spans** (oracle) |
+| **D′. Combination rule** | union · majority vote (k) · intersection · weighted vote · cascade — swept over **subsets** of the pool |
 | **E. Corpus** | the **meta corpus** — one balanced assembly across language, domain, task and provenance, in a single schema. Members: legal TAB/ECHR (en) · e-mail Enron (en), CodEAlltag (de) · multi-genre OntoNotes (en, **zh**, **ar**) · clinical i2b2/n2c2 2014 (en, longitudinal), CARDIO:DE (de), BRONCO150 (de), MEDDOCAN (es), MedDeID (nl), E3C (multi) · general/financial AI4Privacy, PIIBench slice, REDACT. See [`data/metacorpus.md`](data/metacorpus.md) |
 | **F. Identifier provenance** | real · realistic-surrogate · placeholder-masked · PHI-inserted · fully synthetic |
 
@@ -182,10 +183,28 @@ The **gold-spans** level of D is essential: it separates *detector* error from *
 error, which no prior work does. Everything downstream is otherwise confounded by a 0.40-F1 name
 detector.
 
-**On the ensemble (axis D).** In the group's own testing an **ensemble across several LLMs combined
-with the baseline detectors** outperformed every single detector, so it is not an afterthought — it is
-the strongest realistic system and belongs in every cell where a detector is varied. Two design
-points matter and should themselves be reported:
+**On the ensemble (axes D and D′).** In the group's own testing an ensemble outperformed every
+single detector — but **that ensemble combined large language models only** (AM, 2026-09-07). Whether
+classical detectors still add anything once several LLMs are in the ensemble is an open question, and
+AM has asked for it to be answered rather than assumed. It is a large number of runs and it is the
+way to find the best combination.
+
+So the detector axis splits in two: a **pool** of detectors, and a **combination rule**, swept over
+**subsets** of the pool. Three contrasts are compared on equal footing, by pinning the required
+members of each subset:
+
+| contrast | subsets |
+|---|---|
+| single detectors | every pool member alone |
+| **LLMs only** | subsets drawn from the LLM members only — the in-house baseline |
+| **hybrid** | every LLM-only subset plus at least one classical detector |
+
+The hypothesis worth stating: a **high-precision rule-based recogniser for structured identifiers**
+(IBAN, phone, e-mail, record numbers) should add most where LLMs are weakest, and a fine-tuned NER
+should add least where the LLMs already agree. If the hybrid never beats LLMs-only, that is a clean
+negative result about where the field should spend its effort.
+
+Two further design points matter and should themselves be reported:
 
 - **Combination rule.** Union-of-spans maximises recall — the privacy-relevant direction — at the
   cost of precision, and therefore of utility, because every false positive pseudonymises a token
@@ -196,8 +215,9 @@ points matter and should themselves be reported:
   The gap between them measures what better detection could still buy; the gap between single
   detectors and the ensemble measures what ensembling already buys. Both belong in the results.
 
-Concretely, axis D should carry at least: Presidio (rule-based), one fine-tuned multilingual NER, two
-or more distinct LLMs individually, the ensemble in both union and vote form, and gold spans.
+Concretely, the pool carries at least: Presidio (rule-based), one fine-tuned multilingual NER,
+GLiNER (zero-shot), the CodEAlltag `privacy_tagger` on the German e-mail arm, two or more distinct
+LLMs individually, and gold spans; the rules carry at least union, majority vote and weighted vote.
 
 ### Measurements
 
@@ -290,7 +310,7 @@ no new detector: the contribution is the axis nobody varied.
   corpus means sampling the large members — a *design* decision, explicitly not the cost saving that
   `CLAUDE.md` §1 forbids. The rule (per-corpus cap? equal token budget per language?) has to be
   written down by AM before any sampling happens.
-- Is the full A×B×C×D×E×F factorial affordable, or do we fix a sensible default per axis and vary one
+- Is the full A×B×C×D×D′×E×F factorial affordable, or do we fix a sensible default per axis and vary one
   at a time around it? Compute is available; annotation-limited corpora may not support every cell.
 - Which E3C languages carry enough PII density to be worth including?
 - Does the **2026 revision of ISO 25237** change any recommendation we would make? Somebody needs a

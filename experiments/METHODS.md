@@ -240,6 +240,25 @@ field uses, not to be exhaustive.
 Spans are normalised to the meta-corpus schema (character offsets, harmonised type) before anything
 downstream sees them, so detectors are interchangeable by construction.
 
+**Combination is its own axis (D′), because the in-house ensemble used LLMs only.** Detectors rarely
+agree on boundaries, so agreement is defined by **overlap clustering**: same-type spans that overlap
+transitively form one cluster, and the rule decides whether it survives and which span represents it.
+Treating *Dr. Weber* and *Weber* as disagreement would understate agreement badly.
+
+| rule | keeps a cluster when | representative | trades toward |
+|---|---|---|---|
+| **union** | any detector found it | widest span | recall — the privacy direction |
+| **vote(k)** | ≥ k detectors agree (default: strict majority) | most-agreed span | balance |
+| **intersection** | all detectors agree | narrowest span | precision — the utility direction |
+| **weighted vote** | summed detector weights ≥ threshold | most-agreed span | whichever detector is trusted |
+| **cascade** | ordered fallback: later detectors fill gaps only | first found | cost |
+
+`combination_grid()` enumerates (subset, rule) pairs and takes a `require=` argument, which is how
+**LLMs-only** and **LLMs + ≥1 classical detector** are compared on equal footing rather than by
+anecdote. Weighted vote is where a classical detector can earn its place: a high-precision rule-based
+recogniser for structured identifiers can outweigh several language models that disagree about a name
+boundary.
+
 ### 9.2 Pseudonymisation (axes A · B · C)
 
 | axis | level | implementation |

@@ -43,6 +43,9 @@ hypotheses. Everything else here is supporting material.
 | [`references/text_pseudonymization.md`](references/text_pseudonymization.md) | detection benchmarks, surrogate generation, utility, leakage, email |
 | [`data/candidates.md`](data/candidates.md) | every corpus considered, including ones beyond the current plan |
 | `config/` | `*.example.toml` templates; the real `*.toml` are gitignored — no hostnames, usernames or keys in this repo |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | the software: patterns, extension points, quickstart |
+| `src/pseudonymkit/` | the package — policies, techniques, surrogate forms, metrics, detector ensembles |
+| `tests/` | 59 tests, no network, no models, under a second |
 | [`experiments/METHODS.md`](experiments/METHODS.md) | how the pseudonymisation engine, the stability metrics and the attacks are built |
 | `experiments/` | code lands here |
 

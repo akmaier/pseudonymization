@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pseudonymkit"
+version = "0.1.0"
+description = "Composable text pseudonymisation: policies, techniques, surrogate forms, stability metrics and detector ensembles."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = ["cryptography>=42"]
+
+[project.optional-dependencies]
+detectors = ["presidio-analyzer", "gliner", "flair", "spacy", "transformers", "torch"]
+tasks = ["scikit-learn", "transformers", "torch"]
+dev = ["pytest>=8", "mypy", "ruff"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.mypy]
+strict = true
+packages = ["pseudonymkit"]
