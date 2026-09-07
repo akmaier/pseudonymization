@@ -340,12 +340,28 @@ present). **Zero failures.** ~8.9 GB total.
 | MedDeID | synthetic data zip + EN/NL annotation guidelines | 13 MB |
 | REDACT | benchmark repo | 7.5 MB |
 | PIIBench | pipeline + taxonomy | 6.1 MB |
+| **OntoNotes 5.0** | `ontonotes-release-5.0_LDC2013T19.tgz`, MD5 verified at both ends | 890 MB |
 
 CodEAlltag dominates the footprint because the git working trees hold ~1.4 M individual message
 files; note that any `du` or recursive scan over that tree is slow.
 
-**Not fetched, by design:** BRONCO150, CARDIO:DE, n2c2 2014, OntoNotes — DUA- or licence-bound,
-obtained per signatory and stored outside the shared folder. See [`applications/`](../applications/).
+**OntoNotes** (added 2026-09-07) needed no application: FAU had licensed LDC2013T19 since
+2020-02-06, so it was downloaded from the LDC account and verified against the catalogue's MD5
+locally and again after transfer. Its licence permits use across the whole research group, so it sits
+with the public corpora rather than apart from them.
+
+**Still not on disk:**
+
+| corpus | why |
+|---|---|
+| BRONCO150 · CARDIO:DE | agreements signed 2026-09-07, awaiting the providers |
+| **n2c2 2014** | ⛔ registration closed — see §6d for what that costs |
+
+**Ten of the twelve meta-corpus members are now local.** The two clinical DUA corpora are in flight;
+n2c2 is the only one with no route at all.
+
+Storage note: the OntoNotes tarball is left **packed**. `/cluster` is at 95 % and unpacking is part of
+the build step, not acquisition — check free space before expanding it.
 
 ---
 
