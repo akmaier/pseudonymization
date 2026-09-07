@@ -6,9 +6,9 @@ Drafts below are ready for AM to check, sign and send. **Nothing here has been s
 | corpus | to | status | who must act |
 |---|---|---|---|
 | **BRONCO150** | Prof. Dr. Ulf Leser, `leser@informatik.hu-berlin.de` | [draft ready](bronco150_dua.md) | AM signs + sends |
-| **CARDIO:DE** | **`christoph.dieterich@uni-heidelberg.de`** (study director) | [draft ready](cardiode_request.md); DUA downloaded + MD5-verified | AM signs + sends; **needs the infrastructure-responsible person** |
+| **CARDIO:DE** | **`christoph.dieterich@uni-heidelberg.de`** (study director) | [complete](cardiode_request.md) — DUA downloaded + MD5-verified, all fields filled | AM signs + sends |
 | **i2b2 / n2c2 2014** | DBMI Data Portal | [text ready](n2c2_request.md) | **AM only** — per-individual registration |
-| **OntoNotes 5.0** | LDC | [blocked on one fact](ontonotes_ldc.md) | AM: is FAU an LDC member? |
+| **OntoNotes 5.0** | LDC catalogue, non-member route | [complete](ontonotes_ldc.md) — one signature covers the whole chair | AM: account, sign, download |
 
 ## Applicant details used in every draft
 
@@ -77,6 +77,7 @@ So, two locations:
 | what | where |
 |---|---|
 | public corpora (Enron, TAB, CodEAlltag, MEDDOCAN, MedDeID, REDACT, PIIBench, E3C, AI4Privacy) | `/cluster/shared_dataset/pseudonymization-corpora/` — the group's shared dataset folder |
+| OntoNotes | the shared folder is fine — the LDC agreement permits use across the whole research group |
 | DUA-bound corpora (BRONCO150, CARDIO:DE, n2c2, OntoNotes) | **not** the shared folder — a separate directory under AM's own administration, readable only by signatories |
 
 ## Deadlines created by signing

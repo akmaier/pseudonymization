@@ -84,17 +84,27 @@ Date:         ____________
 
 ## Responsible person for the infrastructure
 
+AM, 2026-09-07: **AM and Sven Grünke**. The form has one block and asks for a signature, so AM signs
+as the responsible person (the form's own example is *"e.g. research unit leader"*) and Sven Grünke is
+named alongside as the administrator of the machine. Both are stated in the covering letter so
+Heidelberg sees the actual arrangement.
+
 ```
-Name:         ____________   ← AM: yourself, or the i5 cluster administrator?
-Affiliation:  Friedrich-Alexander-Universität Erlangen-Nürnberg, Pattern Recognition Lab
-Position:     ____________
-Email:        ____________
+Name:         Prof. Dr.-Ing. habil. Andreas Maier
+Affiliation:  Friedrich-Alexander-Universität Erlangen-Nürnberg,
+              Pattern Recognition Lab (Computer Science 5)
+Position:     Chair, Computer Science 5 (Pattern Recognition)
+Email:        andreas.maier@fau.de
 Date:         ____________
 Signature:    ____________
-```
 
-**Decide this before sending.** The form says *"e.g. research unit leader"*, so AM signing both blocks
-is normal — but if the lab cluster is administered by i5 IT rather than the lab, name that person.
+Co-administrator of the infrastructure:
+Name:         Sven Grünke
+Affiliation:  Friedrich-Alexander-Universität Erlangen-Nürnberg,
+              Pattern Recognition Lab (Computer Science 5)
+Position:     IT Support                      ← from lme.tf.fau.de; AM, confirm the formal title
+Email:        sven.gruenke@fau.de
+```
 
 ---
 
@@ -116,6 +126,11 @@ is normal — but if the lab cluster is administered by i5 IT rather than the la
 > Rechencluster; eine Weitergabe an Dritte findet nicht statt. Ein Versuch, Personen zu
 > identifizieren, ist nicht Gegenstand der Studie — untersucht werden ausschließlich die von uns
 > selbst erzeugten Pseudonyme.
+>
+> Die Infrastruktur, auf der CARDIO:DE gespeichert würde, ist der lehrstuhleigene Rechencluster.
+> Verantwortlich dafür bin ich als Lehrstuhlinhaber; die technische Administration liegt bei Herrn
+> Sven Grünke (IT, Lehrstuhl für Mustererkennung, sven.gruenke@fau.de). Beide sind im Formular
+> benannt.
 >
 > Eine organisatorische Rückfrage zu Ziffer 1.2: Ich beantrage den Zugang als Leiter des Lehrstuhls
 > für die Arbeit meiner Gruppe. Sind Mitarbeitende, die unter meiner Verantwortung und auf der
