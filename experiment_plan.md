@@ -165,8 +165,8 @@ the same documents — which is the gap `PLAN.md` §2 claims nobody has closed.
 | **TAB / ECHR** (en, legal) | ✅ 8 types, DIRECT/QUASI | ✅ co-reference | ✅ 30-label articles | **full** |
 | **OntoNotes** (en, zh, ar; 5 genres) | ✅ 18 NE types | ✅ co-reference | ✅ co-reference + NER | **full** |
 | **Enron** (en, e-mail) | ⚠ structural, header-derived | ✅ cross-document identity | ✅ folder · intent · formality | **full** |
-| **CARDIO:DE** (de, clinical) | ⚠ see §7 | ❌ | ✅ medication IE · section classes | utility **+ leakage** (AM, 2026-09-08) |
-| **CodEAlltag** (de, e-mail) | ❌ none released | ❌ | ✅ formality · 7-way topic | utility only |
+| **CARDIO:DE** (de, clinical) | ⚠ DATETIME only — 18,148 `<[Pseudo] …>` date markers, no name layer | ❌ | ✅ medication IE · section classes | utility **+ leakage** (AM, 2026-09-08) |
+| **CodEAlltag** (de, e-mail) | ❌ none released | ❌ | ✅ formality · 7-way topic (the pXL partition *is* the label) | utility only |
 | **BRONCO150** (de, clinical) | ✅ ICD/OPS/ATC | ❌ sentence-scrambled | ✅ coding | utility only — **not yet received** |
 | MEDDOCAN · MedDeID · REDACT · AI4Privacy | ✅ | ❌ | ❌ | **detection + leakage only**, as the T4/T5 control arm for axis F |
 | E3C | ❌ no PII layer | ❌ | ❌ | out |
@@ -235,21 +235,95 @@ source of the gender attribute) · GeoNames `cities15000` (34,135, CC-BY).
 
 ## 7. Compute and job planning
 
-- **Detection is the only slow step.** It writes through a **resumable cache** keyed by
-  `(corpus, detector, doc_id)`; every ensemble afterwards is a post-hoc read, so the hybrid sweep —
-  hundreds of subset × rule combinations — costs **zero** model calls once the pool is cached.
-- **Everything must resume.** A killed job re-reads the cache and skips what is recorded; documents
-  that errored are retried rather than frozen into the results.
+### 7.1 What the first detection run got wrong — recorded, not hidden
+
+The array submitted on 2026-09-08 was **9 Slurm tasks, one per (corpus, model), each a serial HTTP
+client**: one request in flight, 2.3–25.6 s per document. It therefore held **all 8 of the
+association's `MaxJobs` slots** with allocations of 2 CPUs and 16 GB apiece that were blocked in
+`recv()` and doing no computation — and it blocked AM's own job. AM stopped it after 28 minutes
+(2026-09-08); **the cache preserved all 1,599 completed documents with 0 errors**, and the work
+resumes from there.
+
+Two planning errors, both to be fixed before anything is resubmitted:
+
+1. **Parallelism in the wrong layer.** Slurm allocations were used to obtain concurrency against a
+   *network service*. One allocation with an internal thread pool of *W* workers gives the same
+   concurrency in one eighth of the footprint, and leaves the cluster free for GPU work.
+2. **No accounting of the detection surface.** The array covered **3 of the ~10 corpora** and **one
+   of axis D's six detector levels**, with no table of what the whole of detection costs — so there
+   was no way to say whether the run was on schedule for 2026-09-25. §7.5 is that table's
+   precondition list.
+
+### 7.2 Resource classes — they are not interchangeable
+
+| work | bound by | GPU | job shape |
+|---|---|---|---|
+| gateway LLM detection (axis D, LLM levels) | network latency | no | **1–2 jobs**, internal thread pool |
+| A4 LLM re-identification | network latency | no | as above |
+| classical detection — Presidio, GLiNER, `obi/deid_roberta_i2b2`, `privacy_tagger` | GPU | **yes** | short batched jobs, **pin the card** |
+| gold spans (oracle level) | nothing | no | free; it is adapter output |
+| pseudonymisation, stability, A1–A3, A5 | CPU | no | minutes |
+
+Mixing the first class into Slurm tasks is what §7.1 got wrong. The third class has **not been
+written yet** and is the real gap in axis D.
+
+### 7.3 Measured LLM throughput — seconds per document, serial
+
+From the 1,599 cached records of the cancelled run. These are the numbers any schedule must use;
+they are not estimates.
+
+| corpus | `gpt-oss-120b` | `Qwen3.6-35B-A3B` | `gemma-4-31B` |
+|---|---:|---:|---:|
+| TAB (ECHR judgments, long) | 22.4 | 20.2 | 18.5 |
+| Enron (e-mail, short) | 25.6 | 19.7 | 13.7 † |
+| CodEAlltag (e-mail, short) | 8.2 | 15.4 | 2.3 |
+
+† one document only; not yet a rate.
+
+Document **length**, not model size, dominates: `gemma-4-31B` ran CodEAlltag at 2.3 s and TAB at
+18.5 s. Any schedule must be per (corpus, model), never a single global rate.
+
+### 7.4 Remaining work on the three corpora already started
+
+| corpus | cached | remaining calls |
+|---|---:|---:|
+| TAB | 274 | 3,530 |
+| CodEAlltag | 1,156 | 1,244 |
+| Enron | 169 | 1,631 |
+| **total** | **1,599** | **6,405** |
+
+At the measured mean of ~17 s that is **≈ 30 hours of waiting** — serial, this exceeds the 24 h wall
+clock and needs a resubmission; at *W* concurrent workers it is ≈ 30/*W* hours in **one**
+allocation.
+
+***W* is to be measured, not assumed.** Probe the gateway with a concurrency ramp and record where
+`429 No deployments available` begins. Tolerated concurrency is part of the experimental record for
+the same reason model availability is (§6), and a 429 is a signal to back off — **never** to drop a
+planned model (§0).
+
+### 7.5 Preconditions before any detection job is resubmitted
+
+1. **`DetectorCache.append` must take a lock.** It is currently correct only because there is one
+   writer per file; a thread pool breaks that assumption and would interleave JSONL records.
+2. **Load each corpus once per job**, not once per (corpus, model). Enron currently costs a full
+   1.3 GB decompression per task.
+3. **Size the whole detection surface first** — OntoNotes (en/zh/ar), CARDIO:DE 400, MEDDOCAN,
+   MedDeID, REDACT, AI4Privacy, PIIBench — and put document counts and estimated hours in a table
+   here. Submitting before that table exists is what §7.1 describes.
+4. **Write the classical-detector job.** Four of axis D's six levels have no code and no job.
+5. **Ask AM before submitting.** The cluster is shared with the group and with AM's own work.
+
+### 7.6 Standing cluster rules
+
+- **Everything resumes.** A killed job re-reads the cache and skips what is recorded; documents that
+  errored are retried rather than frozen into the results. This is what made §7.1 cost nothing.
 - **Slurm limits:** assoc `MaxJobs` = 8; QOS `miti` = 4 concurrent, `turbo` = **10 concurrent, 100
-  submitted**, 24 h wall clock. Use `--qos=turbo` and throttle arrays with `%8`.
+  submitted**, 24 h wall clock. Throttle arrays with `%8` — and prefer *not* to need an array.
 - **The head node is not for jobs.** A 20,000-message load was OOM-killed there; the same load runs
   in 100 s inside an allocation.
 - **`mkdir -p results/slurm` inside every job script.** Slurm redirects stdout *before* the script
   runs; a missing directory fails the job with no log at all.
-- LLM work needs **no GPU** — it runs on the gateway, so those jobs are network-bound and share nodes.
 - `/cluster` is at 95 %. Text corpora are small; do not write model checkpoints.
-
----
 
 ## 8. Deliverables
 
@@ -276,6 +350,17 @@ one redistributable artefact. Ship converters, a manifest with checksums, and a 
 | **Learning buys most where the signal is weak** — A5/A3 ratio 1.04× deterministic, **5.1×** document-randomised, **21×** fully-randomised | measured |
 | **Full randomisation is not a complete defence** — A5 still reaches Rank-1 0.064 against a 948-entity gallery, ~60× chance | measured |
 
+**Corpus facts established 2026-09-08, from the releases themselves:**
+
+| finding | consequence |
+|---|---|
+| **CARDIO:DE marks every de-identified date in place** — `<[Pseudo] 12/03/2019>`, 18,148 occurrences in 500 letters, and the marker wraps **nothing but dates** | the corpus gains a real, narrow **DATETIME gold layer**; the adapter emits it |
+| **CARDIO:DE has almost no semantic placeholders** — 178 `<NONE>`, one `<TIME>`, one `<ORG>` in 5.9 M characters | it is **not** placeholder-masked for persons, as this repo's notes previously assumed. How names were handled is **not stated in the release README** — open item, §10 |
+| **CARDIO:DE's CAS text and `.txt` are not byte-identical** — same length, agreeing everywhere except that each newline is a space in `sofaString` (XML attribute-value normalisation) | offsets coincide; the adapter keeps the `.txt` and asserts the invariant per letter, dropping and counting any that fail |
+| **CARDIO:DE100 carries no annotations** — the CAS files exist but hold no `custom:` layers | the heldout split supports neither utility task; the adapter defaults to CARDIO:DE400 |
+| **CodEAlltag_S is realistic-surrogate (T2)** — its README: privacy-sensitive spans were annotated manually, then *"substituting them with realistic surrogates automatically"* | axis F tier confirmed from the release, not inferred |
+| **The CodEAlltag formality scores were Git-LFS pointers**, not data — the cluster has no `git-lfs` | fetched over `media.githubusercontent.com`; all eight document-level files now present. The adapter refuses to read a stub as "no scores" |
+
 **Unresolved:** the fair A3-vs-A5 comparison on identical galleries (A5's entity-disjoint split gives
 it a smaller gallery, so the deterministic 1.04× sits inside that confound).
 
@@ -287,4 +372,12 @@ it a smaller gallery, so the deterministic 1.04× sits inside that confound).
 2. **n2c2 2014** — registration closed; ask DBMI when it reopens. Its loss removes clinical
    cross-document stability and the only cell where detection and utility shared documents.
 3. **The fair A3/A5 comparison** — A3 restricted to A5's held-out entities and gallery.
-4. **Paper scoping** — which panels fit eight pages.
+4. **CARDIO:DE person-name handling** — dates are marked, names are not, and the release README
+   does not say what was done to them. Read it out of Richter-Pechanski et al., *Sci Data* 10, 207
+   (2023) before asserting the corpus's axis-F tier. Until then the adapter records `placeholder`
+   for the date layer only, and the tier is **not** claimed.
+5. **The full detection surface is not yet sized** — §7.5(3). OntoNotes, CARDIO:DE and the five
+   T4/T5 control corpora have no document counts and therefore no schedule.
+6. **Four of axis D's six detector levels have no code** — Presidio, GLiNER, `obi/deid_roberta_i2b2`
+   and `privacy_tagger` are GPU work and are unwritten (§7.2).
+7. **Paper scoping** — which panels fit eight pages.

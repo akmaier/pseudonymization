@@ -24,12 +24,13 @@ import html
 import re
 import tarfile
 from collections import defaultdict
+from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Iterator, Sequence
+from typing import Callable, Iterator, Sequence
 
 from ..domain import Corpus, Document, Mention, Span
 
-__all__ = ["extract", "load", "parse_name", "parse_coref", "TYPE_MAP"]
+__all__ = ["extract", "load", "parse_name", "parse_coref", "LoadReport", "GENRES", "TYPE_MAP"]
 
 TYPE_MAP: dict[str, str] = {
     "PERSON": "PERSON",
@@ -63,28 +64,44 @@ def extract(
     tarball: Path | str,
     destination: Path | str,
     languages: Sequence[str] = ("english", "chinese", "arabic"),
+    progress: Callable[[str], None] | None = None,
 ) -> dict[str, int]:
     """Pull the ``.name`` and ``.coref`` layers out of the archive in **one** pass.
 
     The archive is 890 MB of gzip holding ~23,000 files; scanning it per document would cost a full
     decompression each time.  One sequential pass writes the two layers we need — a few tens of
     megabytes — after which loading is ordinary file I/O.
+
+    The directory structure *below* the language is preserved, because document basenames are not
+    unique across genres (``nw/…/ann_0001.name`` and ``bn/…/ann_0001.name`` both exist).  Flattening
+    them would silently overwrite documents, and the genre — a factor we report on — would be lost
+    with them.
     """
     destination = Path(destination)
     counts: dict[str, int] = defaultdict(int)
     wanted = tuple(languages)
+    seen = 0
     with tarfile.open(tarball, mode="r|gz") as tar:
         for member in tar:
+            seen += 1
+            if progress and seen % 50_000 == 0:
+                progress(f"scanned {seen} members, kept {sum(counts.values())}")
             if not member.isfile() or not member.name.endswith((".name", ".coref")):
                 continue
             parts = member.name.split("/")
-            language = next((p for p in parts if p in wanted), None)
-            if language is None:
+            try:
+                index = next(i for i, part in enumerate(parts) if part in wanted)
+            except StopIteration:
                 continue
+            language = parts[index]
+            # Everything under ``<language>/annotations/`` — genre, source, subdirectory, stem.
+            tail = parts[index + 1 :]
+            if tail and tail[0] == "annotations":
+                tail = tail[1:]
             handle = tar.extractfile(member)
             if handle is None:
                 continue
-            out = destination / language / Path(member.name).name
+            out = destination / language / Path(*tail)
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_bytes(handle.read())
             counts[f"{language}/{Path(member.name).suffix.lstrip('.')}"] += 1
@@ -97,14 +114,19 @@ def _strip(markup: str) -> str:
 
 
 def _spans_from(markup: str, pattern: re.Pattern[str]) -> tuple[str, list[tuple[int, int, str]]]:
-    """Strip inline markup, recording each match as ``(start, end, label)`` in the stripped text."""
+    """Strip inline markup, recording each match as ``(start, end, label)`` in the stripped text.
+
+    Every fragment is unescaped exactly once, as it is appended.  Unescaping the joined string
+    instead would shorten fragments *before* the recorded offsets and shift every span after the
+    first ``&amp;`` — the kind of error that produces plausible-looking but wrong entity text.
+    """
     text_parts: list[str] = []
     spans: list[tuple[int, int, str]] = []
     cursor = 0
     length = 0
     body = _DOC.sub("", markup)
     for match in pattern.finditer(body):
-        before = _TAG.sub("", body[cursor : match.start()])
+        before = html.unescape(_TAG.sub("", body[cursor : match.start()]))
         text_parts.append(before)
         length += len(before)
         inner = html.unescape(_TAG.sub("", match.group(2)))
@@ -112,9 +134,8 @@ def _spans_from(markup: str, pattern: re.Pattern[str]) -> tuple[str, list[tuple[
         text_parts.append(inner)
         length += len(inner)
         cursor = match.end()
-    tail = _TAG.sub("", body[cursor:])
-    text_parts.append(tail)
-    return html.unescape("".join(text_parts)), spans
+    text_parts.append(html.unescape(_TAG.sub("", body[cursor:])))
+    return "".join(text_parts), spans
 
 
 def parse_name(markup: str) -> tuple[str, list[tuple[int, int, str]]]:
@@ -127,68 +148,102 @@ def parse_coref(markup: str) -> tuple[str, list[tuple[int, int, str]]]:
     return _spans_from(markup, _COREF)
 
 
+@dataclass(frozen=True)
+class LoadReport:
+    """What :func:`load` kept and what it had to drop, per language.
+
+    Dropped co-reference is not a detail: OntoNotes is in the study *for* its chains, so a run that
+    silently lost them would report stability over a corpus that no longer supports it.
+    """
+
+    documents: int = 0
+    with_coref: int = 0
+    coref_misaligned: int = 0
+    coref_absent: int = 0
+    empty: int = 0
+
+    def __str__(self) -> str:
+        return (
+            f"{self.documents} documents, {self.with_coref} with co-reference; dropped "
+            f"{self.coref_misaligned} misaligned, {self.coref_absent} without a .coref layer, "
+            f"{self.empty} empty"
+        )
+
+
 def load(
     root: Path | str,
     languages: Sequence[str] = ("english", "chinese", "arabic"),
     limit_per_language: int | None = None,
+    report: dict[str, LoadReport] | None = None,
 ) -> Corpus:
     """Build a corpus from a directory produced by :func:`extract`.
 
     Documents with no ``.name`` layer are skipped: without entity spans there is nothing to
-    pseudonymise.  Co-reference is attached only where the ``.coref`` layer strips to the same text.
+    pseudonymise.  Co-reference is attached only where the ``.coref`` layer strips to the same text;
+    pass ``report`` to receive the per-language tally of what that cost.
     """
     root = Path(root)
     documents: list[Document] = []
-    dropped_coref = 0
 
     for language in languages:
         directory = root / language
         if not directory.is_dir():
             continue
-        names = sorted(directory.glob("*.name"))
+        tally = LoadReport()
+        names = sorted(directory.rglob("*.name"))
         if limit_per_language:
             names = names[:limit_per_language]
         for name_path in names:
             text, entities = parse_name(name_path.read_text("utf-8", errors="replace"))
             if not text.strip():
+                tally = replace(tally, empty=tally.empty + 1)
                 continue
-            doc_id = f"ontonotes/{language}/{name_path.stem}"
+            relative = name_path.relative_to(directory).with_suffix("")
+            doc_id = f"ontonotes/{language}/{relative.as_posix()}"
 
             chains: dict[tuple[int, int], str] = {}
             coref_path = name_path.with_suffix(".coref")
-            if coref_path.exists():
+            if not coref_path.exists():
+                tally = replace(tally, coref_absent=tally.coref_absent + 1)
+            else:
                 coref_text, coref_spans = parse_coref(
                     coref_path.read_text("utf-8", errors="replace")
                 )
                 if coref_text == text:
                     chains = {(s, e): cid for s, e, cid in coref_spans}
                 else:
-                    dropped_coref += 1
+                    tally = replace(tally, coref_misaligned=tally.coref_misaligned + 1)
 
             mentions = []
             for i, (start, end, raw_type) in enumerate(entities):
+                chain = chains.get((start, end))
                 mentions.append(
                     Mention(
                         doc_id=doc_id,
                         mention_id=f"n{i}",
                         span=Span(start, end, text[start:end],
                                   TYPE_MAP.get(raw_type, "MISC"), type_src=raw_type),
-                        # A chain id is attached only on an exact span match, never by overlap.
-                        gold_entity_id=chains.get((start, end)),
+                        # A chain id is attached only on an exact span match, never by overlap, and
+                        # is namespaced by document: OntoNotes numbers chains per document, so a
+                        # bare id would fabricate cross-document identity between unrelated people.
+                        gold_entity_id=f"{doc_id}#{chain}" if chain is not None else None,
                     )
                 )
             documents.append(
                 Document(
                     doc_id=doc_id, text=text, language=_iso(language), mentions=tuple(mentions),
-                    corpus="ontonotes", domain=_genre(name_path.stem), provenance="real",
+                    corpus="ontonotes", domain=_genre(relative.as_posix()), provenance="real",
                     subject_id=None,          # OntoNotes chains are document-scoped, like TAB's
                     task={"name": "ontonotes_coref_ner"},
                     metadata={"annotation": "gold", "ontonotes_language": language,
+                              "genre_code": relative.parts[0] if relative.parts else "",
                               "has_coref": bool(chains)},
                 )
             )
-    if dropped_coref:
-        documents = documents          # count surfaced by the caller via metadata
+            tally = replace(tally, documents=tally.documents + 1,
+                            with_coref=tally.with_coref + bool(chains))
+        if report is not None:
+            report[language] = tally
     return Corpus("ontonotes", tuple(documents))
 
 
@@ -196,12 +251,20 @@ def _iso(language: str) -> str:
     return {"english": "en", "chinese": "zh", "arabic": "ar"}.get(language, language[:2])
 
 
-def _genre(stem: str) -> str:
-    for prefix, genre in (("wsj", "news"), ("cnn", "broadcast"), ("abc", "broadcast"),
-                          ("voa", "broadcast"), ("chtb", "news"), ("ann", "news")):
-        if stem.startswith(prefix):
-            return genre
-    return "mixed"
+GENRES: dict[str, str] = {
+    "bc": "broadcast_conversation",
+    "bn": "broadcast_news",
+    "mz": "magazine",
+    "nw": "newswire",
+    "pt": "pivot_text",
+    "tc": "telephone_conversation",
+    "wb": "web",
+}
+"""OntoNotes' genre directory codes, which sit directly under ``<language>/annotations/``."""
+
+
+def _genre(relative_path: str) -> str:
+    return GENRES.get(relative_path.split("/", 1)[0], "unknown")
 
 
 def iter_documents(corpus: Corpus) -> Iterator[Document]:
