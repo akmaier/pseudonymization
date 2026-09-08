@@ -486,3 +486,62 @@ And there is a sharper corollary. If A5 succeeds under a deterministic policy, t
 requirement itself is the vulnerability**: one person, one pseudonym, corpus-wide is exactly the
 property that lets a profile be assembled. That is the paper's thesis stated at its strongest, and it
 would come from the group's own imaging result carried into text.
+
+
+---
+
+## 12. Surrogate tasks for the unlabelled corpora
+
+Six members of the meta corpus carry no downstream gold labels: Enron message bodies, CodEAlltag,
+MEDDOCAN, REDACT, AI4Privacy, E3C.  Utility cannot be scored on them by the task-based protocol
+(§9.4) as it stands.  AM, 2026-09-08, proposed surrogate tasks such as question answering, and asked
+what the literature already does with these corpora.  Answer: **for three of them an established task
+exists and should be preferred to anything we invent.**
+
+| corpus | established downstream task | source |
+|---|---|---|
+| **Enron** | folder classification | Klimt & Yang, ECML 2004 |
+| **Enron** | **speech-act / intent classification** | Goldstein-Stewart et al., *Annotating Subsets of the Enron Email Corpus*; Cohen et al. on collective classification of e-mail speech acts |
+| **Enron** | **formality** | *Email formality in the workplace: a case study on the Enron corpus* |
+| **CodEAlltag** | **formality scores** — already released, and already on disk in `codealltag/formality_scores` | Eder, Krieg-Holz & Hahn |
+| **CodEAlltag** | 7-way topic, from the XL segments | the release itself |
+| MEDDOCAN | see the negative below | |
+| REDACT, AI4Privacy | none — synthetic detection benchmarks | |
+
+**Formality is the unexpected win.** It is an established task on *both* e-mail corpora, in two
+languages, with labels already published for the German one. That gives a **cross-lingual, paired
+utility measurement on the e-mail domain** at no annotation cost.
+
+### The MEDDOCAN negative, and it is worth stating
+
+MEDDOCAN and **PharmaCoNER** are both annotated subsets of the same Spanish Clinical Case Corpus
+(SPACCC), which looked like the i2b2 Track-1/Track-2 situation: two tasks over one document set. It
+is not. PharmaCoNER annotates the SPACCC originals, whereas **MEDDOCAN distributes "modified
+synthetic versions of the document collection"** — the PHI-augmented texts. The character offsets
+therefore do not correspond, and transferring PharmaCoNER annotations onto MEDDOCAN text would
+require aligning the unmodified stretches around every inserted identifier. Possible, fragile, and
+**unverified** — worth a check, not a plan.
+
+### If a QA surrogate is used, one trap decides whether it means anything
+
+InfoLossQA generates questions answerable from the original and checks whether they remain answerable
+after transformation. Applied naively to pseudonymisation the result is **tautological**: many
+generated questions will ask about the very entities we deliberately removed — *"Who signed the
+letter?"*, *"Which hospital?"* — and reporting that those became unanswerable measures nothing but
+that the pipeline did its job.
+
+The measurement only carries information if the questions are **stratified**:
+
+| question class | expected | what it measures |
+|---|---|---|
+| about a protected entity | unanswerable after pseudonymisation | that the pipeline worked — a **sanity check**, not utility |
+| **about everything else** | should stay answerable | **the actual utility loss** |
+
+So questions must be generated and labelled by whether their answer lies inside a replaced span, and
+only the second class enters the utility number. Since the gold spans are known, that labelling is
+mechanical rather than a judgement call.
+
+**Priority.** Established tasks first — Enron folder, intent and formality; CodEAlltag formality and
+topic. QA surrogate only for REDACT and AI4Privacy, which are synthetic controls where utility
+matters least. Building a QA harness before exhausting the labels that already exist would be
+effort spent in the wrong place.

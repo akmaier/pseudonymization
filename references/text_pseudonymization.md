@@ -31,6 +31,14 @@ entry says so; the rest are **title-level evidence** and must be opened before b
 | 2020 | `10.18653/v1/2020.clinicalnlp-1.23` | **PHICON** — improving generalisation of de-identification models via PHI substitution / data augmentation |
 | 2026 | `10.1016/j.dib.2026.112586` | **ASQ-PHI** — adversarial *synthetic* benchmark for clinical de-identification and search utility |
 
+## Evaluating anonymisation — criteria and information loss
+
+| year | id | work |
+|---|---|---|
+| 2021 | arXiv **2103.09263** | **No Intruder, no Validity: Evaluation Criteria for Privacy-Preserving Text Anonymization.** *abstract read.* Proposes **TILD** — **T**echnical performance, **I**nformation **L**oss, and human ability to **D**e-anonymise. The direct precedent for this study's evaluation design, and independent support for the trained-attacker stance: an anonymisation evaluation without an adversary is not an evaluation |
+| 2024 | ACL, arXiv **2401.16475** | **InfoLossQA: Characterizing and Recovering Information Loss in Text Simplification.** *abstract read.* Measures information loss as **question–answer pairs** answerable from the original but not the transformed text. The method AM proposed as a surrogate task — but applied to **simplification**, not anonymisation. Applying it to pseudonymisation appears to be open |
+| 2026 | arXiv 2511.15364 | Anonymization and Information Loss — *title-level* |
+
 ## Utility after de-identification
 
 | year | id | work |
