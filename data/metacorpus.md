@@ -1,5 +1,14 @@
 # The meta corpus
 
+> **⚠ SUPERSEDED — historical record only.**
+> **[`experiment_plan.md`](../experiment_plan.md) is the sole authority** (AM, 2026-09-08). Where this file disagrees
+> with it, this file is wrong. It is kept because it records how decisions were reached, not because
+> anything here is still binding. In particular the **"axis F / identifier provenance"** factor and
+> the **T1–T5 tier taxonomy** below were an agent's constructions on top of AM's remark of
+> 2026-09-06 — *"PHI inserted is not great. Same for synthetic. Pseudonymised is ok"* — which was a
+> **corpus-selection criterion, not a factor**. Both were struck on 2026-09-08. Do not reintroduce
+> them, and do not plan from this file.
+
 **Decision by AM, 2026-09-06.** Rather than pick corpora one at a time, assemble a **single balanced
 meta corpus** spanning tasks and languages, in one unified format. It answers the study's questions
 in one pass instead of corpus by corpus, and it makes the cells of `PLAN.md` §Factors comparable

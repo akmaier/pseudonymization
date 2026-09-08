@@ -32,7 +32,6 @@ make a run finish.
 | **D. detector pool** | Presidio (rule) · GLiNER (zero-shot) · `obi/deid_roberta_i2b2` (public fine-tuned de-ID) · CodEAlltag `privacy_tagger` (domain, German e-mail) · ≥2 gateway LLMs · **gold spans (oracle)** | **No detector is trained by us.** One fine-tuned on a corpus's own split has seen the entities we then protect, inflating its recall and confounding everything downstream |
 | **D′. combination rule** | *span-level:* union · vote(k) · intersection · weighted vote · cascade — *token-level:* per-token BIO voting (ROVER analogue) | Swept over **subsets** of the pool, with `require=` pinning so **LLMs-only** and **LLMs + ≥1 classical** are compared on equal footing |
 | **E. corpus** | see §4 | Roles differ: full vs utility-only |
-| **F. identifier provenance** | real · realistic-surrogate · placeholder-masked · PHI-inserted · fully-synthetic | A **control axis**, not a filter. Every 2026 detection benchmark is fully synthetic, so the T1→T5 contrast measures how much a benchmark's construction flatters its own privacy numbers |
 | **sampling rate** | 0.01 · 0.05 · 0.10 · 0.25 · 1.0 where affordable | **Size is a reported parameter** (AM, 2026-09-08), not something to balance away |
 
 **Why the factorial is affordable.** A, B and C compose rather than multiply: the policy is a scoping
@@ -171,18 +170,20 @@ the same documents — which is the gap `PLAN.md` §2 claims nobody has closed.
 | MEDDOCAN · MedDeID · REDACT · AI4Privacy | ✅ | ❌ | ❌ | **OUT** (AM, 2026-09-08) — no utility task, so no cell where a method's effect is attributable |
 | E3C | ❌ no PII layer | ❌ | ❌ | **OUT** (AM, 2026-09-08) |
 
-**The synthetic members are out** (AM, 2026-09-08, `data/metacorpus.md` §13): *"Let's only use
-data that has some utility."* Attributing an effect to a method requires detection, stability **and**
-utility on the same documents, and MEDDOCAN, MedDeID, REDACT, AI4Privacy and E3C carry no utility
-task. **Only TAB, OntoNotes and Enron carry all three** — and they are also the only tier-T1 members,
-the ones with real names.
+**The synthetic members are out** (AM, 2026-09-08): *"Let's only use data that has some utility."*
+Attributing an effect to a method requires detection, stability **and** utility on the same
+documents, and MEDDOCAN, MedDeID, REDACT, AI4Privacy and E3C carry no utility task. **Only TAB,
+OntoNotes and Enron carry all three.**
 
-⚠ **This leaves axis F without a control arm, and that is an open decision for AM, not a settled
-one — see §10.** Axis F exists because every 2026 detection benchmark is synthetic; running the same
-attacks across T1→T5 is what measures how much a benchmark's construction flatters its own privacy
-numbers. With T4 and T5 gone the axis spans T1 (TAB, OntoNotes, Enron) and T2/T3 (CodEAlltag,
-CARDIO:DE) only. A previous version of this file recorded the per-measurement compromise as decided;
-it was **an agent's suggestion awaiting AM** and has been withdrawn.
+**What the identifiers are, stated once and not made into an axis.** TAB, OntoNotes and Enron carry
+**real names in a natural frequency distribution**. CodEAlltag carries **realistic surrogates** — its
+README: privacy-sensitive spans were annotated manually, then *"substituting them with realistic
+surrogates automatically"*. CARDIO:DE carries **shifted dates and no name layer**.
+
+This matters for exactly two attacks. **A1 and A2 both consume the name-frequency distribution**, so
+their numbers transfer only where that distribution is natural — TAB, OntoNotes, Enron. On CodEAlltag
+they are weaker evidence, and on CARDIO:DE they do not apply at all. That is a stated limit on where
+those results hold. It is **not** an experimental factor and there are no cells for it.
 
 **Access status.** TAB, Enron, OntoNotes, CodEAlltag, MEDDOCAN, MedDeID, REDACT, AI4Privacy, E3C,
 PIIBench are on the cluster in `/cluster/shared_dataset/pseudonymization-corpora`. **CARDIO:DE is
@@ -406,7 +407,7 @@ one redistributable artefact. Ship converters, a manifest with checksums, and a 
 | **CARDIO:DE has almost no semantic placeholders** — 178 `<NONE>`, one `<TIME>`, one `<ORG>` in 5.9 M characters | it is **not** placeholder-masked for persons, as this repo's notes previously assumed. How names were handled is **not stated in the release README** — open item, §10 |
 | **CARDIO:DE's CAS text and `.txt` are not byte-identical** — same length, agreeing everywhere except that each newline is a space in `sofaString` (XML attribute-value normalisation) | offsets coincide; the adapter keeps the `.txt` and asserts the invariant per letter, dropping and counting any that fail |
 | **CARDIO:DE100 carries no annotations** — the CAS files exist but hold no `custom:` layers | the heldout split supports neither utility task; the adapter defaults to CARDIO:DE400 |
-| **CodEAlltag_S is realistic-surrogate (T2)** — its README: privacy-sensitive spans were annotated manually, then *"substituting them with realistic surrogates automatically"* | axis F tier confirmed from the release, not inferred |
+| **CodEAlltag_S carries realistic surrogates** — its README: privacy-sensitive spans were annotated manually, then *"substituting them with realistic surrogates automatically"* | read from the release, not inferred; bounds where A1/A2 transfer (§4) |
 | **The CodEAlltag formality scores were Git-LFS pointers**, not data — the cluster has no `git-lfs` | fetched over `media.githubusercontent.com`; all eight document-level files now present. The adapter refuses to read a stub as "no scores" |
 
 **Unresolved:** the fair A3-vs-A5 comparison on identical galleries (A5's entity-disjoint split gives
@@ -420,17 +421,11 @@ it a smaller gallery, so the deterministic 1.04× sits inside that confound).
 2. **n2c2 2014** — registration closed; ask DBMI when it reopens. Its loss removes clinical
    cross-document stability and the only cell where detection and utility shared documents.
 3. **The fair A3/A5 comparison** — A3 restricted to A5's held-out entities and gallery.
-4. **CARDIO:DE person-name handling** — dates are marked, names are not, and the release README
-   does not say what was done to them. Read it out of Richter-Pechanski et al., *Sci Data* 10, 207
-   (2023) before asserting the corpus's axis-F tier. Until then the adapter records `placeholder`
-   for the date layer only, and the tier is **not** claimed.
-5. **Axis F has no control arm** — the T4/T5 synthetic corpora are out (§4, AM 2026-09-08), so the
-   axis now spans T1–T3 only and the "how much does a synthetic benchmark flatter its own privacy
-   numbers" comparison cannot be made. **AM's call:** leave axis F as a T1–T3 contrast and say so, or
-   re-admit the synthetics for detection and leakage only. An agent must not settle this by drift —
-   a previous version of this file did exactly that and has been corrected.
-6. **Where the Enron size sweep stops** — Enron at rate 0.10 is 86 % of the whole detection budget
+4. **CARDIO:DE person-name handling** — dates are marked in place, names are not, and the release
+   README does not say what was done to them. Read it out of Richter-Pechanski et al., *Sci Data*
+   10, 207 (2023) before making any claim about the corpus's identifiers.
+5. **Where the Enron size sweep stops** — Enron at rate 0.10 is 86 % of the whole detection budget
    (§7.4.1). The sweep 0.01 → 0.25 is the plan's own design; its upper end is AM's to set.
-7. **Four of axis D's six detector levels have no code** — Presidio, GLiNER, `obi/deid_roberta_i2b2`
+6. **Four of axis D's six detector levels have no code** — Presidio, GLiNER, `obi/deid_roberta_i2b2`
    and `privacy_tagger` are GPU work and are unwritten (§7.2).
-8. **Paper scoping** — which panels fit eight pages.
+7. **Paper scoping** — which panels fit eight pages.

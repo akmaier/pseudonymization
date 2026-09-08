@@ -7,8 +7,9 @@ Target venue: **TrustFMI @ ACCV 2026** (workshop, Osaka, 14 Dec 2026). Submissio
 6–8 pages full / 4 pages short, LNCS, via OpenReview. Treat that deadline as the near-term target,
 not as a limit on the study — compute is available and the work is intended to outlive the workshop.
 
-**Read [`PLAN.md`](PLAN.md) first.** It carries the thesis, the factor design, the metrics and the
-hypotheses. Everything else here is supporting material.
+**Read [`experiment_plan.md`](experiment_plan.md) first — it is the sole authority.** It carries the
+factor design, the metrics, the statistics and the corpora. `PLAN.md` and everything under `data/`
+are **superseded historical record**: they show how decisions were reached, and are not binding.
 
 ## Decisions already taken
 
@@ -38,7 +39,7 @@ hypotheses. Everything else here is supporting material.
 | path | contents |
 |---|---|
 | [`experiment_plan.md`](experiment_plan.md) | **the authoritative experiment specification** — factors, metrics, statistics, corpora, sampling, models, compute |
-| [`PLAN.md`](PLAN.md) | thesis, argument, hypotheses, related work, deliverables |
+| [`PLAN.md`](PLAN.md) | **superseded, historical** — how the decisions were reached |
 | [`AUTHORS.md`](AUTHORS.md) | author list — complete; middle order (2–5) still unsettled, **do not guess it** |
 | [`references/standards.md`](references/standards.md) | ISO 25237, ENISA, ISO/IEC 20889, GDPR |
 | [`references/text_pseudonymization.md`](references/text_pseudonymization.md) | detection benchmarks, surrogate generation, utility, leakage, email |

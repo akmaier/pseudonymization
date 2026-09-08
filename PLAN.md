@@ -1,5 +1,14 @@
 # Experiment plan — end-to-end evaluation of text pseudonymisation
 
+> **⚠ SUPERSEDED — historical record only.**
+> **[`experiment_plan.md`](experiment_plan.md) is the sole authority** (AM, 2026-09-08). Where this file disagrees
+> with it, this file is wrong. It is kept because it records how decisions were reached, not because
+> anything here is still binding. In particular the **"axis F / identifier provenance"** factor and
+> the **T1–T5 tier taxonomy** below were an agent's constructions on top of AM's remark of
+> 2026-09-06 — *"PHI inserted is not great. Same for synthetic. Pseudonymised is ok"* — which was a
+> **corpus-selection criterion, not a factor**. Both were struck on 2026-09-08. Do not reintroduce
+> them, and do not plan from this file.
+
 **Scope set by AM, 2026-09-06:** multilingual, multi-domain, multi-method; evaluate **detection,
 utility and leakage** end to end. Compute is not a constraint. The distinctive requirement is
 **pseudonym stability** — person 1 must never collapse into person 2, and the same for locations.
@@ -157,9 +166,8 @@ because the effective attack is distributional, not cryptanalytic.
 | **D. Detector pool** | rule-based (Presidio) · **publicly released** fine-tuned de-ID NER (`obi/deid_roberta_i2b2`, `StanfordAIMI/stanford-deidentifier-base`) · zero-shot NER (GLiNER) · domain-specific (CodEAlltag `privacy_tagger`) · ≥2 individual LLMs · **gold spans** (oracle). **No detector is trained by us** — a detector fine-tuned on a corpus's own split has seen the entities we then protect, which inflates its recall and confounds everything downstream |
 | **D′. Combination rule** | *span-level:* union · majority vote (k) · intersection · weighted vote · cascade · *token-level (ROVER-style):* per-token BIO voting — all swept over **subsets** of the pool |
 | **E. Corpus** | the **meta corpus** — one balanced assembly across language, domain, task and provenance, in a single schema. Members: legal TAB/ECHR (en) · e-mail Enron (en), CodEAlltag (de) · multi-genre OntoNotes (en, **zh**, **ar**) · clinical i2b2/n2c2 2014 (en, longitudinal), CARDIO:DE (de), BRONCO150 (de), MEDDOCAN (es), MedDeID (nl), E3C (multi) · general/financial AI4Privacy, PIIBench slice, REDACT. See [`data/metacorpus.md`](data/metacorpus.md) |
-| **F. Identifier provenance** | real · realistic-surrogate · placeholder-masked · PHI-inserted · fully synthetic |
 
-**On the meta corpus (axis E) and provenance (axis F).** AM, 2026-09-06: rather than pick corpora
+**On the meta corpus (axis E).** ~~Axis F was struck 2026-09-08; see the banner.~~ AM, 2026-09-06: rather than pick corpora
 one at a time, assemble a **single balanced meta corpus** spanning tasks and languages in one unified
 schema, so the study's questions are answered in one pass and the cells become comparable across
 languages for the first time. Two criteria came with the decision — *"PHI-inserted is not great. Same

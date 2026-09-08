@@ -1,5 +1,14 @@
 # Corpus candidates
 
+> **⚠ SUPERSEDED — historical record only.**
+> **[`experiment_plan.md`](../experiment_plan.md) is the sole authority** (AM, 2026-09-08). Where this file disagrees
+> with it, this file is wrong. It is kept because it records how decisions were reached, not because
+> anything here is still binding. In particular the **"axis F / identifier provenance"** factor and
+> the **T1–T5 tier taxonomy** below were an agent's constructions on top of AM's remark of
+> 2026-09-06 — *"PHI inserted is not great. Same for synthetic. Pseudonymised is ok"* — which was a
+> **corpus-selection criterion, not a factor**. Both were struck on 2026-09-08. Do not reintroduce
+> them, and do not plan from this file.
+
 Everything considered, **including corpora beyond the current plan**, so nothing has to be
 rediscovered. Public-data-only is a project decision (AM, 2026-09-06). Access column is the first
 thing to check — several are DUA-bound or licensed, and none is committed to this repo.
