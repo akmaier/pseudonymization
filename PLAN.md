@@ -231,11 +231,39 @@ carry the stability requirement. Recall is the privacy metric, precision the uti
 - both require coreference-resolved gold, which is why **TAB matters** — it annotates co-reference
   and confidential attributes, not just categories
 
-**3. Utility** — train and evaluate downstream on pseudonymised text, in two regimes:
-train-on-pseudonymised/test-on-pseudonymised (deployment) and train-on-original/test-on-pseudonymised
-(transfer). Tasks per domain: clinical NER and ICD/OPS coding (BRONCO is annotated for exactly this);
-legal outcome classification (TAB/ECHR); e-mail thread/intent classification; plus corpus-level LM
-perplexity shift and embedding drift as task-independent proxies.
+**3. Utility — measured with frozen models, no training** (AM, 2026-09-08).
+
+The instrument is inference, not fine-tuning. The reason is not cost: **a TrustFMI audience does not
+fine-tune an encoder on a de-identified corpus, it prompts a foundation model over one**, so the
+question that matters is how much pseudonymisation degrades a *frozen* model. Every signal below is
+obtained by running an existing model over the original and the pseudonymised text and comparing.
+
+| signal | method | cost |
+|---|---|---|
+| legal task | ECHR **article classification**, zero-shot, gold labels ship in TAB `meta.articles` | free gateway |
+| e-mail task | Enron **folder classification** (Klimt & Yang 2004), zero-shot | free gateway |
+| clinical task *(if the DUA corpora arrive)* | ICD-10/OPS/ATC coding, medication IE, zero-shot | free gateway |
+| **co-reference** | frozen resolver over original vs pseudonymised, scored against gold chains | CPU/small GPU |
+| NER | frozen multilingual NER, agreement between the two versions | CPU/small GPU |
+| semantic drift | embedding displacement, `multilingual-e5-large` — one model across all six languages | free gateway |
+| fluency | LM perplexity shift, one frozen LM across all cells | small GPU |
+
+**Co-reference is the sharpest of these** and was previously buried as a proxy. Fragmentation *is*
+chain breakage: a resolver's CoNLL F1 on pseudonymised text measures the utility cost of exactly the
+failure the stability metrics count, on the same documents. It ties measurement 2 to measurement 3
+directly, which no prior work does.
+
+**What this gives up, stated plainly:** whether a model *retrained* on pseudonymised text recovers
+its performance. If it does, the field's assumption that de-identification costs utility is a
+domain-shift artefact rather than information loss. That is a real question and it is the one thing
+here that requires training by definition; it is out of scope for this paper and belongs in the
+future-work section rather than being quietly dropped.
+
+**One confound to control.** A frozen LLM may recognise an ECHR case or an Enron thread from its
+training data and answer from memory rather than from the text in front of it. Task scores would then
+measure memorisation, not utility. Mitigation: **stratify by memorisation**, reusing A4's
+public-figure split, and report a no-context control. The same confound is a *result* for A4 and a
+*bias* for utility, and it must not be handled in only one of the two places.
 
 **4. Leakage** — four attacks of increasing knowledge:
 - **A1 dictionary / brute force.** Enumerate a candidate name list (census surnames, gazetteers),
@@ -303,7 +331,9 @@ following hold, which cost the study nothing:
   need cross-document linkage, and catastrophic cost for those that do (patient timelines,
   coreference).
 - **H4** Realistic and attribute-matched surrogates buy utility and cost privacy — they preserve
-  gender, locale and frequency, which is exactly what A2 and A4 consume.
+  gender, locale and frequency, which is exactly what A2 and A4 consume. Tested with frozen models
+  throughout, so the surrogate form is compared at fixed model weights and no training confound
+  enters.
 
 ### Deliverables
 

@@ -320,24 +320,41 @@ Pure set operations over `gold chain → entity keys → pseudonyms`, no learnin
 Reported per entity type, PERSON and LOC separately, and labelled per policy as defect or as
 specified behaviour (§5). Bootstrap confidence intervals over documents.
 
-### 9.4 Utility
+### 9.4 Utility — frozen models only (AM, 2026-09-08)
 
-Two regimes throughout: **train-pseudo / test-pseudo** (deployment) and **train-orig / test-pseudo**
-(transfer).
+**No training anywhere in the study.** Not as an economy: the relevant deployment pattern for this
+venue is a foundation model prompted over a corpus, not an encoder fine-tuned on one, so the honest
+measurement is degradation at fixed weights.
 
-| corpus | task | method | metric |
+| corpus | task | how | metric |
 |---|---|---|---|
-| TAB / ECHR | ECHR **article classification**, 30 labels, multi-label, ships in `meta.articles` | XLM-R or Legal-BERT fine-tune | micro / macro F1 |
-| Enron | **folder classification** (Klimt & Yang 2004) | linear SVM on TF-IDF as the published baseline, plus a transformer | accuracy, macro F1 |
-| CodEAlltag | **7-way topic** (XL segments) and **formality** (released scores) | XLM-R fine-tune; regression head for formality | macro F1; Spearman ρ |
-| OntoNotes | **co-reference + NER** | a standard neural coref model; XLM-R for NER | CoNLL F1; entity F1 |
-| BRONCO150 *(pending)* | **ICD-10 / OPS / ATC coding** | multi-label classifier | micro F1 |
-| CARDIO:DE *(pending)* | **medication IE** and **section classification** | token classifier; sequence classifier | F1 |
+| TAB / ECHR | article classification, 30 labels, ships in `meta.articles` | zero-shot, ≥2 gateway models, fixed prompt | micro / macro F1 |
+| Enron | folder classification (Klimt & Yang 2004) | zero-shot, same protocol | accuracy, macro F1 |
+| TAB, OntoNotes | **co-reference resolution** | frozen resolver, original vs pseudonymised | CoNLL F1 delta |
+| all | NER agreement | frozen multilingual NER on both versions | span F1 between versions |
+| all | **semantic drift** | cosine displacement of document embeddings, `multilingual-e5-large` | mean cosine delta |
+| all | **fluency** | perplexity under one frozen LM | Δ perplexity |
+| CARDIO:DE, BRONCO *(pending)* | medication IE, section classes, ICD/OPS/ATC | zero-shot | F1 |
 
-Task-independent proxies, run on every corpus: **LM perplexity shift** (a small causal LM, same model
-across cells) and **embedding drift** — cosine displacement of document embeddings, using
-`intfloat/multilingual-e5-large` on the free gateway, which keeps the proxy identical across all six
-languages.
+Three consequences worth stating:
+
+- **Co-reference is promoted from proxy to primary.** Fragmentation is chain breakage, so a
+  resolver's F1 drop measures the utility cost of the exact failure the stability metrics count, on
+  the same documents — binding measurement 2 to measurement 3. Nothing in the literature does that.
+- **The cluster stops being a bottleneck.** No checkpoints, so the 95 %-full disk does not bind; no
+  long jobs, so the 24 h wall clock does not bind; the LLM work runs on the free gateway, so the
+  GPUs are needed only for frozen NER, co-reference and perplexity — hours, not weeks.
+- **Every cell becomes inference**, so utility can be measured across the *whole* factorial rather
+  than a sampled corner of it. Refusing to train widens the design rather than narrowing it.
+
+**Memorisation is a confound here and a result in A4.** A frozen model may recognise an ECHR case or
+an Enron thread and answer from memory rather than from the text. Utility scores would then measure
+recall of training data. Control: stratify by the same public-figure split A4 uses, and run a
+no-context condition. Handling it in A4 but not here would be inconsistent.
+
+**Out of scope, and said so:** whether a model retrained on pseudonymised text recovers. If it does,
+the field's assumption that de-identification costs utility is domain shift rather than information
+loss. It requires training by definition and belongs in future work.
 
 ### 9.5 Leakage
 
