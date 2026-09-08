@@ -37,7 +37,8 @@ hypotheses. Everything else here is supporting material.
 
 | path | contents |
 |---|---|
-| [`PLAN.md`](PLAN.md) | thesis, factors, metrics, attacks, hypotheses, deliverables |
+| [`experiment_plan.md`](experiment_plan.md) | **the authoritative experiment specification** — factors, metrics, statistics, corpora, sampling, models, compute |
+| [`PLAN.md`](PLAN.md) | thesis, argument, hypotheses, related work, deliverables |
 | [`AUTHORS.md`](AUTHORS.md) | author list — complete; middle order (2–5) still unsettled, **do not guess it** |
 | [`references/standards.md`](references/standards.md) | ISO 25237, ENISA, ISO/IEC 20889, GDPR |
 | [`references/text_pseudonymization.md`](references/text_pseudonymization.md) | detection benchmarks, surrogate generation, utility, leakage, email |
