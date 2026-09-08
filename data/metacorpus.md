@@ -428,3 +428,69 @@ meanwhile. See `applications/n2c2_request.md`. Everything else here is AM's call
 - **PIIBench located:** `github.com/pritesh-2711/pii-bench` — the *construction pipeline and
   evaluation code*, which is what we want for the 80+ → 48 canonical label mapping. Confirm whether
   the assembled corpus ships or has to be rebuilt from the ten sources.
+
+
+---
+
+## 13. Restricting to corpora with utility (AM, 2026-09-08)
+
+> *"Let's only use data that has some utility. This is what we want to use and it gives us a good
+> understanding which method affects what."*
+
+The rationale points at something stronger than "has a downstream task". Attributing an effect to a
+method requires **detection, stability and utility measured on the same documents** — which is
+exactly the gap `PLAN.md` §2 claims nobody has closed. Applying that test:
+
+| corpus | detection (gold spans) | stability (co-ref or cross-doc id) | utility (task) | verdict |
+|---|---|---|---|---|
+| **TAB / ECHR** | ✅ 8 types, DIRECT/QUASI | ✅ co-reference chains | ✅ 30-label ECHR articles | **full** |
+| **OntoNotes** | ✅ 18 NE types | ✅ co-reference | ✅ co-reference + NER | **full** |
+| **Enron** | ⚠ structural, header-derived | ✅ cross-document identity | ✅ folder · intent · formality | **full** |
+| CodEAlltag | ❌ **none released** | ❌ | ✅ formality · 7-way topic | partial |
+| CARDIO:DE | ⚠ placeholders, rule-recoverable | ❌ | ✅ medication IE · section classes | partial |
+| BRONCO150 *(pending)* | ✅ ICD/OPS/ATC | ❌ sentence-scrambled | ✅ coding | partial |
+| MEDDOCAN | ✅ 29 types | ❌ | ❌ PharmaCoNER offsets do not align | **out** |
+| MedDeID · REDACT · AI4Privacy | ✅ | ❌ | ❌ detection benchmarks only | **out** |
+| E3C | ❌ no PII layer | ❌ | (clinical entities) | **out** |
+
+**Only three corpora carry all three measurements: TAB, OntoNotes, Enron.** They are also the three
+tier-T1 members — the ones with real names. That is a tidier study than the twelve-member list, and
+it is the configuration in which "which method affects what" is actually answerable.
+
+### What the restriction costs
+
+| lost | with it |
+|---|---|
+| MEDDOCAN | **Spanish** |
+| MedDeID | **Dutch** |
+| REDACT | the 25-language / 9-script breadth tail |
+| AI4Privacy | the synthetic financial slice — though CodEAlltag `pXL_FINANCE` covers finance in German with *real* text |
+| **all of T4 and T5** | **axis F's control arm** |
+
+The last is the one to weigh. Axis F exists because **every 2026 detection benchmark is synthetic**,
+and running the same attacks across T1→T5 measures how much a benchmark's own construction flatters
+its privacy numbers. Dropping every synthetic corpus removes the comparison that finding depends on.
+
+**Suggested resolution, for AM:** apply the restriction *per measurement* rather than per corpus.
+Utility is scored only where a task exists; detection and leakage may still run on the synthetic
+members, which cost nothing to include since they need no annotation effort from us. That honours
+"only data with utility" for the utility axis and keeps axis F alive.
+
+### The imbalance is worse, not better
+
+| corpus | documents | note |
+|---|---:|---|
+| CodEAlltag XL | **1,469,000** | Usenet, automatically pseudonymised |
+| Enron | 517,000 | 20,000 sampled at stride 25 so far |
+| OntoNotes | ~3,600 (en) + zh + ar | 2.9 M words total |
+| TAB | 1,268 | |
+| CARDIO:DE | **400** | annotated subset; the 100 held-out have no annotations |
+| BRONCO150 | **150** | pending |
+
+**Four orders of magnitude between the largest and smallest**, and the restriction removed mid-sized
+members while leaving both extremes. Language balance is worse too: English and German dominate,
+Spanish and Dutch are gone, and non-Latin script survives only through OntoNotes — where **Arabic is
+300 K words and news-only** against Chinese's 1.0 M.
+
+So the capping rule is now *more* necessary, not less. It is still the one open decision, and it now
+governs a set where the ratio is 1,469,000 : 150.
