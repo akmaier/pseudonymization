@@ -370,3 +370,69 @@ loss. It requires training by definition and belongs in future work.
 One YAML per cell; every run emits a manifest with config hash, seed, key id, corpus versions,
 library versions and the commit. Slurm array jobs over cells, checkpointed against the 24 h wall
 clock. Results are parquet on disk, never numbers in prose.
+
+
+---
+
+## 10. Which models need training — none on the defender side
+
+Checked on the HuggingFace API, 2026-09-08. Every level of every axis has a public checkpoint, so
+the study runs without training a single defender model.
+
+| role | model | monthly downloads | trained by us? |
+|---|---|---:|---|
+| rule-based detector | Presidio + spaCy backbone | — | no |
+| zero-shot NER | `urchade/gliner_multi-v2.1` | 21,911 | no |
+| zero-shot PII NER | `urchade/gliner_multi_pii-v1` | 57,043 | no |
+| **"fine-tuned NER" family** | `obi/deid_roberta_i2b2` | 421,833 | **no — public checkpoint** |
+| clinical de-ID | `StanfordAIMI/stanford-deidentifier-base` | 1,833,628 | no |
+| multilingual NER | `Davlan/xlm-roberta-large-ner-hrl` | 46,221 | no |
+| domain-specific | CodEAlltag `privacy_tagger` (flair) | — | no, already on disk |
+| LLM detectors, A4, zero-shot tasks | NHR@FAU gateway, 10 chat models | — | no |
+| **co-reference** | `biu-nlp/lingmess-coref` | 64,082 | no |
+| embeddings / semantic drift | `intfloat/multilingual-e5-large` | 6,981,685 | no |
+| perplexity | `Qwen/Qwen2.5-0.5B` | 1,678,815 | no |
+
+**Filling the "fine-tuned NER" level with a public checkpoint is better than training one, not just
+cheaper.** A detector fine-tuned on a corpus's own train split has *seen the entities we then try to
+protect*, so its recall on that corpus is inflated in a way that does not transfer — the measurement
+would flatter the detector and, through it, the whole downstream pipeline. Off-the-shelf checkpoints
+remove that confound, and they are also what a practitioner actually downloads.
+
+`PLAN.md` axis D should therefore read "a publicly released fine-tuned NER" rather than "fine-tuned
+XLM-R", which is a change of meaning worth being explicit about.
+
+## 11. The exception: the attacker (AM, 2026-09-08 — proposed)
+
+> "The only thing worth training might be an attacker model."
+
+This is the right asymmetry, and it is a principle worth stating in the paper:
+
+> **Frozen defenders, trained attackers.** The defence is measured as deployed, because that is what
+> practitioners run. The attack is made as strong as we can make it, because a leakage number is only
+> meaningful against the best adversary available — under-powering the adversary overstates privacy.
+
+None of A1–A4 uses a trained model, so every leakage number we have is a *lower bound* on what an
+adversary could do. The obvious gap is that all four attack **names and their distribution**, and
+none of them attacks the thing pseudonymisation cannot touch.
+
+### Proposed A5 — stylometric re-identification
+
+Train an authorship attributor on pseudonymised text and ask whether it still identifies the author.
+
+- **Why it belongs here.** CodEAlltag was built for *forensic linguistics*, and Enron carries ~150
+  mailbox owners as labels. The corpora were made for this question.
+- **Why it is a different channel.** A1 inverts a function, A2 exploits frequency, A3 exploits
+  co-occurrence, A4 exploits an LLM's world knowledge. **A5 exploits style, which no pseudonymisation
+  policy modifies at all.** Fully-randomised pseudonymisation defeats A2 completely and should leave
+  A5 untouched — a prediction that separates the axes cleanly.
+- **Why the result matters either way.** If style survives, then *pseudonymisation removes names but
+  not identity*, and the policy axis — which dominates every other attack — is irrelevant to this
+  one. That is the sharpest possible statement of the paper's thesis about what pseudonymisation
+  does and does not buy.
+- **Cost.** The classical stylometry baseline is character *n*-grams plus a linear classifier: CPU
+  only, minutes, no GPU. A transformer attacker can be added if the linear one is not already
+  decisive.
+
+Predicted shape: A5 accuracy roughly flat across all three policies and all five techniques, while
+A2 collapses from 0.201 to 0.000 across the same axis.
