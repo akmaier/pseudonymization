@@ -20,6 +20,7 @@ mis-aligned chain would corrupt exactly the metric OntoNotes was included to sup
 
 from __future__ import annotations
 
+import difflib
 import html
 import re
 import tarfile
@@ -30,7 +31,7 @@ from typing import Callable, Iterator, Sequence
 
 from ..domain import Corpus, Document, Mention, Span
 
-__all__ = ["extract", "load", "parse_name", "parse_coref", "LoadReport", "GENRES", "TYPE_MAP"]
+__all__ = ["extract", "load", "parse_name", "parse_coref", "LoadReport", "map_coref_onto_name", "GENRES", "TYPE_MAP"]
 
 TYPE_MAP: dict[str, str] = {
     "PERSON": "PERSON",
@@ -159,15 +160,67 @@ class LoadReport:
     documents: int = 0
     with_coref: int = 0
     coref_misaligned: int = 0
+    """Documents whose ``.coref`` layer yielded no usable span at all."""
+    coref_spans_dropped: int = 0
+    """Individual chain spans that could not be carried across the token alignment."""
     coref_absent: int = 0
     empty: int = 0
 
     def __str__(self) -> str:
         return (
             f"{self.documents} documents, {self.with_coref} with co-reference; dropped "
-            f"{self.coref_misaligned} misaligned, {self.coref_absent} without a .coref layer, "
-            f"{self.empty} empty"
+            f"{self.coref_misaligned} misaligned, {self.coref_spans_dropped} unmappable spans, "
+            f"{self.coref_absent} without a .coref layer, {self.empty} empty"
         )
+
+
+
+def _tokens(text: str) -> list[tuple[str, int, int]]:
+    """Whitespace tokenisation with character offsets: ``(token, start, end)``."""
+    return [(m.group(), m.start(), m.end()) for m in re.finditer(r"\S+", text)]
+
+
+def map_coref_onto_name(
+    name_text: str,
+    coref_text: str,
+    coref_spans: list[tuple[int, int, str]],
+) -> tuple[list[tuple[int, int, str]], int]:
+    """Move ``.coref`` chain spans onto the ``.name`` text, returning ``(spans, dropped)``.
+
+    The two layers are **not** over the same token stream, which is why an exact-text match attaches
+    nothing at all: ``.coref`` carries the Penn Treebank null elements — ``*pro*``, ``*T*-1``,
+    ``*PRO*``, ``*OP*``, the null complementiser ``0`` — and ``.name`` does not.  Measured over 102
+    document pairs: 27,000 such tokens appear only in ``.coref``, against five tokens that appear
+    only in ``.name``.  ``.coref`` also wraps its body in ``<TEXT PARTNO=…>``, which leaves an extra
+    newline behind once the tags are stripped.
+
+    Rather than hard-code the null-element inventory — which is a guess that fails silently on the
+    token it does not know — the two token sequences are aligned with :mod:`difflib`, and a chain
+    span is carried across only when **every one of its tokens** lands inside a matched block.  Spans
+    that do not are dropped and counted, never approximated: a mis-aligned chain would corrupt
+    exactly the stability metric OntoNotes was included to support.
+    """
+    name_tokens = _tokens(name_text)
+    coref_tokens = _tokens(coref_text)
+    matcher = difflib.SequenceMatcher(
+        a=[t for t, _, _ in coref_tokens], b=[t for t, _, _ in name_tokens], autojunk=False
+    )
+    # coref token index -> name token index, for the tokens the two streams share.
+    index: dict[int, int] = {}
+    for i, j, size in matcher.get_matching_blocks():
+        for offset in range(size):
+            index[i + offset] = j + offset
+
+    out: list[tuple[int, int, str]] = []
+    dropped = 0
+    for start, end, chain in coref_spans:
+        covered = [k for k, (_, s, e) in enumerate(coref_tokens) if s < end and start < e]
+        if not covered or any(k not in index for k in covered):
+            dropped += 1
+            continue
+        first, last = index[covered[0]], index[covered[-1]]
+        out.append((name_tokens[first][1], name_tokens[last][2], chain))
+    return out, dropped
 
 
 def load(
@@ -209,9 +262,11 @@ def load(
                 coref_text, coref_spans = parse_coref(
                     coref_path.read_text("utf-8", errors="replace")
                 )
-                if coref_text == text:
-                    chains = {(s, e): cid for s, e, cid in coref_spans}
-                else:
+                mapped, dropped = map_coref_onto_name(text, coref_text, coref_spans)
+                chains = {(s, e): cid for s, e, cid in mapped}
+                if dropped:
+                    tally = replace(tally, coref_spans_dropped=tally.coref_spans_dropped + dropped)
+                if not mapped and coref_spans:
                     tally = replace(tally, coref_misaligned=tally.coref_misaligned + 1)
 
             mentions = []

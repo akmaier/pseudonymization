@@ -76,24 +76,34 @@ def test_cas_offsets_are_applied_to_the_txt_which_keeps_its_newlines(tmp_path):
     assert document.text[medications[1].start : medications[1].end] == "5 mg"
 
 
-def test_a_letter_whose_cas_does_not_align_is_dropped_and_counted(tmp_path):
+def test_a_length_difference_falls_back_to_the_cas_text_rather_than_dropping(tmp_path):
+    # A character inserted or deleted between the two makes every later .txt offset wrong. The CAS
+    # text is what the annotators saw, so it is used instead -- the letter keeps its gold. Measured
+    # on the release: exactly one letter of 400 (318, whose CAS lacks one newline).
     write_letter(tmp_path, "CARDIODE400_main", "1")
-    write_letter(tmp_path, "CARDIODE400_main", "2", sofa="a completely different string")
+    write_letter(tmp_path, "CARDIODE400_main", "2", sofa=PLAIN + " extra")
     report: dict[str, cardiode.LoadReport] = {}
     corpus = cardiode.load(tmp_path, report=report)
 
-    assert len(corpus) == 1  # never mis-annotated, and never silently
-    assert report["CARDIODE400_main"].offset_mismatch == 1
-    assert report["CARDIODE400_main"].annotated == 1
+    assert len(corpus) == 2  # nothing dropped
+    assert report["CARDIODE400_main"].cas_text_used == 1
+    assert report["CARDIODE400_main"].annotated == 2
+    fallback = [d for d in corpus.documents if d.doc_id.endswith("/2")][0]
+    assert fallback.text.endswith(" extra")  # the CAS text, which the offsets belong to
 
 
-def test_whitespace_differences_alone_do_not_count_as_misalignment(tmp_path):
-    # sofaString with the newline normalised to a space is the *normal* case, not a mismatch.
-    write_letter(tmp_path, "CARDIODE400_main", "1", sofa=PLAIN.replace("\n", " "))
+def test_content_differences_at_equal_length_are_not_a_misalignment(tmp_path):
+    # Equal length is the whole invariant: index i is the same position in both strings whatever
+    # sits there. The release has whitespace differences in every letter and a single capital in
+    # letter 490 -- rejecting that would throw away 80 gold medication spans for nothing.
+    sofa = PLAIN.replace("\n", " ")
+    sofa = sofa[0].upper() + sofa[1:]
+    write_letter(tmp_path, "CARDIODE400_main", "1", sofa=sofa)
     report: dict[str, cardiode.LoadReport] = {}
     corpus = cardiode.load(tmp_path, report=report)
     assert len(corpus) == 1
-    assert report["CARDIODE400_main"].offset_mismatch == 0
+    assert report["CARDIODE400_main"].cas_text_used == 0
+    assert corpus.documents[0].text == PLAIN  # the .txt is kept, with its line breaks
 
 
 def test_pseudo_markers_become_datetime_gold(tmp_path):

@@ -165,13 +165,14 @@ class LoadReport:
     annotated: int = 0
     """Letters that carried at least one CAS annotation."""
     cas_missing: int = 0
-    offset_mismatch: int = 0
-    """Letters whose CAS text did not align with the ``.txt``; dropped rather than mis-annotated."""
+    cas_text_used: int = 0
+    """Letters whose ``.txt`` differs in length from the CAS text, so the CAS text was used instead.
+    Nothing is lost but the ``.txt``'s line breaks; the annotations stay valid."""
 
     def __str__(self) -> str:
         return (
             f"{self.documents} letters, {self.annotated} annotated; "
-            f"{self.cas_missing} without a CAS, {self.offset_mismatch} dropped on offset mismatch"
+            f"{self.cas_missing} without a CAS, {self.cas_text_used} using the CAS text"
         )
 
 
@@ -245,15 +246,18 @@ def load_cas(archive: Path | str) -> CasAnnotations:
 def _aligned(cas_text: str, plain: str) -> bool:
     """Whether CAS offsets may be used against ``plain``.
 
-    Equal length and equal outside whitespace: the CAS text is the ``.txt`` with every newline
-    turned into a space by XML attribute-value normalisation.  Anything else means the two are not
-    the same string and the offsets cannot be trusted.
+    The invariant an offset needs is **equal length**, nothing more: if the two strings have the same
+    length, index *i* denotes the same position in both, whatever characters sit there.  Requiring
+    character equality as well would be stricter than the problem — measured on the release, letter
+    490 differs from its CAS in 72 whitespace characters and **one capital letter**, and rejecting it
+    for that would throw away 80 gold medication spans for a difference that moves nothing.
+
+    A length difference is the real failure: it means a character was inserted or deleted, and every
+    offset after that point is wrong.  Letter 318 is the one case in 400 — its CAS lacks one newline
+    at position 10,920.  Those letters are not dropped either; :func:`load` falls back to the CAS
+    text, against which the annotations were made and are by construction consistent.
     """
-    if len(cas_text) != len(plain):
-        return False
-    return all(
-        a == b or (a.isspace() and b.isspace()) for a, b in zip(cas_text, plain)
-    )
+    return len(cas_text) == len(plain)
 
 
 def _date_mentions(doc_id: str, text: str) -> tuple[Mention, ...]:
@@ -314,10 +318,17 @@ def load(
                 tally = replace(tally, cas_missing=tally.cas_missing + 1)
             else:
                 parsed = load_cas(archive)
-                if not _aligned(parsed.text, plain):
-                    tally = replace(tally, offset_mismatch=tally.offset_mismatch + 1)
-                    continue
-                annotations = replace(parsed, text=plain)
+                if _aligned(parsed.text, plain):
+                    # Same length, so the offsets transfer: keep the .txt, whose line breaks the
+                    # section task and any LLM detector both read.
+                    annotations = replace(parsed, text=plain)
+                else:
+                    # A character was inserted or deleted between the two, so .txt offsets after
+                    # that point are wrong. The CAS text is what the annotators saw; use it, and
+                    # count the letter rather than discarding its gold.
+                    annotations = parsed
+                    plain = parsed.text
+                    tally = replace(tally, cas_text_used=tally.cas_text_used + 1)
 
             annotated = bool(annotations.medications or annotations.sections)
             documents.append(

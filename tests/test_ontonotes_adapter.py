@@ -80,14 +80,31 @@ def test_chain_ids_are_namespaced_by_document(tmp_path):
     assert all(i.startswith("ontonotes/english/nw/wsj/00/wsj_000") for i in ids)
 
 
-def test_a_misaligned_coref_layer_is_dropped_and_counted(tmp_path):
-    write(tmp_path, "english", "nw/wsj/00/wsj_0001", coref="<DOC>Different text entirely.</DOC>")
+def test_a_coref_layer_over_unrelated_text_attaches_nothing_and_is_counted(tmp_path):
+    write(tmp_path, "english", "nw/wsj/00/wsj_0001",
+          coref='<DOC><COREF ID="3">Completely</COREF> different text entirely.</DOC>')
     report: dict[str, ontonotes.LoadReport] = {}
     corpus = ontonotes.load(tmp_path, languages=("english",), report=report)
 
     assert all(m.gold_entity_id is None for m in corpus.documents[0].mentions)
     assert report["english"].coref_misaligned == 1
     assert report["english"].with_coref == 0
+
+
+def test_null_elements_in_coref_do_not_block_the_alignment(tmp_path):
+    # The real blocker: .coref carries Penn Treebank null elements that .name has no counterpart
+    # for. Requiring identical text attached zero chains across all 4,560 real coref layers.
+    write(tmp_path, "english", "nw/wsj/00/wsj_0001",
+          coref='<DOC>\n<TEXT PARTNO="000">\nA &amp; B told *T*-1 <COREF ID="7">Pierre Vinken</COREF> '
+                'that *PRO* <COREF ID="9">Paris</COREF> was 0 Elsevier .\n</TEXT>\n</DOC>\n')
+    report: dict[str, ontonotes.LoadReport] = {}
+    corpus = ontonotes.load(tmp_path, languages=("english",), report=report)
+
+    chains = [m.gold_entity_id for m in corpus.documents[0].mentions]
+    assert chains[0] is not None and chains[0].endswith("#7")
+    assert chains[1] is not None and chains[1].endswith("#9")
+    assert chains[2] is None  # Elsevier has no COREF markup
+    assert report["english"].with_coref == 1
 
 
 def test_a_document_with_no_coref_layer_is_counted_separately(tmp_path):
