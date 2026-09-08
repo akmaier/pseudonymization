@@ -283,23 +283,50 @@ they are not estimates.
 Document **length**, not model size, dominates: `gemma-4-31B` ran CodEAlltag at 2.3 s and TAB at
 18.5 s. Any schedule must be per (corpus, model), never a single global rate.
 
-### 7.4 Remaining work on the three corpora already started
+### 7.4 The detection surface, sized — 2026-09-08
 
-| corpus | cached | remaining calls |
-|---|---:|---:|
-| TAB | 274 | 3,530 |
-| CodEAlltag | 1,156 | 1,244 |
-| Enron | 169 | 1,631 |
-| **total** | **1,599** | **6,405** |
+Counted from the releases on the cluster, not estimated.
 
-At the measured mean of ~17 s that is **≈ 30 hours of waiting** — serial, this exceeds the 24 h wall
-clock and needs a resubmission; at *W* concurrent workers it is ≈ 30/*W* hours in **one**
-allocation.
+| corpus | documents | language(s) | note |
+|---|---:|---|---|
+| TAB / ECHR | 1,268 | en | 274 already cached |
+| **OntoNotes en** | 3,637 | en | 2,384 also carry `.coref` |
+| **OntoNotes zh** | 1,911 | zh | 1,729 with `.coref` |
+| **OntoNotes ar** | 446 | ar | 447 with `.coref` |
+| Enron | 600 | en | sampled `stratified@0.004` from ~500 k |
+| CodEAlltag_S | 800 | de | 1,156 model-runs already cached |
+| CARDIO:DE 400 | 400 | de | 🔒 AM only |
+| MEDDOCAN | 1,000 + 3,751 background | es | 500/250/250 train/dev/test |
+| MedDeID | 1 JSONL, Dutch synthetic | nl | record count not yet read |
+| **REDACT** | **13,427** | 25 languages / 9 scripts | matches the paper's abstract exactly |
+| AI4Privacy | 225,405 | 6 languages | **must be sampled**; rate is a declared parameter (§5) |
+| CodEAlltag_XL | ~700 k across 7 topics | de | **must be sampled** |
+| PIIBench | **none** | — | the checkout is code only; the corpus is *built* by `run_data_pipeline.py` from ten sources |
 
-***W* is to be measured, not assumed.** Probe the gateway with a concurrency ramp and record where
-`429 No deployments available` begins. Tolerated concurrency is part of the experimental record for
-the same reason model availability is (§6), and a 429 is a signal to back off — **never** to drop a
-planned model (§0).
+**OntoNotes co-reference is not uniform and the plan must not assume it is.** English newswire has
+2,102 `.name` files but only 922 `.coref`; English `pt` (pivot text) has 260 `.coref` and **no**
+`.name` at all. Stability on OntoNotes is therefore scored on the ~4,560 documents that carry both
+layers, and that number is reported, not the corpus total.
+
+**Two more Git-LFS traps, both found and both fixed** (see §9): REDACT's real benchmark is a 213 MB
+LFS object — the checkout held a 134-byte stub — and CodEAlltag's formality scores were the same.
+Both were fetched over `media.githubusercontent.com`, which serves LFS content without a `git-lfs`
+client. **Check every corpus directory for stubs before counting it as present.**
+
+### 7.4.1 What that costs in LLM calls
+
+Taking only the corpora at rate 1.0 — TAB, OntoNotes ×3, Enron, CodEAlltag_S, CARDIO:DE, MEDDOCAN,
+REDACT — that is **≈ 23,500 documents × 3 models ≈ 70,500 calls**. At the measured ~15 s mean:
+
+| shape | wall clock |
+|---|---|
+| serial, as submitted on 2026-09-08 | **≈ 294 h** — impossible; 33 h per array task, past the 24 h limit |
+| one allocation, *W* = 16 | ≈ 18 h — one night |
+| one allocation, *W* = 32 | ≈ 9 h |
+
+**The runner rewrite in §7.5 is therefore not an optimisation. It is the difference between a
+schedule that closes before 2026-09-25 and one that cannot.** AI4Privacy and CodEAlltag_XL sit on
+top of this and are what the sampling rates in §5 are for.
 
 ### 7.5 Preconditions before any detection job is resubmitted
 
