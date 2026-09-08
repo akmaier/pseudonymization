@@ -31,7 +31,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from email.message import Message
 from pathlib import Path
-from typing import Iterable, Iterator, Sequence
+from typing import Callable, Iterable, Iterator, Sequence
 
 from ..domain import Corpus, Document, Mention, Span
 
@@ -193,6 +193,7 @@ def load(
     identity_table: IdentityTable | None = None,
     min_name_count: int = 2,
     stride: int = 1,
+    progress: Callable[[str], None] | None = None,
 ) -> Corpus:
     """Build a corpus from the tarball or an extracted maildir.
 
@@ -200,19 +201,21 @@ def load(
     emits documents.  ``min_name_count`` drops display names seen only once, which are usually
     parsing debris rather than people.
     """
-    # Two streaming passes rather than one pass into a list.  Holding every raw message *and* the
-    # Document that wraps it doubles peak memory for no benefit, and on 20,000 messages that was
-    # enough to be OOM-killed.  A second decompression pass is the cheaper resource.
-    if identity_table is None:
-        table = build_identity_table(
-            r for _, _, r in iter_raw_messages(source, limit, mailboxes, stride)
-        )
-    else:
-        table = identity_table
+    # One decompression pass, held in memory.  An earlier version made two passes to halve peak
+    # memory after being OOM-killed -- but the kill happened on the *login node*, whose per-user
+    # limit is small, not because 20,000 messages are large: they are about 100 MB, trivial inside a
+    # 48 GB Slurm allocation.  The second pass cost a full re-decompression of a 443 MB archive on a
+    # contended NFS mount and bought nothing.  Run this under sbatch, not on the head node.
+    raws = list(iter_raw_messages(source, limit, mailboxes, stride))
+    if progress:
+        progress(f"read {len(raws)} messages")
+    table = identity_table or build_identity_table(r for _, _, r in raws)
     known = [n for n in table.names() if table.counts.get(n, 0) >= min_name_count]
+    if progress:
+        progress(f"identity table: {len(table.by_name)} names, {len(known)} above threshold")
 
     documents: list[Document] = []
-    for path, mailbox, raw in iter_raw_messages(source, limit, mailboxes, stride):
+    for path, mailbox, raw in raws:
         message = email.message_from_string(raw)
         folder = (message.get("X-Folder") or "").replace("\\", "/").rstrip("/").split("/")[-1]
         documents.append(
@@ -234,4 +237,7 @@ def load(
                 },
             )
         )
+    if progress:
+        mentions = sum(len(d.mentions) for d in documents)
+        progress(f"built {len(documents)} documents, {mentions} mentions")
     return Corpus("enron", tuple(documents))

@@ -341,6 +341,7 @@ present). **Zero failures.** ~8.9 GB total.
 | REDACT | benchmark repo | 7.5 MB |
 | PIIBench | pipeline + taxonomy | 6.1 MB |
 | **OntoNotes 5.0** | `ontonotes-release-5.0_LDC2013T19.tgz`, MD5 verified at both ends | 890 MB |
+| **CARDIO:DE** *(restricted, AM only)* | 500 letters as text + UIMA CAS XMI, plus the Becker extension; both archives MD5-verified at both ends | 459 MB |
 
 CodEAlltag dominates the footprint because the git working trees hold ~1.4 M individual message
 files; note that any `du` or recursive scan over that tree is slow.
@@ -350,11 +351,20 @@ files; note that any `du` or recursive scan over that tree is slow.
 locally and again after transfer. Its licence permits use across the whole research group, so it sits
 with the public corpora rather than apart from them.
 
+**CARDIO:DE** (acquired 2026-09-08) is **not** in the shared folder. The grant covers AM alone —
+Heidelberg confirmed one countersigned agreement per person — so it lives at
+`/cluster/maier/dua-restricted/cardiode`, mode `700`, and the laptop copies were deleted after
+transfer because the agreement names the chair's cluster as the storage infrastructure.
+
+Structure, and one correction to our earlier notes: **500 letters split 400 / 100, and only the 400
+carry annotations.** *"Annotations of CARDIO:DE100 are kept internally as held-out data for future
+shared task purposes."* So the usable annotated set is **400 discharge letters**, not 500 — in plain
+text and UIMA CAS XMI — plus the Becker token-level extension (`json/`, `layer.json`, `tagset.json`).
+
 **Still not on disk:**
 
 | corpus | why |
 |---|---|
-| **CARDIO:DE** | ✅ **approved 2026-09-08**, pending download from heiDATA. **Single-user: AM only** — every additional person needs their own countersigned agreement, so it cannot go in the shared folder |
 | BRONCO150 | sent 2026-09-07, no reply yet |
 | **n2c2 2014** | ⛔ registration closed — see §6d for what that costs |
 

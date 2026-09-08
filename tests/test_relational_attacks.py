@@ -115,3 +115,41 @@ def test_results_carry_the_reidentification_metrics():
     queries, gallery, truth = parts("deterministic")
     d = StructuralLinkage().run(queries, gallery, truth, "deterministic", "hmac").as_dict()
     assert {"rank1", "rank5", "mAP", "queries", "gallery"} <= set(d)
+
+
+# --- the evaluation protocol itself -------------------------------------------
+
+from pseudonymkit.attacks import disjoint_document_split  # noqa: E402
+
+
+def test_split_is_disjoint_and_covers_everything():
+    gallery_docs, query_docs = disjoint_document_split(corpus(), seed=0)
+    assert not (gallery_docs & query_docs)
+    assert len(gallery_docs | query_docs) == len(corpus())
+
+
+def test_split_is_reproducible_from_the_seed():
+    assert disjoint_document_split(corpus(), seed=3) == disjoint_document_split(corpus(), seed=3)
+    assert disjoint_document_split(corpus(), seed=3) != disjoint_document_split(corpus(), seed=4)
+
+
+def test_same_document_evaluation_is_easier_than_disjoint():
+    """The point of the split.
+
+    With the gallery drawn from the same documents as the queries, only the entity spans differ and
+    the attack matches a corpus against itself. A disjoint split forces it to generalise across
+    documents, which is what a real adversary faces -- and it must not score higher.
+    """
+    result = pseudonymise("deterministic")
+    truth = truth_map(result)
+
+    leaky = StructuralLinkage().run(
+        build_queries(result), build_gallery(corpus()), truth, "deterministic", "hmac"
+    )
+    gallery_docs, query_docs = disjoint_document_split(corpus(), seed=0)
+    honest = StructuralLinkage().run(
+        build_queries(result, documents=query_docs),
+        build_gallery(corpus(), documents=gallery_docs),
+        truth, "deterministic", "hmac",
+    )
+    assert honest.rank1 <= leaky.rank1

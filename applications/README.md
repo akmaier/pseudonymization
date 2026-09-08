@@ -6,7 +6,7 @@ Drafts below are ready for AM to check, sign and send. **Nothing here has been s
 | corpus | to | status | who must act |
 |---|---|---|---|
 | **BRONCO150** | Prof. Dr. Ulf Leser, `leser@informatik.hu-berlin.de` | sent 2026-09-07, **no reply yet** | wait; ⏰ delete by **2027-09-07** |
-| **CARDIO:DE** | `christoph.dieterich@uni-heidelberg.de` | ✅ **APPROVED 2026-09-08** — see [`forms/CARDIODE_APPROVED.md`](forms/CARDIODE_APPROVED.md). ⚠ **single-user: AM only** | AM logs in to heiDATA and downloads |
+| **CARDIO:DE** | `christoph.dieterich@uni-heidelberg.de` | ✅ **ON DISK 2026-09-08**, checksums verified. ⚠ **single-user: AM only** | done |
 | **i2b2 / n2c2 2014** | DBMI Data Portal | ⛔ **[BLOCKED](n2c2_request.md)** — registration closed, datasets "temporarily unavailable" | AM: e-mail DBMI to ask when it reopens |
 | **OntoNotes 5.0** | — | ✅ **[no application needed](ontonotes_ldc.md)** — already licensed to FAU since 2020-02-06, downloaded 2026-09-07 | done |
 

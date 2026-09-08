@@ -18,12 +18,13 @@ from __future__ import annotations
 import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from typing import Iterable, Mapping, Sequence
+from typing import Container, Iterable, Mapping, Sequence
 
 from ..domain import Corpus, Document
 from ..engine import PseudonymisedCorpus
 
-__all__ = ["EntityProfile", "build_gallery", "build_queries", "truth_map"]
+__all__ = ["EntityProfile", "build_gallery", "build_queries", "truth_map",
+           "disjoint_document_split"]
 
 _WORD_RE = re.compile(r"[A-Za-z][A-Za-z'-]{2,}")
 _STOP = frozenset(
@@ -92,15 +93,27 @@ def _profiles(
 
 
 def build_gallery(
-    corpus: Corpus, entity_type: str = "PERSON", window: int = 120
+    corpus: Corpus,
+    entity_type: str = "PERSON",
+    window: int = 120,
+    documents: Container[str] | None = None,
 ) -> dict[str, EntityProfile]:
     """Profiles keyed by **real** identity — what the attacker already knows.
 
     Uses ``gold_entity_id`` where the corpus supplies one, which for Enron is the e-mail address and
     therefore a genuine cross-document identity.
+
+    ``documents`` restricts the gallery to a subset of document ids, and **should almost always be
+    set**.  Building the gallery from the same documents the queries come from makes the two sides
+    byte-identical apart from the replaced spans, so the attack degenerates into matching a corpus
+    against itself and reports a re-identification rate that no real adversary could achieve.  A
+    real attacker holds *other* evidence about the same people.  See
+    :func:`disjoint_document_split`.
     """
     per_doc = []
     for doc in corpus:
+        if documents is not None and doc.doc_id not in documents:
+            continue
         items = [
             (m.gold_entity_id, m.span.start, m.span.end)
             for m in doc.mentions
@@ -112,7 +125,10 @@ def build_gallery(
 
 
 def build_queries(
-    result: PseudonymisedCorpus, entity_type: str = "PERSON", window: int = 120
+    result: PseudonymisedCorpus,
+    entity_type: str = "PERSON",
+    window: int = 120,
+    documents: Container[str] | None = None,
 ) -> dict[str, EntityProfile]:
     """Profiles keyed by **pseudonym** — what the attacker is given.
 
@@ -121,6 +137,8 @@ def build_queries(
     """
     per_doc = []
     for pdoc in result.documents:
+        if documents is not None and pdoc.document.doc_id not in documents:
+            continue
         skipped = {(m.doc_id, m.mention_id) for m in pdoc.skipped}
         replaced = [
             m
@@ -160,3 +178,23 @@ def truth_map(
             if mention.type == entity_type and mention.gold_entity_id:
                 seen[assignment.surface].add(mention.gold_entity_id)
     return {p: next(iter(g)) for p, g in seen.items() if len(g) == 1}
+
+
+def disjoint_document_split(
+    corpus: Corpus, fraction: float = 0.5, seed: int = 0
+) -> tuple[frozenset[str], frozenset[str]]:
+    """Split document ids into a gallery half and a query half.
+
+    The attacker's knowledge and the released corpus must come from **different documents**.
+    Otherwise the context around an entity is identical on both sides — only the names were
+    rewritten — and the attack measures nothing but the fact that a corpus matches itself.
+
+    Deterministic given ``seed``, so a cell is reproducible.
+    """
+    import random
+
+    ids = sorted(d.doc_id for d in corpus)
+    rng = random.Random(seed)
+    rng.shuffle(ids)
+    cut = int(len(ids) * fraction)
+    return frozenset(ids[:cut]), frozenset(ids[cut:])

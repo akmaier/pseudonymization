@@ -9,13 +9,15 @@ respectively, so the gap between them measures what learning buys the adversary.
 from .base import Attack, AttackResult
 from .dictionary import DictionaryAttack, candidates_from_inventory, deterministic_inverter
 from .frequency import FrequencyAttack, reference_from_counts, spearman
-from .profiles import EntityProfile, build_gallery, build_queries, truth_map
+from .profiles import (
+    EntityProfile, build_gallery, build_queries, disjoint_document_split, truth_map,
+)
 from .relational import LearnedLinkage, ReIdResult, StructuralLinkage, featurise
 
 __all__ = [
     "Attack", "AttackResult",
     "DictionaryAttack", "deterministic_inverter", "candidates_from_inventory",
     "FrequencyAttack", "reference_from_counts", "spearman",
-    "EntityProfile", "build_gallery", "build_queries", "truth_map",
+    "EntityProfile", "build_gallery", "build_queries", "truth_map", "disjoint_document_split",
     "StructuralLinkage", "LearnedLinkage", "ReIdResult", "featurise",
 ]
