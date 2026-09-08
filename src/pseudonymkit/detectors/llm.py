@@ -69,13 +69,21 @@ class LlmDetector:
         config_path: Path | str = "config/llm_api.toml",
         types: Sequence[str] = DEFAULT_TYPES,
         max_chars: int = 6000,
-        timeout: int = 120,
+        timeout: int = 300,
         max_retries: int = 40,
+        max_tokens: int = 16384,
     ) -> None:
         self.model = model
         self.name = f"llm:{model}"
         self._types = tuple(types)
         self._max_chars = max_chars
+        # Generous by decision (AM, 2026-09-08): gateway tokens cost us nothing, and a tight budget
+        # is actively harmful here. The reasoning models -- gpt-oss-120b, Qwen3.6 -- spend tokens
+        # thinking before they emit the JSON array, so a 2048 cap made Qwen return *zero* spans on
+        # every CARDIO:DE letter with no error at all: it was truncated mid-thought. A silent empty
+        # result is the worst possible failure for a detector pool, because the ensemble treats it
+        # as "found nothing" rather than "never answered".
+        self._max_tokens = max_tokens
         self._timeout = timeout
         self._max_retries = max_retries
         cfg = tomllib.load(Path(config_path).open("rb"))["llm"]
@@ -125,8 +133,15 @@ class LlmDetector:
                     continue
         return None
 
-    def _complete(self, text: str) -> str:
-        """Call the model, waiting the accept-time the gateway names rather than guessing.
+    def _complete(self, text: str) -> tuple[str, str | None, dict]:
+        """Call the model, returning ``(text, finish_reason, usage)``.
+
+        ``finish_reason`` is the difference between "the model found nothing" and "the model was cut
+        off mid-answer", which are indistinguishable in the span list alone.  It is recorded with
+        every document because a silently truncated reply reads to an ensemble as an empty one — the
+        exact failure that made Qwen3.6 score zero on every letter under the old 2,048-token cap.
+
+        Waits the accept-time the gateway names rather than guessing.
 
         HTTP 429 here means the rolling token window is full, not that the quota is exhausted.
         Dropping a planned model on a 429 would silently shrink the detector pool, so it is retried
@@ -139,7 +154,7 @@ class LlmDetector:
                 {"role": "user", "content": f"Types: {', '.join(self._types)}\n\n{text}"},
             ],
             "temperature": 0,
-            "max_tokens": 2048,
+            "max_tokens": self._max_tokens,
         }
         delay = 10.0
         last = ""
@@ -153,13 +168,15 @@ class LlmDetector:
                 continue
             if status == 200:
                 try:
-                    message = json.loads(body)["choices"][0].get("message", {})
+                    parsed = json.loads(body)
+                    message = parsed["choices"][0].get("message", {})
                 except (KeyError, IndexError, json.JSONDecodeError) as exc:
                     last = f"malformed 200: {type(exc).__name__}"
                     time.sleep(delay)
                     continue
                 # Reasoning models return content=None with the text in reasoning_content.
-                return message.get("content") or message.get("reasoning_content") or ""
+                text = message.get("content") or message.get("reasoning_content") or ""
+                return text, parsed["choices"][0].get("finish_reason"), parsed.get("usage") or {}
             last = f"HTTP {status}"
             if status in (429, 500, 502, 503, 504):
                 wait = self._accept_time(status, body, None)
@@ -210,14 +227,40 @@ class LlmDetector:
         Windows overlap by nothing and are grounded independently; grounding searches the whole
         document, so a snippet found in one window still maps to the right offset.
         """
+        return self.detect_with_meta(document)[0]
+
+    def detect_with_meta(self, document: Document) -> tuple[DetectorOutput, dict]:
+        """As :meth:`detect`, plus what the gateway said about how the reply ended.
+
+        The metadata is per **window**, because a long document is several calls and only some of
+        them may have been truncated.  ``truncated`` counts the windows whose ``finish_reason`` was
+        ``"length"`` — those are documents whose span list is short because the model ran out of
+        budget, not because the text was clean.
+        """
         snippets: list[tuple[str, str]] = []
+        reasons: list[str | None] = []
+        completion_tokens = 0
+        prompt_tokens = 0
         text = document.text
         for start in range(0, max(len(text), 1), self._max_chars):
             chunk = text[start : start + self._max_chars]
-            if chunk.strip():
-                snippets.extend(self._parse(self._complete(chunk)))
+            if not chunk.strip():
+                continue
+            reply, reason, usage = self._complete(chunk)
+            snippets.extend(self._parse(reply))
+            reasons.append(reason)
+            completion_tokens += int(usage.get("completion_tokens") or 0)
+            prompt_tokens += int(usage.get("prompt_tokens") or 0)
         spans: list[Span] = [
             Span(s.start, s.end, s.text, s.type, source=self.name)
             for s in ground_snippets(text, snippets)
         ]
-        return DetectorOutput(document.doc_id, self.name, tuple(spans))
+        meta = {
+            "windows": len(reasons),
+            "finish_reasons": reasons,
+            "truncated": sum(1 for r in reasons if r == "length"),
+            "completion_tokens": completion_tokens,
+            "prompt_tokens": prompt_tokens,
+            "max_tokens": self._max_tokens,
+        }
+        return DetectorOutput(document.doc_id, self.name, tuple(spans)), meta

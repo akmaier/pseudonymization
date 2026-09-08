@@ -25,8 +25,14 @@ __all__ = [
     "windows",
 ]
 
-PROMPT_VERSION = "v1"
-"""Bump when the prompt changes: cached records carry it, so old and new output never mix."""
+PROMPT_VERSION = "v2"
+"""Bump when the prompt changes: cached records carry it, so old and new output never mix.
+
+v1 -> v2 (2026-09-08): the generation budget went from 2,048 to 16,384 tokens. That is not a
+cosmetic change. At 2,048 the reasoning models were truncated mid-thought and returned **no spans
+and no error** -- Qwen3.6 scored zero on every CARDIO:DE letter it saw, which an ensemble reads as
+"found nothing" rather than "never answered". The v1 records are a different condition and are
+archived rather than mixed in."""
 
 DEFAULT_TYPES: tuple[str, ...] = (
     "PERSON",

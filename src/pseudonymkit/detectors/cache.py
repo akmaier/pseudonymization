@@ -67,6 +67,7 @@ class DetectorCache:
         prompt_version: str | None = None,
         error: str | None = None,
         elapsed: float | None = None,
+        meta: dict | None = None,
     ) -> None:
         """Record one document's result. Flushed immediately: an interrupted job keeps its work."""
         record = {
@@ -78,6 +79,7 @@ class DetectorCache:
             "error": error,
             "elapsed": elapsed,
             "ts": time.time(),
+            **(meta or {}),
         }
         with self.path(detector).open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")

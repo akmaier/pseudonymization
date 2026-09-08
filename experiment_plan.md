@@ -210,8 +210,35 @@ structures. Measured at rate 0.2 on a synthetic corpus:
 
 | measurement | scheme | why |
 |---|---|---|
-| detection · utility · within-document stability · **A2** | **`stratified`** | every subject represented in proportion; frequency *ranks* survive thinning |
-| **A3 · A5 · drift** | **`subject`** or **`time`** | profile completeness is the signal; document sampling starves it |
+| detection · utility · within-document stability · **A2** | ~~`stratified`~~ | every subject represented in proportion; frequency *ranks* survive thinning |
+| **A3 · A5 · drift** | **`subject`** or `time` | profile completeness is the signal; document sampling starves it |
+
+### Enron uses one scheme: `subject` @ 0.10 (AM, 2026-09-08)
+
+The per-measurement assignment above was the design, and it is **superseded for Enron**. Two schemes
+are two different document sets, so detection would have to cover their **union** — and Enron is
+already 86 % of the detection budget (§7.4.1). One scheme, and it is `subject`:
+
+- **Profile completeness cannot be recovered any other way.** 67 % retained per entity against
+  `stratified`'s 20 %, measured. A3 and A5 are starved by the alternative; nothing is starved by
+  this one.
+- **A2 tolerates it.** Inside a kept mailbox the frequency distribution is *complete*, so pseudonym
+  frequency still mirrors real-name frequency. What is lost is statistical power — fewer entities —
+  not the effect, and §5 predicts A2 is robust to rate anyway.
+- **Detection and utility do not care which documents**, only how many.
+- With one scheme, detection, stability, utility and leakage land on **the same documents**, which is
+  the property §4 claims for Enron in the first place.
+
+**How it is built** (`experiments/build_enron.py`): Enron cannot be materialised in full anywhere —
+the head node has too little memory, and a full pass on an 18 GB laptop was **killed by memory
+pressure** while constructing the 517,401 documents. So the sample is a **stream filter** applied
+before documents are built: one pass over every message builds the identity table (names only —
+11,124 of them in 30 s), whole mailboxes are drawn with `sampling.by_subject`'s rule and seed, and a
+second pass builds documents for those mailboxes using the **full** table. Cross-document identity is
+therefore complete even for mailboxes outside the sample.
+
+The result is written as JSONL (`pseudonymkit.serialisation`) and shipped to the cluster. That
+serialisation exists **only** for Enron; every other corpus is read from its release by its adapter.
 
 Scheme, rate and seed are stamped into `Corpus.name` and every document's metadata. **No result may
 be quoted without its sampling provenance.**

@@ -16,7 +16,7 @@ import argparse
 import time
 from pathlib import Path
 
-from pseudonymkit.adapters import enron, tab
+from pseudonymkit.adapters import cardiode, codealltag, enron, ontonotes, tab
 from pseudonymkit.detectors.cache import DetectorCache
 from pseudonymkit.detectors.llm import PROMPT_VERSION, LlmDetector
 from pseudonymkit.domain import Corpus, Document
@@ -33,18 +33,8 @@ DEFAULT_MODELS = (
 )
 
 
-def load_codealltag(root: Path, limit: int) -> Corpus:
-    """CodEAlltag pS: 800 donated German e-mails, plain text, no annotations in the release."""
-    files = sorted((root / "codealltag" / "pS" / "emails").glob("*.txt"))[:limit]
-    docs = [
-        Document(
-            doc_id=f"codealltag/{p.name}", text=p.read_text("utf-8", errors="replace"),
-            language="de", corpus="codealltag", domain="email", provenance="surrogate",
-            metadata={"annotation": "none"},
-        )
-        for p in files
-    ]
-    return Corpus("codealltag", tuple(docs))
+ONTONOTES_EXTRACT = "/cluster/maier/pseudonymization/data/ontonotes"
+CARDIODE_ROOT = "/cluster/maier/dua-restricted/cardiode/corpus"
 
 
 def main() -> None:
@@ -53,7 +43,7 @@ def main() -> None:
     ap.add_argument("--models", nargs="+", default=list(DEFAULT_MODELS))
     ap.add_argument("--cache", type=Path, default=Path("results/detector_cache"))
     ap.add_argument("--config", type=Path, default=Path("config/llm_api.toml"))
-    ap.add_argument("--limit", type=int, default=1500, help="documents per corpus (tab)")
+    ap.add_argument("--limit", type=int, default=0, help="cap per corpus; 0 = all")
     ap.add_argument("--enron-rate", type=float, default=0.004)
     ap.add_argument("--enron-limit", type=int, default=600)
     ap.add_argument("--codealltag-limit", type=int, default=800)
@@ -70,8 +60,19 @@ def main() -> None:
         sources["tab"] = tab.load(root / "tab", types=["PERSON", "LOC", "ORG", "DATETIME"])
         log(f"tab: {len(sources['tab'])} documents")
     if "codealltag" in args.corpora:
-        sources["codealltag"] = load_codealltag(root, args.codealltag_limit)
+        sources["codealltag"] = codealltag.load(root / "codealltag", limit=args.codealltag_limit)
         log(f"codealltag: {len(sources['codealltag'])} documents")
+    for language in ("english", "chinese", "arabic"):
+        key = f"ontonotes-{language[:2]}"
+        if key in args.corpora:
+            report: dict = {}
+            sources[key] = ontonotes.load(
+                ONTONOTES_EXTRACT, languages=(language,), report=report)
+            log(f"{key}: {len(sources[key])} documents — {report.get(language)}")
+    if "cardiode" in args.corpora:
+        report = {}
+        sources["cardiode"] = cardiode.load(CARDIODE_ROOT, report=report, progress=log)
+        log(f"cardiode: {len(sources['cardiode'])} documents — {report}")
     if "enron" in args.corpora:
         full = enron.load(root / "enron" / "enron_mail_20150507.tar.gz",
                           limit=6000, stride=40, progress=log)
@@ -82,7 +83,7 @@ def main() -> None:
 
     for corpus_name, corpus in sources.items():
         cap = {"enron": args.enron_limit, "codealltag": args.codealltag_limit}.get(
-            corpus_name, args.limit)
+            corpus_name, args.limit or len(corpus))
         docs = list(corpus.documents)[:cap]
         cache = DetectorCache(args.cache, corpus_name)
         for model in args.models:
