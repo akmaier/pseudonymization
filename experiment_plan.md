@@ -168,12 +168,21 @@ the same documents — which is the gap `PLAN.md` §2 claims nobody has closed.
 | **CARDIO:DE** (de, clinical) | ⚠ DATETIME only — 18,148 `<[Pseudo] …>` date markers, no name layer | ❌ | ✅ medication IE · section classes | utility **+ leakage** (AM, 2026-09-08) |
 | **CodEAlltag** (de, e-mail) | ❌ none released | ❌ | ✅ formality · 7-way topic (the pXL partition *is* the label) | utility only |
 | **BRONCO150** (de, clinical) | ✅ ICD/OPS/ATC | ❌ sentence-scrambled | ✅ coding | utility only — **not yet received** |
-| MEDDOCAN · MedDeID · REDACT · AI4Privacy | ✅ | ❌ | ❌ | **detection + leakage only**, as the T4/T5 control arm for axis F |
-| E3C | ❌ no PII layer | ❌ | ❌ | out |
+| MEDDOCAN · MedDeID · REDACT · AI4Privacy | ✅ | ❌ | ❌ | **OUT** (AM, 2026-09-08) — no utility task, so no cell where a method's effect is attributable |
+| E3C | ❌ no PII layer | ❌ | ❌ | **OUT** (AM, 2026-09-08) |
 
-**Restriction is per measurement, not per corpus**: utility is scored only where a task exists;
-detection and leakage still run on the synthetic members, which cost no annotation effort and are the
-only thing keeping axis F's control arm alive.
+**The synthetic members are out** (AM, 2026-09-08, `data/metacorpus.md` §13): *"Let's only use
+data that has some utility."* Attributing an effect to a method requires detection, stability **and**
+utility on the same documents, and MEDDOCAN, MedDeID, REDACT, AI4Privacy and E3C carry no utility
+task. **Only TAB, OntoNotes and Enron carry all three** — and they are also the only tier-T1 members,
+the ones with real names.
+
+⚠ **This leaves axis F without a control arm, and that is an open decision for AM, not a settled
+one — see §10.** Axis F exists because every 2026 detection benchmark is synthetic; running the same
+attacks across T1→T5 is what measures how much a benchmark's construction flatters its own privacy
+numbers. With T4 and T5 gone the axis spans T1 (TAB, OntoNotes, Enron) and T2/T3 (CodEAlltag,
+CARDIO:DE) only. A previous version of this file recorded the per-measurement compromise as decided;
+it was **an agent's suggestion awaiting AM** and has been withdrawn.
 
 **Access status.** TAB, Enron, OntoNotes, CodEAlltag, MEDDOCAN, MedDeID, REDACT, AI4Privacy, E3C,
 PIIBench are on the cluster in `/cluster/shared_dataset/pseudonymization-corpora`. **CARDIO:DE is
@@ -285,48 +294,60 @@ Document **length**, not model size, dominates: `gemma-4-31B` ran CodEAlltag at 
 
 ### 7.4 The detection surface, sized — 2026-09-08
 
-Counted from the releases on the cluster, not estimated.
+Counted from the releases on the cluster. **Only the corpora AM kept** (§4): the synthetic members
+are out, so they are not in this table and cost nothing.
 
 | corpus | documents | language(s) | note |
 |---|---:|---|---|
-| TAB / ECHR | 1,268 | en | 274 already cached |
+| TAB / ECHR | 1,268 | en | 274 model-runs already cached |
 | **OntoNotes en** | 3,637 | en | 2,384 also carry `.coref` |
 | **OntoNotes zh** | 1,911 | zh | 1,729 with `.coref` |
 | **OntoNotes ar** | 446 | ar | 447 with `.coref` |
-| Enron | 600 | en | sampled `stratified@0.004` from ~500 k |
-| CodEAlltag_S | 800 | de | 1,156 model-runs already cached |
-| CARDIO:DE 400 | 400 | de | 🔒 AM only |
-| MEDDOCAN | 1,000 + 3,751 background | es | 500/250/250 train/dev/test |
-| MedDeID | 1 JSONL, Dutch synthetic | nl | record count not yet read |
-| **REDACT** | **13,427** | 25 languages / 9 scripts | matches the paper's abstract exactly |
-| AI4Privacy | 225,405 | 6 languages | **must be sampled**; rate is a declared parameter (§5) |
-| CodEAlltag_XL | ~700 k across 7 topics | de | **must be sampled** |
-| PIIBench | **none** | — | the checkout is code only; the corpus is *built* by `run_data_pipeline.py` from ten sources |
+| **Enron @ 0.10** | **≈ 51,700** | en | the rate AM set (`data/metacorpus.md` §14) |
+| CodEAlltag_S | 800 | de | 1,156 model-runs already cached; utility only |
+| CodEAlltag_XL | ~1,469,000 across 7 topics | de | utility only, **must be sampled** |
+| CARDIO:DE 400 | 400 | de | 🔒 AM only; utility + leakage |
+| BRONCO150 | 150 | de | not yet received |
 
 **OntoNotes co-reference is not uniform and the plan must not assume it is.** English newswire has
 2,102 `.name` files but only 922 `.coref`; English `pt` (pivot text) has 260 `.coref` and **no**
-`.name` at all. Stability on OntoNotes is therefore scored on the ~4,560 documents that carry both
-layers, and that number is reported, not the corpus total.
+`.name` at all. Stability on OntoNotes is scored on the ~4,560 documents carrying both layers, and
+**that** number is reported, never the corpus total.
 
-**Two more Git-LFS traps, both found and both fixed** (see §9): REDACT's real benchmark is a 213 MB
-LFS object — the checkout held a 134-byte stub — and CodEAlltag's formality scores were the same.
-Both were fetched over `media.githubusercontent.com`, which serves LFS content without a `git-lfs`
-client. **Check every corpus directory for stubs before counting it as present.**
+### 7.4.1 What that costs — and where the cost actually sits
 
-### 7.4.1 What that costs in LLM calls
+Detection is needed on the three **full** corpora (axis D/D′ is scored there) and on CodEAlltag and
+CARDIO:DE (no gold, so detection is the *input* to pseudonymisation rather than something scored).
+Three gateway models, at the measured rates of §7.3:
 
-Taking only the corpora at rate 1.0 — TAB, OntoNotes ×3, Enron, CodEAlltag_S, CARDIO:DE, MEDDOCAN,
-REDACT — that is **≈ 23,500 documents × 3 models ≈ 70,500 calls**. At the measured ~15 s mean:
+| corpus | documents | calls | serial hours | share |
+|---|---:|---:|---:|---:|
+| TAB | 1,268 | 3,804 | 21 | 2.8 % |
+| OntoNotes (en+zh+ar) | 5,994 | 17,982 | 75 | 10.0 % |
+| CodEAlltag_S | 800 | 2,400 | 5 | 0.7 % |
+| CARDIO:DE | 400 | 1,200 | 3 | 0.4 % |
+| **Enron @ 0.10** | **51,700** | **155,100** | **≈ 646** | **86.1 %** |
+| **total** | **60,162** | **180,486** | **≈ 750** | |
 
-| shape | wall clock |
-|---|---|
-| serial, as submitted on 2026-09-08 | **≈ 294 h** — impossible; 33 h per array task, past the 24 h limit |
-| one allocation, *W* = 16 | ≈ 18 h — one night |
-| one allocation, *W* = 32 | ≈ 9 h |
+**Enron is 86 % of the entire detection budget**, and everything else together is 104 serial hours.
+Two consequences:
 
-**The runner rewrite in §7.5 is therefore not an optimisation. It is the difference between a
-schedule that closes before 2026-09-25 and one that cannot.** AI4Privacy and CodEAlltag_XL sit on
-top of this and are what the sampling rates in §5 are for.
+1. **Everything except Enron is affordable today.** 104 h serial is ~7 h at *W* = 16, in one
+   allocation. That is a night's work and needs no decision from anyone.
+2. **The Enron rate is the schedule.** §5 already prescribes a **size sweep** — 0.01 / 0.05 / 0.10 /
+   0.25 — with the explicit prediction that A2 is robust to rate and A3/A5 are not. Running the
+   sweep *upward* (0.01 → 0.10) is the plan's own design, not a reduction of it: at 0.01 Enron is
+   5,170 documents and 65 serial hours, and each higher rate is a further experimental point rather
+   than a repetition. **AM decides where that sweep stops**; no agent may settle it (§0).
+
+| shape | 104 h (all but Enron) | +Enron @0.01 | +Enron @0.10 |
+|---|---|---|---|
+| serial, as submitted on 2026-09-08 | impossible — past the 24 h limit | impossible | impossible |
+| one allocation, *W* = 16 | **6.5 h** | 10.6 h | 47 h (needs checkpoint + resubmit) |
+| one allocation, *W* = 32 | 3.3 h | 5.3 h | 23 h |
+
+**The runner rewrite in §7.5 is not an optimisation.** Serially, even the 104-hour remainder cannot
+finish inside a 24 h wall clock.
 
 ### 7.5 Preconditions before any detection job is resubmitted
 
@@ -403,8 +424,13 @@ it a smaller gallery, so the deterministic 1.04× sits inside that confound).
    does not say what was done to them. Read it out of Richter-Pechanski et al., *Sci Data* 10, 207
    (2023) before asserting the corpus's axis-F tier. Until then the adapter records `placeholder`
    for the date layer only, and the tier is **not** claimed.
-5. **The full detection surface is not yet sized** — §7.5(3). OntoNotes, CARDIO:DE and the five
-   T4/T5 control corpora have no document counts and therefore no schedule.
-6. **Four of axis D's six detector levels have no code** — Presidio, GLiNER, `obi/deid_roberta_i2b2`
+5. **Axis F has no control arm** — the T4/T5 synthetic corpora are out (§4, AM 2026-09-08), so the
+   axis now spans T1–T3 only and the "how much does a synthetic benchmark flatter its own privacy
+   numbers" comparison cannot be made. **AM's call:** leave axis F as a T1–T3 contrast and say so, or
+   re-admit the synthetics for detection and leakage only. An agent must not settle this by drift —
+   a previous version of this file did exactly that and has been corrected.
+6. **Where the Enron size sweep stops** — Enron at rate 0.10 is 86 % of the whole detection budget
+   (§7.4.1). The sweep 0.01 → 0.25 is the plan's own design; its upper end is AM's to set.
+7. **Four of axis D's six detector levels have no code** — Presidio, GLiNER, `obi/deid_roberta_i2b2`
    and `privacy_tagger` are GPU work and are unwritten (§7.2).
-7. **Paper scoping** — which panels fit eight pages.
+8. **Paper scoping** — which panels fit eight pages.
