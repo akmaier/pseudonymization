@@ -200,12 +200,19 @@ def load(
     emits documents.  ``min_name_count`` drops display names seen only once, which are usually
     parsing debris rather than people.
     """
-    raws = [(p, m, r) for p, m, r in iter_raw_messages(source, limit, mailboxes, stride)]
-    table = identity_table or build_identity_table(r for _, _, r in raws)
+    # Two streaming passes rather than one pass into a list.  Holding every raw message *and* the
+    # Document that wraps it doubles peak memory for no benefit, and on 20,000 messages that was
+    # enough to be OOM-killed.  A second decompression pass is the cheaper resource.
+    if identity_table is None:
+        table = build_identity_table(
+            r for _, _, r in iter_raw_messages(source, limit, mailboxes, stride)
+        )
+    else:
+        table = identity_table
     known = [n for n in table.names() if table.counts.get(n, 0) >= min_name_count]
 
     documents: list[Document] = []
-    for path, mailbox, raw in raws:
+    for path, mailbox, raw in iter_raw_messages(source, limit, mailboxes, stride):
         message = email.message_from_string(raw)
         folder = (message.get("X-Folder") or "").replace("\\", "/").rstrip("/").split("/")[-1]
         documents.append(

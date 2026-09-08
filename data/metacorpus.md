@@ -354,7 +354,8 @@ with the public corpora rather than apart from them.
 
 | corpus | why |
 |---|---|
-| BRONCO150 · CARDIO:DE | agreements signed 2026-09-07, awaiting the providers |
+| **CARDIO:DE** | ✅ **approved 2026-09-08**, pending download from heiDATA. **Single-user: AM only** — every additional person needs their own countersigned agreement, so it cannot go in the shared folder |
+| BRONCO150 | sent 2026-09-07, no reply yet |
 | **n2c2 2014** | ⛔ registration closed — see §6d for what that costs |
 
 **Ten of the twelve meta-corpus members are now local.** The two clinical DUA corpora are in flight;

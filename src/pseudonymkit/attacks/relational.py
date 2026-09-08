@@ -176,9 +176,9 @@ class LearnedLinkage:
 
     def __init__(
         self,
-        vocabulary_size: int = 20_000,
+        vocabulary_size: int = 8_000,
         train_fraction: float = 0.5,
-        epochs: int = 30,
+        epochs: int = 15,
         learning_rate: float = 0.5,
         seed: int = 0,
     ) -> None:
@@ -224,22 +224,28 @@ class LearnedLinkage:
         vocabulary: Sequence[str],
         rng: np.random.Generator,
     ) -> np.ndarray:
+        """Fit the diagonal metric by hardest-impostor contrastive updates.
+
+        Fully vectorised: one ``n x n`` similarity matrix per epoch rather than one scoring pass per
+        training entity.  The loop version is ``O(epochs * n^2 * d)`` and does not finish on a corpus
+        of any size -- with 600 entities and a 20,000-term vocabulary it is about 10^14 operations.
+        """
         q_keys, q_matrix = featurise({q: queries[q] for q, _ in train}, vocabulary)
         g_keys, g_matrix = featurise({g: gallery[g] for _, g in train}, vocabulary)
-        q_row = {k: i for i, k in enumerate(q_keys)}
-        g_row = {k: i for i, k in enumerate(g_keys)}
+        q_row = np.array([q_keys.index(q) for q, _ in train])
+        g_row = np.array([g_keys.index(g) for _, g in train])
 
-        weights = np.ones(q_matrix.shape[1], dtype=np.float32)
+        anchors = q_matrix[q_row]              # (n, d)
+        positives = g_matrix[g_row]            # (n, d)
+        n = anchors.shape[0]
+
+        weights = np.ones(anchors.shape[1], dtype=np.float32)
         for _ in range(self._epochs):
-            gradient = np.zeros_like(weights)
-            for q, g in train:
-                anchor = q_matrix[q_row[q]]
-                positive = g_matrix[g_row[g]]
-                scores = (g_matrix * weights) @ (anchor * weights)
-                scores[g_row[g]] = -np.inf
-                hardest = g_matrix[int(np.argmax(scores))]
-                # Raise the weight of features the true pair shares, lower those the impostor shares.
-                gradient += anchor * positive - anchor * hardest
-            weights += self._learning_rate * gradient / max(len(train), 1)
+            scores = (anchors * weights) @ (positives * weights).T   # (n, n), one matmul
+            np.fill_diagonal(scores, -np.inf)                        # never pick the true pair
+            hardest = positives[np.argmax(scores, axis=1)]
+            # Raise features the true pairs share, lower those the impostors share.
+            gradient = np.einsum("ij,ij->j", anchors, positives - hardest) / max(n, 1)
+            weights += self._learning_rate * gradient
             np.clip(weights, 0.0, None, out=weights)
         return weights

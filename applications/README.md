@@ -5,8 +5,8 @@ Drafts below are ready for AM to check, sign and send. **Nothing here has been s
 
 | corpus | to | status | who must act |
 |---|---|---|---|
-| **BRONCO150** | Prof. Dr. Ulf Leser, `leser@informatik.hu-berlin.de` | [draft ready](bronco150_dua.md) | AM signs + sends |
-| **CARDIO:DE** | **`christoph.dieterich@uni-heidelberg.de`** (study director) | [complete](cardiode_request.md) — DUA downloaded + MD5-verified, all fields filled | AM signs + sends |
+| **BRONCO150** | Prof. Dr. Ulf Leser, `leser@informatik.hu-berlin.de` | sent 2026-09-07, **no reply yet** | wait; ⏰ delete by **2027-09-07** |
+| **CARDIO:DE** | `christoph.dieterich@uni-heidelberg.de` | ✅ **APPROVED 2026-09-08** — see [`forms/CARDIODE_APPROVED.md`](forms/CARDIODE_APPROVED.md). ⚠ **single-user: AM only** | AM logs in to heiDATA and downloads |
 | **i2b2 / n2c2 2014** | DBMI Data Portal | ⛔ **[BLOCKED](n2c2_request.md)** — registration closed, datasets "temporarily unavailable" | AM: e-mail DBMI to ask when it reopens |
 | **OntoNotes 5.0** | — | ✅ **[no application needed](ontonotes_ldc.md)** — already licensed to FAU since 2020-02-06, downloaded 2026-09-07 | done |
 
@@ -48,6 +48,25 @@ Taken from the Pattern Recognition Lab's own materials; **confirm before sending
 
 **Decided (AM, 2026-09-07):** AM applies **in his own name, for the lab**. See "Applying for the
 lab" below for what that does and does not cover.
+
+## ⏰ Standing obligations, once granted
+
+| corpus | obligation | when |
+|---|---|---|
+| **BRONCO150** | **delete the corpus and inform Prof. Leser** that deletion has happened (clause 5) | by **2027-09-07** — twelve months from the signature date |
+| **CARDIO:DE** | term runs 5 years (clause 8.1); return or delete on completion (clause 6.3); a further project needs a new application | from 2026-09-07 |
+| **CARDIO:DE** | **one countersigned agreement per person.** The grant covers **AM alone** | now |
+
+## The per-person question was answered: yes (2026-09-08)
+
+Both covering letters asked whether staff working under AM's responsibility are covered by his
+signature. **Heidelberg answered no** — every user needs their own countersigned document. AM then
+narrowed the request to himself, and that is what was approved.
+
+So the earlier plan of "AM applies for the lab" holds for the *request* and not for *access*:
+each additional person needs their own agreement sent and countersigned before touching the corpus,
+derived files, or the cluster copy. BRONCO's reply will probably say the same, since its clause 2 is
+worded identically.
 
 ## Two clauses, both cleared by AM (2026-09-07)
 
@@ -101,6 +120,7 @@ So, two locations:
 | what | where |
 |---|---|
 | public corpora (Enron, TAB, CodEAlltag, MEDDOCAN, MedDeID, REDACT, PIIBench, E3C, AI4Privacy) | `/cluster/shared_dataset/pseudonymization-corpora/` — the group's shared dataset folder |
+| **CARDIO:DE** | **`/cluster/maier/dua-restricted/cardiode`, mode `700`** — created 2026-09-08. The shared folder is group-readable and would breach the single-user grant |
 | OntoNotes | the shared folder is fine — the LDC agreement permits use across the whole research group |
 | DUA-bound corpora (BRONCO150, CARDIO:DE, n2c2, OntoNotes) | **not** the shared folder — a separate directory under AM's own administration, readable only by signatories |
 
