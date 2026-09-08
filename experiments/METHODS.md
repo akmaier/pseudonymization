@@ -416,23 +416,73 @@ None of A1–A4 uses a trained model, so every leakage number we have is a *lowe
 adversary could do. The obvious gap is that all four attack **names and their distribution**, and
 none of them attacks the thing pseudonymisation cannot touch.
 
-### Proposed A5 — stylometric re-identification
+### A5 — relational re-identification (AM, 2026-09-08)
 
-Train an authorship attributor on pseudonymised text and ask whether it still identifies the author.
+**A first proposal of stylometric attribution was wrong and is recorded as rejected.** Stylometry
+identifies the *author* of a text. The entities this study protects are third parties **written
+about** — several people writing about the same person, and one person writing about many. Writing
+style carries information about the writer and none about the subject, so the attack would have
+measured the wrong thing entirely.
 
-- **Why it belongs here.** CodEAlltag was built for *forensic linguistics*, and Enron carries ~150
-  mailbox owners as labels. The corpora were made for this question.
-- **Why it is a different channel.** A1 inverts a function, A2 exploits frequency, A3 exploits
-  co-occurrence, A4 exploits an LLM's world knowledge. **A5 exploits style, which no pseudonymisation
-  policy modifies at all.** Fully-randomised pseudonymisation defeats A2 completely and should leave
-  A5 untouched — a prediction that separates the axes cleanly.
-- **Why the result matters either way.** If style survives, then *pseudonymisation removes names but
-  not identity*, and the policy axis — which dominates every other attack — is irrelevant to this
-  one. That is the sharpest possible statement of the paper's thesis about what pseudonymisation
-  does and does not buy.
-- **Cost.** The classical stylometry baseline is character *n*-grams plus a linear classifier: CPU
-  only, minutes, no GPU. A transformer attacker can be added if the linear one is not already
-  decisive.
+The right shape, AM's: *"an NLP / embedding based approach as in the Packhäuser work on imaging …
+the attack effectively tries to guess persons from facts in the text and their relation … maybe a
+graph based approach … we are more in the domain of detecting or recovering hidden information."*
 
-Predicted shape: A5 accuracy roughly flat across all three policies and all five techniques, while
-A2 collapses from 0.201 to 0.000 across the same axis.
+**The analogy is exact and it is the group's own.** Packhäuser et al., *Deep learning-based patient
+re-identification is able to exploit the biometric nature of medical chest X-ray data*
+(Sci Rep 2022, `10.1038/s41598-022-19045-3`) trained a learned embedding to decide whether two
+radiographs belong to the same patient, and showed that images believed de-identified are not.
+The text analogue: **learn an embedding of the facts and relations surrounding an entity, and use it
+to link a pseudonymised entity to a known one.**
+
+What it attacks is precisely what pseudonymisation cannot remove. Replacing *Weber* with
+*Bill Powers* everywhere leaves intact who they corresponded with, how often, on what, which other
+entities they co-occur with, and every attribute asserted about them. The name is gone; the profile
+is not. That is the hidden information the attack recovers.
+
+#### Two attackers, and the gap between them is a result
+
+| | **A3** structural | **A5** learned |
+|---|---|---|
+| representation | entity co-occurrence graph | contrastive embedding of an entity's context and relations |
+| method | seeded graph matching against an auxiliary record | siamese encoder, nearest-neighbour retrieval |
+| trained? | no | **yes — the one trained model in the study** |
+| role | classical baseline | the strongest adversary we can build |
+
+A3 already exists in `PLAN.md`; A5 is its learned counterpart. Reporting both makes "frozen
+defenders, trained attackers" measurable rather than merely asserted: **the A5 − A3 gap is what
+learning buys the adversary.**
+
+#### Protocol, following the re-identification literature
+
+* **Gallery / query split per entity.** The gallery holds an entity's profile as known to the
+  attacker (from an auxiliary record, or from the un-pseudonymised corpus); the query holds its
+  pseudonymised profile.
+* **Entity-disjoint train / test.** The encoder is trained on one set of entities and evaluated on
+  entities it has never seen. Without this the attack measures memorisation, not generalisation, and
+  would not be an attack at all.
+* **Metrics: Rank-1, Rank-5, mAP** — the standard re-identification metrics, chosen so the numbers
+  are directly comparable with Packhäuser's imaging results.
+* **Corpus: Enron.** Real people, real relations, cross-document identity from the headers, and a
+  ~184-employee org chart as an auxiliary record. TAB is a weaker second site because its
+  co-reference is document-scoped.
+
+#### Why it is on-thesis, and the prediction
+
+Unlike the rejected stylometry idea, A5 **is policy-sensitive and technique-insensitive**, which is
+the study's central shape:
+
+| policy | what the attacker can assemble | predicted A5 |
+|---|---|---|
+| deterministic | the entity's whole profile across the corpus | **strong** |
+| document-randomised | one document's fragment of it | weaker |
+| fully-randomised | nothing — every mention is a different pseudonym | **fails** |
+
+Across the five techniques it should be flat, as A1 and A2 already are. If that holds, three
+independent attacks — frequency, structure and learned relation — all say the same thing: the policy
+decides, the cryptography does not.
+
+And there is a sharper corollary. If A5 succeeds under a deterministic policy, then **the stability
+requirement itself is the vulnerability**: one person, one pseudonym, corpus-wide is exactly the
+property that lets a profile be assembled. That is the paper's thesis stated at its strongest, and it
+would come from the group's own imaging result carried into text.

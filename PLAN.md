@@ -276,6 +276,15 @@ public-figure split, and report a no-context control. The same confound is a *re
   crypto axis is the wrong thing to optimise.
 - **A3 linkage.** Link pseudonymised documents to each other, and to an auxiliary public record, via
   co-occurrence structure.
+- **A5 relational re-identification** (AM, 2026-09-08) — the one place a *trained* model is worth
+  building. A learned embedding of the facts and relations around an entity, linking a pseudonymised
+  entity to a known one; the text analogue of Packhäuser et al., *Deep learning-based patient
+  re-identification …* (Sci Rep 2022, `10.1038/s41598-022-19045-3`), which showed that images
+  believed de-identified are not. Attacks what pseudonymisation cannot remove: the name is replaced,
+  the profile is not. Paired with A3 so the **A5 − A3 gap measures what learning buys the adversary**.
+  Rank-1 / Rank-5 / mAP on entity-disjoint splits, on Enron. *Prediction: strong under deterministic,
+  weaker under document-randomised, fails under fully-randomised, and flat across all five
+  techniques.* Corollary if it holds: **the stability requirement is itself the vulnerability**.
 - **A4 LLM re-identification.** Give a modern LLM the pseudonymised document and ask who it is,
   with and without auxiliary context. This is the threat model of 2026 and the one the workshop cares
   about. **Scored as recovery of the surface form already present in the corpus**, never as inference
