@@ -352,10 +352,12 @@ no new detector: the contribution is the axis nobody varied.
 
 ## Open questions
 
-- **Balance implies capping.** Enron has ~500 k messages, TAB has 1,268 documents. A balanced meta
-  corpus means sampling the large members — a *design* decision, explicitly not the cost saving that
-  `CLAUDE.md` §1 forbids. The rule (per-corpus cap? equal token budget per language?) has to be
-  written down by AM before any sampling happens.
+- ~~Balance implies capping~~ — **settled (AM, 2026-09-08).** Size is a *reported parameter*, not
+  something to balance away. Corpora that support all three measurements (TAB, OntoNotes, Enron)
+  carry the full design, with Enron triaged to **10 %**; corpora that support only utility
+  (CodEAlltag, CARDIO:DE, BRONCO150) carry **utility alone**, triaged to a comparable size, and are
+  framed as a task-domain investigation rather than a full screen. Sampling scheme is chosen per
+  measurement and recorded with every result — see `data/metacorpus.md` §14.
 - Is the full A×B×C×D×D′×E×F factorial affordable, or do we fix a sensible default per axis and vary one
   at a time around it? Compute is available; annotation-limited corpora may not support every cell.
 - Which E3C languages carry enough PII density to be worth including?

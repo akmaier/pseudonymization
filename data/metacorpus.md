@@ -494,3 +494,56 @@ Spanish and Dutch are gone, and non-Latin script survives only through OntoNotes
 
 So the capping rule is now *more* necessary, not less. It is still the one open decision, and it now
 governs a set where the ratio is 1,469,000 : 150.
+
+
+## 14. Sampling — size as a parameter, not a nuisance (AM, 2026-09-08)
+
+AM's three decisions:
+
+1. **The size spread is an opportunity.** Corpus size becomes a *reported parameter* rather than
+   something to balance away — we can measure which conclusions survive shrinking the data.
+2. **Partial corpora carry utility only**, triaged to a size comparable with the three full ones.
+   That makes them a **task-domain investigation**, not a full screen — which is the honest framing,
+   since they cannot support detection and stability anyway.
+3. **Full corpora carry everything**, but Enron is triaged to **10 %** (~51,700 messages). Nothing
+   trains, so a sample costs only statistical power.
+
+### There is no single fair sample
+
+The sampling unit decides which structure survives, and the measurements depend on different
+structures. Measured on a synthetic corpus of 20 subjects × 20 documents, at rate 0.2:
+
+| scheme | documents | entities kept | **profile retained per entity** |
+|---|---:|---:|---:|
+| `document` | 80 | 20 | 20.0 % |
+| `stratified` | 80 | 20 | 20.0 % |
+| **`subject`** | 80 | **6** | **66.7 %** |
+| `time` | 80 | 20 | 20.0 % |
+
+Subject sampling trades **entity population for profile completeness**: a third of the people, three
+times the evidence about each. That is precisely the trade A3 and A5 want, and precisely the wrong
+one for A2, which reads the marginal frequency distribution across many entities.
+
+**No scheme keeps a profile whole except taking everything.** `by_subject` keeps every document of a
+kept subject, so a person confined to one mailbox survives intact — but in Enron the interesting
+people appear in many mailboxes, and each dropped mailbox truncates them. The schemes rank; they do
+not solve.
+
+### Which scheme for which measurement
+
+| measurement | scheme | why |
+|---|---|---|
+| detection, utility, within-document stability | **`stratified`** | every subject stays represented in proportion; profile thinning is irrelevant to these |
+| **A2 frequency** | `stratified` or `document` | reads marginal frequencies, whose *ranks* survive thinning |
+| **A3 / A5 relational, drift** | **`subject`** or **`time`** | profile completeness is the signal; document sampling starves it |
+
+The scheme is recorded in `Corpus.name` and in every document's metadata, so no result can be quoted
+without its sampling provenance.
+
+### The size sweep this enables
+
+Run the same cells at rates 0.01, 0.05, 0.10, 0.25 and report which measurements are stable. The
+prediction worth testing: **A2 is robust to rate, A3/A5 are not** — frequency ranks survive thinning
+while assembled profiles do not. If that holds, it tells a practitioner something directly useful:
+the leakage you can measure on a sample is not the leakage you have on the whole corpus, and which
+of the two you are looking at depends on the attack.
