@@ -304,6 +304,13 @@ leakage and utility outcomes to those structural covariates. *If the policy orde
 corpora, the method is not corpus-independent and the paper's headline claim narrows to the corpora
 it was measured on.*
 
+**H7 — classical detectors add most where LLMs are weakest, and that is on structured identifiers.**
+A high-precision rule-based recogniser for IBANs, phone numbers, e-mail addresses and record numbers
+should add recall to an LLM ensemble; a fine-tuned NER should add least, because it fails where the
+LLMs already agree. Measured by comparing every LLMs-only subset against the same subset plus one
+classical detector (§7, axis D′). *If the hybrid never beats LLMs-only, that is a clean negative
+result about where the field should spend its effort.*
+
 ## 7. Factors
 
 | axis | levels | notes |
@@ -313,49 +320,9 @@ it was measured on.*
 | **B. technique** | counter · RNG+mapping table (**both** with- and without-replacement) · SHA-256 hash · HMAC-SHA256 · **AES-SIV** | AES-SIV is the deterministic encryption level; FF1 is **cited, not run** — its format preservation is a surrogate-form property and would confound B with C |
 | **C. surrogate form** | opaque tag · realistic · **frequency-matched** | Realistic draws a locale-appropriate name from the gazetteers (§14) — locale is a correctness requirement, not a variable, since a Chinese document cannot receive an English name. Frequency-matched additionally draws from the frequency-weighted inventory, and is its own level because no published generator does it (§4) |
 | **D. detector pool** | Presidio (rule, spaCy backbone) · GLiNER (`gliner_multi-v2.1`, `gliner_multi_pii-v1`) · `obi/deid_roberta_i2b2` and `StanfordAIMI/stanford-deidentifier-base` (public fine-tuned de-ID) · `Davlan/xlm-roberta-large-ner-hrl` (multilingual NER) · CodEAlltag `privacy_tagger` (domain, German e-mail) · gateway LLMs · **gold spans (oracle)** | **No detector is trained by us.** Software and weights are on the cluster (§14) |
-| **D′. combination rule** | *span-level:* union · vote(k) · intersection · weighted vote · cascade — *token-level:* per-token BIO voting (ROVER analogue) | Swept over **subsets** of the pool, with `require=` pinning so **LLMs-only** and **LLMs + ≥1 classical** are compared on equal footing |
+| **D′. combination rule** | *span-level:* union · vote(k) · intersection · weighted vote · cascade — *token-level:* per-token BIO voting (ROVER analogue) | Which detectors and how they are merged are independent choices, so they are separate axes. Swept over **subsets** of the pool with `require=` pinning, so **LLMs-only** and **LLMs + ≥1 classical** are compared on equal footing. That comparison is the point: the group's own ensemble beat every single detector but **combined LLMs only** (AM, 2026-09-07), and whether classical detectors still add anything is to be answered, not assumed. Seven pool members give 127 non-empty subsets × 6 rules — no model calls, since the cache makes every ensemble a post-hoc read, but a large number of result rows; §9 must say what the correction family is |
 | **E. corpus** | see §11 | Roles differ: full vs utility-only |
 | **sampling rate** | fixed per corpus before the run and recorded with every result (§13) | Enron is `subject` @ 0.10 as a single scheme (AM, 2026-09-08). Where a corpus is run at more than one rate the sweep is 0.01 · 0.05 · 0.10 · 0.25 · 1.0; §13 says which corpora carry it. **Size is a reported parameter**, not something to balance away |
-
-### 7.2 The ensemble, and why the pool and the rule are separate axes
-
-**On the ensemble (axes D and D′).** In the group's own testing an ensemble outperformed every
-single detector — but **that ensemble combined large language models only** (AM, 2026-09-07). Whether
-classical detectors still add anything once several LLMs are in the ensemble is an open question, and
-AM has asked for it to be answered rather than assumed. It is a large number of runs and it is the
-way to find the best combination.
-
-So the detector axis splits in two: a **pool** of detectors, and a **combination rule**, swept over
-**subsets** of the pool. Three contrasts are compared on equal footing, by pinning the required
-members of each subset:
-
-| contrast | subsets |
-|---|---|
-| single detectors | every pool member alone |
-| **LLMs only** | subsets drawn from the LLM members only — the in-house baseline |
-| **hybrid** | every LLM-only subset plus at least one classical detector |
-
-The hypothesis worth stating: a **high-precision rule-based recogniser for structured identifiers**
-(IBAN, phone, e-mail, record numbers) should add most where LLMs are weakest, and a fine-tuned NER
-should add least where the LLMs already agree. If the hybrid never beats LLMs-only, that is a clean
-negative result about where the field should spend its effort.
-
-Two further design points matter and should themselves be reported:
-
-- **Combination rule.** Union-of-spans maximises recall — the privacy-relevant direction — at the
-  cost of precision, and therefore of utility, because every false positive pseudonymises a token
-  that carried meaning. Majority vote trades the other way. Report **union and vote separately**;
-  the recall/precision asymmetry between them is exactly the privacy/utility trade-off the paper is
-  about, appearing a second time at the detector level.
-- **The ensemble is the practical recall ceiling**, and the **gold-span oracle** is the true ceiling.
-  The gap between them measures what better detection could still buy; the gap between single
-  detectors and the ensemble measures what ensembling already buys. Both belong in the results.
-
-Concretely, the pool carries at least: Presidio (rule-based), one fine-tuned multilingual NER,
-GLiNER (zero-shot), the CodEAlltag `privacy_tagger` on the German e-mail arm, two or more distinct
-LLMs individually, and gold spans; the rules carry at least union, majority vote and weighted vote.
-
----
 
 **The gold-spans level is essential, not decorative.** It separates *detector* error from
 *pseudonymisation* error, which no prior work does. Without it everything downstream is confounded by
@@ -380,6 +347,13 @@ small interfaces, not forty-five pipelines.
 
 P/R/F1 per entity type, **PERSON and LOCATION reported separately** because those carry the stability
 requirement. Recall is the privacy metric, precision the utility metric.
+
+That asymmetry reappears in the combination rule (§7, axis D′) and must be reported there too.
+Union-of-spans maximises recall — the privacy-relevant direction — at the cost of precision and
+therefore of utility, because every false positive pseudonymises a token that carried meaning.
+Majority vote trades the other way. **Report union and vote separately**: the privacy/utility
+trade-off the paper is about appears a second time at the detector level, and averaging the rules
+hides it.
 
 ### 8.2 Stability — three numbers, never one
 
