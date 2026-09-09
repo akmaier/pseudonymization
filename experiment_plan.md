@@ -102,48 +102,101 @@ the attacker walks around rather than through.
 The claim is therefore **not that ENISA is wrong about the cryptography, but that the cryptography is
 not where the risk is**. H1 (§6) states it falsifiably.
 
-## 4. What already exists — the pieces, never assembled
+## 4. What already exists
 
-**Detection is solved and crowded.** REDACT (arXiv 2606.19881, 2026) — 25 languages, 9 scripts, 51
-entity types, domain as a controlled axis, five detectors across rule/NER/LLM families. PIIBench
-(2604.15776, 2026) — ten corpora unified, 48 types, eight systems. MultiGraSCCo (LREC 2026) —
-multilingual *clinical*, ten languages. Plus MEDDOCAN (es), i2b2/n2c2 (en), CARDIO:DE and BRONCO
-(de). **Do not build another detection benchmark.**
+**Detection is crowded, and not solved.** REDACT (arXiv 2606.19881), PIIBench (arXiv 2604.15776),
+MultiGraSCCo (LREC 2026), plus MEDDOCAN (es), i2b2/n2c2 (en), CARDIO:DE and BRONCO (de). But the
+OpenAI Privacy Filter evaluation (arXiv 2608.02616) reports **person names at F1 0.40** and collapse
+on non-Latin script — and PERSON is the class the stability requirement rests on. So: do not build
+another detection benchmark, and do not assume detection is a solved input.
 
-**Surrogate generation is thin.**
-- *BRATsynthetic: Text De-identification using a Markov Chain Replacement Strategy for Surrogate
-  Personal Identifiers*, arXiv 2210.16125 (2022), and the journal version *A Markov Chain Replacement
-  Strategy for Surrogate Identifiers: Minimizing Re-Identification Risk*, Electronics 2025
-  (`10.3390/electronics14193945`).
+**Surrogate generation is well developed and under-evaluated.** The *hiding in plain sight* line runs
+from Carrell et al. (JAMIA 2012, `10.1136/amiajnl-2012-001034`), which conceals ~90 % of residual
+identifiers behind realistic surrogates, through two adversarial follow-ups: the "parrot attack"
+(JAMIA 2019, `10.1093/jamia/ocz114`) recovers 68 % of 310 real leaks by mimicking the defender's
+tagger, and four hostile human readers (JAMIA 2020, `10.1093/jamia/ocaa095`) leave ~70 % of leaked
+PII undetected. Alongside it: Yeniterzi et al. (JAMIA 2010, `10.1136/jamia.2009.002212`) on the bias
+resynthesis introduces into de-identification measurement; MIST (Aberdeen et al., IJMI 2010,
+`10.1016/j.ijmedinf.2010.09.007` — *title-level*); Chambon et al. (JAMIA 2022,
+`10.1093/jamia/ocac219`); the shared-task corpora built by surrogate substitution (Uzuner et al.
+2007, `10.1197/jamia.m2444`; Stubbs et al. 2015); Neamatullah et al. (BMC MIDM 2008,
+`10.1186/1472-6947-8-32`); Dalianis et al. (2019), where 91 % of pseudonymised records were judged
+real; Hatvani et al. (2023, `10.33039/ami.2023.08.009`) for a morphologically rich language.
 
-**Utility has two direct precedents.**
-- *Utility Preservation of Clinical Text After De-Identification*, BioNLP 2022
-  (`10.18653/v1/2022.bionlp-1.38`).
-- *The Impact of De-identification on Downstream Named Entity Recognition in Clinical Text*,
-  LOUHI 2020 (`10.18653/v1/2020.louhi-1.1`).
+**Attribute-matched surrogates exist. Frequency-matched surrogates do not.** Yermilov et al.
+(TrustNLP 2023, `10.18653/v1/2023.trustnlp-1.20`) match gender and language of origin via Wikidata;
+Kocaman et al. (arXiv 2312.08495) preserve gender in production. No work selects surrogates to match
+the **frequency** of the name replaced — which is the property a distributional attack consumes.
 
-**Leakage / risk.**
-- *DeIDClinic: A Risk-Aware Pseudonymization Framework*, arXiv 2410.01648 (2024).
-- **TAB** (Computational Linguistics 2022, `10.1162/coli_a_00458`) — 1,268 ECHR court cases, and the
-  only benchmark that marks which spans must be masked *to conceal identity* rather than to hit a
-  category. English, legal.
+**The pseudonymisation function has been varied before, and every study varies one thing about it in
+one domain.** Osborne et al. (BRATsynthetic, arXiv 2210.16125; Electronics 2025,
+`10.3390/electronics14193945`) compare consistent, random and Markov substitution for leakage and IE
+utility, decoupled from detection — clinical. Yermilov et al. compare five pseudonymisation systems
+on downstream tasks and residual-entity rate — news, and detector and replacement co-vary. Bao et al.
+(arXiv 2608.03172) show surrogate substitution is detection-neutral across 11 detectors, 7 benchmarks
+and 7 languages, by equivalence testing. Adelani et al. (arXiv 2008.03101) compare redaction against
+word-by-word replacement with differential-privacy guarantees — dialogue. Outside text, Cretu et al.
+(arXiv 2404.03948) make pseudonym-change frequency the independent variable and break it with a
+learned profiler at 73.4 % top-1 over 5,139 households, verified on a disjoint user set —
+smart-meter time series; and pseudonym-change strategy is a mature paradigm in vehicular networks
+(Boualouache et al., IEEE COMST 2017, `10.1109/comst.2017.2771522`).
+
+**Utility after de-identification** — *Utility Preservation of Clinical Text After De-Identification*
+(BioNLP 2022, `10.18653/v1/2022.bionlp-1.38`); *The Impact of De-identification on Downstream Named
+Entity Recognition in Clinical Text* (LOUHI 2020, `10.18653/v1/2020.louhi-1.1`); Manzanares-Salor et
+al. (Neural Networks 2026, `10.1016/j.neunet.2026.109079`) argue that treating precision as utility
+is a category error.
+
+**Leakage, risk and re-identification.** Scaiano et al. (JBI 2016, `10.1016/j.jbi.2016.07.015`) argue
+that recall is not a risk metric. Manzanares-Salor et al. (DMKD 2024,
+`10.1007/s10618-024-01066-3`) cast re-identification as classification with neural language models —
+the published analogue of A5. Oh et al. (SPIA, arXiv 2604.21211) move the unit of evaluation from
+spans to individuals and find subject-level protection at 33 % with over 90 % of spans masked, and
+that documents with several subjects leave the non-target ones far more exposed. Meystre et al.
+(2014, `10.3233/978-1-61499-432-9-778`) is the human-oracle counterweight: physicians thought they
+recognised 4.65 % of their own de-identified notes and were right about none. Base rates come from El
+Emam et al. (PLoS ONE 2011, `10.1371/journal.pone.0028071`) and Rocher et al. (Nat Commun 2019,
+`10.1038/s41467-019-10933-3`), which puts 99.98 % of Americans within reach of 15 demographic
+attributes. DeIDClinic (arXiv 2410.01648) is a risk-aware framework. TAB (Computational Linguistics
+2022, `10.1162/coli_a_00458`) remains the only benchmark marking which spans must be masked *to
+conceal identity* rather than to hit a category.
+
+**The LLM threat model the workshop cares about.** Staab et al. (arXiv 2310.07298) infer personal
+attributes from Reddit text at 85 % top-1 and report that anonymisation and alignment are currently
+ineffective against it. Lukas et al. (IEEE S&P 2023, `10.1109/sp46215.2023.10179300`) evaluate PII
+extraction, inference and reconstruction on case law, health care and e-mail — the same three domains
+as this study. Nyffenegger et al. (NAACL Findings 2024, `10.18653/v1/2024.findings-naacl.157`) find
+high re-identification on Wikipedia but that even the best LLMs struggled with court decisions.
+Huang et al. (EMNLP Findings 2022, `10.18653/v1/2022.findings-emnlp.148`) find models memorise but
+are weak at association, which is what the public-figure stratification tests.
 
 **The thesis has a precedent worth citing rather than hiding:** *Automatic end-to-end
-De-identification: Is high accuracy the only metric?* (arXiv 1901.10583, 2019).
+De-identification: Is high accuracy the only metric?* (arXiv 1901.10583, 2019). And an independent
+statement of the same gap: Volodina et al. (arXiv 2308.16109) call for studies into the *effects* of
+pseudonymisation on unstructured data.
 
-### 4.1 The gap, stated precisely
+### 4.1 The gap
 
-1. **Nobody treats the pseudonymisation function as the independent variable.** The field varies the
-   *detector* and holds replacement fixed. ENISA gives five techniques and a qualitative verdict on
-   each; no one has measured what each costs in utility and what each leaks, on real text.
-2. **Detection, utility and leakage have never been run end to end on the same corpora.** The three
-   literatures above use different languages, corpora and metrics, so the trade-off curve does not
-   exist.
-3. **Cross-document pseudonym stability is essentially unevaluated.** Benchmarks score span
-   detection, not mapping integrity — collisions, drift across documents, or the same person
-   receiving two pseudonyms. Note that searching for this is hard because "pseudonymity consistency"
-   on arXiv returns almost entirely **blockchain** work; the term is taken. That is part of why the
-   question is under-served.
+1. **No study crosses the policy with the technique.** The function has been varied, but always along
+   one dimension of it. No work operationalises ENISA's three policies by name, and no work compares
+   counter, RNG-table, hash, HMAC and symmetric encryption on text at all.
+2. **Every function study is one domain, usually one language.** BRATsynthetic clinical, Yermilov
+   news, Adelani dialogue, Cretu smart meters, the whole surrogate literature clinical. Nothing in it
+   can separate a property of the method from a property of the corpus. This study crosses legal,
+   e-mail, news and clinical text in four languages and two non-Latin scripts, which is what makes
+   that separation possible.
+3. **Detection, utility and leakage meet pairwise, never as a triple.** Utility × leakage has
+   dedicated frameworks (Tau-Eval, arXiv 2506.05979; RAT-Bench, arXiv 2602.12806); detection ×
+   leakage has the HIPS attack papers and the risk-metric line; detection × utility has the clinical
+   downstream studies. No study reports all three from the same runs on the same corpora with the
+   function as the manipulated variable.
+4. **Mapping integrity is never measured.** Cross-document consistency is implemented in production —
+   Kocaman et al. (Research Square 2025, `10.21203/rs.3.rs-6867162/v1`, *vendor preprint, not peer
+   reviewed*) link two billion patient notes into a longitudinal dataset by keeping names, dates and
+   identifiers consistent per patient — and within documents in research tools. No published work
+   reports a collision, fragmentation or drift rate, or what stability costs in leakage and buys in
+   utility. Searching for it is hard because the terminology is taken: "pseudonym consistency"
+   returns blockchain work, and a dozen targeted queries returned nothing.
 
 ### 4.2 E-mail as a domain — yes, there are corpora
 
