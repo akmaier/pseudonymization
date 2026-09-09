@@ -345,8 +345,27 @@ small interfaces, not forty-five pipelines.
 
 ### 8.1 Detection
 
-P/R/F1 per entity type, **PERSON and LOCATION reported separately** because those carry the stability
-requirement. Recall is the privacy metric, precision the utility metric.
+Scored with the Text Anonymization Benchmark's own scheme (Pilán et al., Computational Linguistics
+48(4) 2022, `10.1162/coli_a_00458`; reference implementation ships as `tab/evaluation.py`), because
+it is the only published scheme designed for **concealing an identity** rather than hitting a
+category:
+
+- **Entity-level recall** is the privacy metric. An entity counts as protected only if every one of
+  its mentions is masked; one unmasked mention leaks the person. This is the risk-weighted measure
+  Scaiano et al. (JBI 2016) argue plain recall is not.
+- **Token-level recall** is reported alongside it for comparability with the i2b2/n2c2 and MEDDOCAN
+  literature, which scores strict and merged spans.
+- **Information-weighted precision** is the utility metric: each masked token is weighted by how
+  predictable it is from the remaining context, so masking a token that carried no information is not
+  punished like masking one that did.
+- **DIRECT and QUASI identifiers are reported separately**, as TAB annotates them, and **PERSON and
+  LOCATION separately** because those carry the stability requirement.
+
+Applies to the corpora with span gold — TAB, OntoNotes and Enron. On CodEAlltag and CARDIO:DE
+detection is the pipeline's input, not a scored measurement (§11, §12). Enron has no LOC gold, so
+PERSON and LOCATION cannot be separated there. Entity-level recall needs co-reference, so it is
+computable on TAB, OntoNotes and — through mailbox identity — Enron; token-level recall works
+wherever there is gold.
 
 That asymmetry reappears in the combination rule (§7, axis D′) and must be reported there too.
 Union-of-spans maximises recall — the privacy-relevant direction — at the cost of precision and
