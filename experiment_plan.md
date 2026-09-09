@@ -248,28 +248,61 @@ The claim is made for the languages and domains the corpora support: legal (en),
 news (en, zh, ar), clinical (de) — with detection scorable on three of the five corpora and no
 scorable German detection cell at present (§12, §19).
 
-## 6. Hypotheses (falsifiable, and the paper is interesting either way)
+## 6. Hypotheses
 
-- **H1** Under a deterministic policy, A2 succeeds regardless of technique — hash and HMAC leak
-  comparably. *Consequence: the field optimises the wrong axis.*
-  **Measured 2026-09-07 and split in two** (`experiments/RESULTS_enron_vs_tab.md`):
-  **H1a** the frequency signal survives *completely and identically* across all five techniques —
-  Spearman ρ = 1.000 on both TAB and Enron, every technique the same. **H1b** whether that signal
-  *identifies* anyone is a property of the corpus's frequency skew, not of the function: A2 top-1 is
-  0.013 on TAB, whose entities are mentioned once or twice, and **0.201 on Enron**, whose people
-  recur across thousands of messages. The practitioner's question is not which hash was used but how
-  often the corpus's people recur.
-- **H2** Detector recall dominates total leakage: a missed name leaks fully whatever the function.
-  Measurable by comparing each detector — including the ensemble — against the gold-span oracle.
-  If the ensemble closes most of the gap to the oracle, detection ceases to be the bottleneck and
-  the policy axis becomes the whole story; if it does not, detection recall is the headline.
-- **H3** Document-randomised policy cuts A2/A3 sharply at modest utility cost for tasks that do not
-  need cross-document linkage, and catastrophic cost for those that do (patient timelines,
-  coreference).
-- **H4** Realistic and attribute-matched surrogates buy utility and cost privacy — they preserve
-  gender, locale and frequency, which is exactly what A2 and A4 consume. Tested with frozen models
-  throughout, so the surrogate form is compared at fixed model weights and no training confound
-  enters.
+Each is falsifiable, and the paper is informative either way.
+
+**H1 — the technique matters only against an enumerating attacker.** Under a deterministic policy the
+cryptographic technique determines whether an attacker who can enumerate candidate names succeeds,
+and nothing else. A1 inverts an unkeyed hash and fails against HMAC and AES-SIV; A2, which counts
+occurrences rather than inverting, is unaffected by the choice. Measured by A1 inversion rate banded
+by name frequency and length, and by A2 top-1 / top-5 across all five techniques (§8.4). *If A2
+varies by technique, the injectivity argument in §5 is wrong and the framing needs revisiting.*
+
+**H2 — detector recall dominates total leakage.** A missed name leaks in full, whatever the function
+does to the names that were found. Measured by comparing every detector and every combination rule
+against the gold-span oracle (§7, axes D and D′), with leakage recomputed at each recall level.
+**This hypothesis can undercut the thesis**: if the ensemble closes most of the gap to the oracle,
+detection stops being the bottleneck and the policy axis carries the paper; if it does not, detection
+recall is the headline and the policy axis is second-order. Both are worth reporting, and the paper
+should say which it found.
+
+**H3 — the policy trades cross-document utility against linkage, and the exchange rate depends on the
+scope the task needs.** Document-randomisation preserves within-document consistency and destroys
+cross-document identity; full randomisation destroys both. Co-reference — CoNLL F1 per document on
+TAB and OntoNotes (§8.3) — should therefore be near-unaffected by document-randomisation and collapse
+under full randomisation, while the Enron tasks that depend on the same person recurring across
+messages degrade under both. Leakage moves the opposite way, measured by A2, A3 and A5 across the
+three policies.
+
+**H4 — matching a surrogate to the attributes of the name it replaces buys utility and costs
+privacy.** Gender and locale matching keeps the text coherent for a downstream model; frequency
+matching additionally preserves the distribution a distributional attack consumes. No published
+surrogate generator matches frequency (§4), so that level is new and its cost is unmeasured. Measured
+by the task scores against the opaque-tag and realistic levels (§8.3) and by A2 and A4 (§8.4).
+*Prediction: attribute matching raises task scores and raises A2 top-1, with frequency matching
+raising it most.*
+
+**H5 — pseudonym stability is measurable, and its failures are systematic rather than random.**
+Collision, fragmentation and drift (§8.2) are functions of the mapping and the key normaliser, not of
+the cryptography. The prediction is that they are governed by the normaliser and by the entity type —
+person names fragment because one person appears in many surface forms, locations collide because
+many distinct places share a name. No published work reports any of the three (§4.1), so any value is
+new; the falsifiable part is that the failures are predictable from the normaliser and the type
+rather than spread evenly across both.
+
+**H6 — the policy effect is a property of the method; the detection effect is a property of the
+language.** The study spans legal, e-mail, news and clinical text in four languages and two non-Latin
+scripts, which is what allows the two to be told apart (§4.1). The prediction is that the **ordering**
+of the three policies on leakage and on utility is the same in every corpus, while the **magnitude**
+is governed by measurable corpus structure — how often an entity recurs, how many distinct people
+share a document, how skewed the name distribution is — rather than by domain or language as such.
+Detection runs the other way: PERSON recall is strongly script-dependent (§4), so the same policy
+applied after the same detector leaks differently in Arabic than in English, for reasons that have
+nothing to do with the policy. Measured by running identical cells on every corpus and relating the
+leakage and utility outcomes to those structural covariates. *If the policy ordering flips between
+corpora, the method is not corpus-independent and the paper's headline claim narrows to the corpora
+it was measured on.*
 
 ## 7. Factors
 
