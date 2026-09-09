@@ -56,9 +56,10 @@ invented axis and a five-level tier taxonomy came to sit in the design for three
 
 Publishing against a standard revised in **June 2026** is a good position for a workshop paper.
 
-## 3. ENISA's technique taxonomy — the source of axes A and B
+## 3. ENISA's technique taxonomy — the claim the paper tests
 
-Quoted/paraphrased from the 2021 report, §"pseudonymisation techniques":
+ENISA's 2021 report ranks the five techniques qualitatively, in §"pseudonymisation techniques". The
+study does not adopt that ranking. It tests it.
 
 | technique | ENISA's verdict | notes for us |
 |---|---|---|
@@ -68,13 +69,38 @@ Quoted/paraphrased from the 2021 report, §"pseudonymisation techniques":
 | **MAC / HMAC** | *"generally considered a **robust** pseudonymisation technique from a data protection point of view"* | keyed, so deterministic *and* attack-resistant → gives stability without storing a table. Recovery is a problem if originals are not kept |
 | **Symmetric encryption** | *"robust"* | block cipher under a secret key |
 
-**The key design tension for us.** Stability and resistance pull in different directions:
+### What the ranking does not distinguish
+
+**Every one of these is fully invertible by whoever holds the mapping.** That is not a weakness of
+any of them — it is the requirement. Pseudonymisation is reversible for the controller by definition
+(GDPR Art. 4(5)), and the "additional information kept separately" *is* the counter's table, the RNG
+table, or the HMAC/AES key. A leaked mapping is total, immediate and retroactive across the whole
+corpus, and it is equally total for a counter, a hash, an HMAC and a block cipher.
+
+So the taxonomy does not rank how much a technique leaks. It states where the residual risk sits
+**when the mapping has not leaked**:
+
+- **Counter and hash have no secret to lose.** No key management, and nothing between an attacker and
+  enumeration. ENISA's *weak* is about exactly this.
+- **Table, HMAC and symmetric encryption have a secret.** They resist enumeration, and in exchange
+  the entire risk moves into key management — an operational property that **no experiment in this
+  study measures**, and which the paper must say it does not measure.
+
+### The claim under test
+
+Stability and resistance pull in different directions:
 
 - A plain hash is stable and needs no table — and is broken by a dictionary of ~50k common surnames.
 - **HMAC is stable, needs no table, and resists the dictionary attack** — but the whole corpus inverts the moment the key leaks.
 - An **RNG mapping table** has no key to leak, but the table *is* the crown jewels, and ENISA flags collisions — a collision is precisely "person 1 confused with person 2".
 
-None of that trade-off has been measured empirically on real text. That is the opening.
+ENISA's verdict is about **inverting a pseudonym**. The study's question is whether an attacker needs
+to. Under a deterministic policy the pseudonym frequency distribution mirrors the real one under
+*any* injective mapping, so if that alone identifies people, *weak* and *robust* describe a defence
+the attacker walks around rather than through.
+
+The claim is therefore **not that ENISA is wrong about the cryptography, but that the cryptography is
+not where the risk is**. H1 (§6) states it falsifiably.
 
 ## 4. What already exists — the pieces, never assembled
 
