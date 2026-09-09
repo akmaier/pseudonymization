@@ -374,22 +374,42 @@ Majority vote trades the other way. **Report union and vote separately**: the pr
 trade-off the paper is about appears a second time at the detector level, and averaging the rules
 hides it.
 
-### 8.2 Stability — three numbers, never one
+### 8.2 Stability
 
-Functions of the mapping plus co-reference gold. **Each must be read against the policy in force**,
-because what is a defect under one policy is the definition of another:
+Three metrics, computed from the mapping and the co-reference gold.
 
-| metric | definition | deterministic | document-randomised | fully-randomised |
-|---|---|---|---|---|
-| **collision** | distinct gold entities sharing a pseudonym within a scope | defect | defect | meaningless |
-| **fragmentation** | one gold entity, several pseudonyms inside one scope | defect | defect | by design |
-| **drift** | one gold entity, different pseudonyms across scopes | defect | **by design** | by design |
+| metric | counted | denominator |
+|---|---|---|
+| collision | (document, pseudonym) pairs carrying more than one gold entity | distinct (document, pseudonym) pairs |
+| fragmentation | (document, gold entity) pairs carrying more than one pseudonym | distinct (document, gold entity) pairs |
+| drift | gold entities whose pseudonym differs between documents | distinct gold entities |
 
-Reporting a single "fragmentation rate" across policies is a category error. The policy is recorded
-alongside every number.
+The denominators differ, so the three rates are not comparable with each other. Each is reported with
+its policy, because a policy changes what the number means:
 
-Both collision and fragmentation need **co-reference-resolved gold**, which is why TAB matters: it
-annotates co-reference and confidential attributes, not just categories.
+| | deterministic | document-randomised | fully-randomised |
+|---|---|---|---|
+| collision | defect | defect | not meaningful |
+| fragmentation | defect | defect | intended |
+| drift | defect | intended | intended |
+
+Collision has two causes, and they need separate counts. The **technique** collides when two entity
+keys map to one integer — ENISA flags this for RNG mapping tables; HMAC and AES-SIV make it
+negligible. The **normaliser** collides when it maps two entities to one key before any cryptography
+runs, as *"J. Smith"* and *"Jane Smith"* do under N4. The normaliser frontier in §18 measures the
+second.
+
+Collision and fragmentation need co-reference within a document: TAB, OntoNotes and Enron. On TAB,
+6,579 of 8,701 PERSON chains hold one mention, so fragmentation is measured on 2,122 chains. On
+OntoNotes, 9,875 of 13,230 hold one mention, leaving 3,355; 21,703 of 47,713 PERSON mentions carry a
+chain at all, across the 4,264 documents holding both layers (§12).
+
+Drift needs identity across documents. Enron has it through mailbox identity; TAB's and OntoNotes'
+chains are document-scoped. CodEAlltag and CARDIO:DE carry no entity identity and enter no stability
+cell (§11).
+
+Cretu et al. (arXiv 2404.03948) measure what pseudonym-change frequency costs in linkability on
+smart-meter data, which is drift in another modality. No published work reports these on text (§4.1).
 
 ### 8.3 Utility — frozen models, task-based, no single scalar
 
