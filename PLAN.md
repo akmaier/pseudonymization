@@ -1,15 +1,4 @@
-# The argument — thesis, gap, hypotheses, related work
-
-**What is to be run lives in [`experiment_plan.md`](experiment_plan.md), and only there.** That file
-is the authority on factors, levels, metrics, statistics, corpora and compute. This one carries the
-*argument*: why the study exists, what the literature has and has not done, what we claim, and which
-hypotheses could falsify it.
-
-The two were previously duplicated, and the duplication is what let an "axis F / identifier
-provenance" factor and a T1–T5 tier taxonomy grow here on top of a remark that was a
-**corpus-selection criterion, not a factor** (AM, 2026-09-06: *"PHI inserted is not great. Same for
-synthetic. Pseudonymised is ok"*). Both were struck on 2026-09-08. The factor design has therefore
-been removed from this file rather than restated: **do not reintroduce it here.**
+# Experiment plan — end-to-end evaluation of text pseudonymisation
 
 **Scope set by AM, 2026-09-06:** multilingual, multi-domain, multi-method; evaluate **detection,
 utility and leakage** end to end. Compute is not a constraint. The distinctive requirement is
@@ -156,23 +145,155 @@ fully-randomised) dominates both residual risk and utility loss, while the *cryp
 — the axis practitioners actually agonise over — is close to irrelevant under a deterministic policy,
 because the effective attack is distributional, not cryptanalytic.
 
-## What is run, and where it is specified
+## Experiment plan
 
-The factor design (policy × technique × surrogate form, the key normaliser, the detector pool and its
-combination rules), the corpora and their roles, the three stability metrics, the task-based utility
-protocol, the five attacks, the statistical protocol and the sampling schemes are **all specified in
-[`experiment_plan.md`](experiment_plan.md)**. They are deliberately not repeated here.
+### Factors
 
-One design commitment belongs to the argument rather than to the specification, and so is stated
-here:
+| axis | levels |
+|---|---|
+| **A. Policy** (ENISA) | deterministic · document-randomised · fully-randomised |
+| **B. Technique** (ENISA) | counter · RNG + mapping table · cryptographic hash · HMAC · symmetric encryption |
+| **C. Surrogate form** | opaque tag (`[PERSON_1]`) · realistic surrogate (*John Doe → Bill Powers*) · attribute-matched surrogate (gender/locale preserved) |
+| **D. Detector pool** | rule-based (Presidio) · **publicly released** fine-tuned de-ID NER (`obi/deid_roberta_i2b2`, `StanfordAIMI/stanford-deidentifier-base`) · zero-shot NER (GLiNER) · domain-specific (CodEAlltag `privacy_tagger`) · ≥2 individual LLMs · **gold spans** (oracle). **No detector is trained by us** — a detector fine-tuned on a corpus's own split has seen the entities we then protect, which inflates its recall and confounds everything downstream |
+| **D′. Combination rule** | *span-level:* union · majority vote (k) · intersection · weighted vote · cascade · *token-level (ROVER-style):* per-token BIO voting — all swept over **subsets** of the pool |
+| **E. Corpus** | the **meta corpus** — one balanced assembly across language, domain, task and provenance, in a single schema. Members: legal TAB/ECHR (en) · e-mail Enron (en), CodEAlltag (de) · multi-genre OntoNotes (en, **zh**, **ar**) · clinical i2b2/n2c2 2014 (en, longitudinal), CARDIO:DE (de), BRONCO150 (de), MEDDOCAN (es), MedDeID (nl), E3C (multi) · general/financial AI4Privacy, PIIBench slice, REDACT. See [`data/metacorpus.md`](data/metacorpus.md) |
+| **F. Identifier provenance** | real · realistic-surrogate · placeholder-masked · PHI-inserted · fully synthetic |
 
-**Frozen defenders, trained attackers.** The defence is measured as it is deployed — no model is
-fine-tuned by us, because a detector trained on a corpus's own split has already seen the entities we
-then protect. The attacker, by contrast, is made as strong as we can make it: A5 is the study's only
-trained model. A leakage number is only meaningful against the best adversary available, and the
-A5 − A3 gap is what learning buys that adversary.
+**On the meta corpus (axis E) and provenance (axis F).** AM, 2026-09-06: rather than pick corpora
+one at a time, assemble a **single balanced meta corpus** spanning tasks and languages in one unified
+schema, so the study's questions are answered in one pass and the cells become comparable across
+languages for the first time. Two criteria came with the decision — *"PHI-inserted is not great. Same
+for synthetic. Pseudonymised is ok, we can revert with rule-based approaches"*, and **task coverage
+beyond medical, e-mail included**.
 
-## Enron is in — decided, with safeguards
+That makes **identifier provenance an axis in its own right (F)**, not a filter. A1 and A2 consume
+the *name-frequency distribution*, so a corpus whose identifiers were generated or inserted cannot
+support a claim about them. Real and realistic-surrogate corpora carry the primary result;
+PHI-inserted and fully synthetic ones become the **control** that measures how much a benchmark's own
+construction distorts apparent privacy — which every 2026 detection benchmark needs, since all of
+them are fully synthetic.
+
+Three consequences already fixed by the data (see `data/candidates.md`): only **TAB** and
+**OntoNotes** annotate co-reference; only **i2b2 2014** (longitudinal, 296 patients) and **Enron**
+(mailbox identity) support *cross-document* stability; **E3C** has no PII layer at all and so cannot
+supply the gold-span oracle. **BRONCO150 is sentence-scrambled**, so the document-randomised policy
+level is undefined on it.
+
+The **gold-spans** level of D is essential: it separates *detector* error from *pseudonymisation*
+error, which no prior work does. Everything downstream is otherwise confounded by a 0.40-F1 name
+detector.
+
+**On the ensemble (axes D and D′).** In the group's own testing an ensemble outperformed every
+single detector — but **that ensemble combined large language models only** (AM, 2026-09-07). Whether
+classical detectors still add anything once several LLMs are in the ensemble is an open question, and
+AM has asked for it to be answered rather than assumed. It is a large number of runs and it is the
+way to find the best combination.
+
+So the detector axis splits in two: a **pool** of detectors, and a **combination rule**, swept over
+**subsets** of the pool. Three contrasts are compared on equal footing, by pinning the required
+members of each subset:
+
+| contrast | subsets |
+|---|---|
+| single detectors | every pool member alone |
+| **LLMs only** | subsets drawn from the LLM members only — the in-house baseline |
+| **hybrid** | every LLM-only subset plus at least one classical detector |
+
+The hypothesis worth stating: a **high-precision rule-based recogniser for structured identifiers**
+(IBAN, phone, e-mail, record numbers) should add most where LLMs are weakest, and a fine-tuned NER
+should add least where the LLMs already agree. If the hybrid never beats LLMs-only, that is a clean
+negative result about where the field should spend its effort.
+
+Two further design points matter and should themselves be reported:
+
+- **Combination rule.** Union-of-spans maximises recall — the privacy-relevant direction — at the
+  cost of precision, and therefore of utility, because every false positive pseudonymises a token
+  that carried meaning. Majority vote trades the other way. Report **union and vote separately**;
+  the recall/precision asymmetry between them is exactly the privacy/utility trade-off the paper is
+  about, appearing a second time at the detector level.
+- **The ensemble is the practical recall ceiling**, and the **gold-span oracle** is the true ceiling.
+  The gap between them measures what better detection could still buy; the gap between single
+  detectors and the ensemble measures what ensembling already buys. Both belong in the results.
+
+Concretely, the pool carries at least: Presidio (rule-based), one fine-tuned multilingual NER,
+GLiNER (zero-shot), the CodEAlltag `privacy_tagger` on the German e-mail arm, two or more distinct
+LLMs individually, and gold spans; the rules carry at least union, majority vote and weighted vote.
+
+### Measurements
+
+**1. Detection** — P/R/F1 per entity type, reported separately for PERSON and LOCATION since those
+carry the stability requirement. Recall is the privacy metric, precision the utility metric.
+
+**2. Stability** — the axis nobody reports:
+- **collision rate** — distinct real entities sharing a pseudonym ("person 1 confused with person 2")
+- **fragmentation rate** — one real entity receiving several pseudonyms (*Dr. Weber*, *Weber*,
+  *F. Weber* → three), which is the more common failure and hurts utility more
+- both require coreference-resolved gold, which is why **TAB matters** — it annotates co-reference
+  and confidential attributes, not just categories
+
+**3. Utility — measured with frozen models, no training** (AM, 2026-09-08).
+
+The instrument is inference, not fine-tuning. The reason is not cost: **a TrustFMI audience does not
+fine-tune an encoder on a de-identified corpus, it prompts a foundation model over one**, so the
+question that matters is how much pseudonymisation degrades a *frozen* model. Every signal below is
+obtained by running an existing model over the original and the pseudonymised text and comparing.
+
+| signal | method | cost |
+|---|---|---|
+| legal task | ECHR **article classification**, zero-shot, gold labels ship in TAB `meta.articles` | free gateway |
+| e-mail task | Enron **folder classification** (Klimt & Yang 2004), zero-shot | free gateway |
+| clinical task *(if the DUA corpora arrive)* | ICD-10/OPS/ATC coding, medication IE, zero-shot | free gateway |
+| **co-reference** | frozen resolver over original vs pseudonymised, scored against gold chains | CPU/small GPU |
+| NER | frozen multilingual NER, agreement between the two versions | CPU/small GPU |
+| semantic drift | embedding displacement, `multilingual-e5-large` — one model across all six languages | free gateway |
+| fluency | LM perplexity shift, one frozen LM across all cells | small GPU |
+
+**Co-reference is the sharpest of these** and was previously buried as a proxy. Fragmentation *is*
+chain breakage: a resolver's CoNLL F1 on pseudonymised text measures the utility cost of exactly the
+failure the stability metrics count, on the same documents. It ties measurement 2 to measurement 3
+directly, which no prior work does.
+
+**What this gives up, stated plainly:** whether a model *retrained* on pseudonymised text recovers
+its performance. If it does, the field's assumption that de-identification costs utility is a
+domain-shift artefact rather than information loss. That is a real question and it is the one thing
+here that requires training by definition; it is out of scope for this paper and belongs in the
+future-work section rather than being quietly dropped.
+
+**One confound to control.** A frozen LLM may recognise an ECHR case or an Enron thread from its
+training data and answer from memory rather than from the text in front of it. Task scores would then
+measure memorisation, not utility. Mitigation: **stratify by memorisation**, reusing A4's
+public-figure split, and report a no-context control. The same confound is a *result* for A4 and a
+*bias* for utility, and it must not be handled in only one of the two places.
+
+**4. Leakage** — four attacks of increasing knowledge:
+- **A1 dictionary / brute force.** Enumerate a candidate name list (census surnames, gazetteers),
+  apply the pseudonymisation function, match. Directly tests the hash-vs-HMAC question, reported as
+  inversion rate against name frequency and name length. *Prediction: hash inverts almost completely
+  for short frequent names; HMAC resists.*
+- **A2 frequency analysis.** No inversion needed — under a deterministic policy the pseudonym
+  frequency distribution mirrors the real one, so the most frequent pseudonym is the most frequent
+  name. **This attack is indifferent to the cryptographic technique.** If it succeeds, it shows the
+  crypto axis is the wrong thing to optimise.
+- **A3 linkage.** Link pseudonymised documents to each other, and to an auxiliary public record, via
+  co-occurrence structure.
+- **A5 relational re-identification** (AM, 2026-09-08) — the one place a *trained* model is worth
+  building. A learned embedding of the facts and relations around an entity, linking a pseudonymised
+  entity to a known one; the text analogue of Packhäuser et al., *Deep learning-based patient
+  re-identification …* (Sci Rep 2022, `10.1038/s41598-022-19045-3`), which showed that images
+  believed de-identified are not. Attacks what pseudonymisation cannot remove: the name is replaced,
+  the profile is not. Paired with A3 so the **A5 − A3 gap measures what learning buys the adversary**.
+  Rank-1 / Rank-5 / mAP on entity-disjoint splits, on Enron. *Prediction: strong under deterministic,
+  weaker under document-randomised, fails under fully-randomised, and flat across all five
+  techniques.* Corollary if it holds: **the stability requirement is itself the vulnerability**.
+- **A4 LLM re-identification.** Give a modern LLM the pseudonymised document and ask who it is,
+  with and without auxiliary context. This is the threat model of 2026 and the one the workshop cares
+  about. **Scored as recovery of the surface form already present in the corpus**, never as inference
+  of new facts about an individual — see the Enron safeguards below. **Stratified by public-figure
+  status**, because a corpus subject the model has memorised and one it has not are different
+  experiments; that split also tests *Personal Information Parroting in Language Models*
+  (arXiv 2602.20580) directly.
+
+### Enron is in — decided, with safeguards
 
 **AM, 2026-09-07: Enron is included, and the ethics point is made explicitly in the paper.**
 
@@ -200,19 +321,17 @@ following hold, which cost the study nothing:
    under GDPR Art. 89, but "it is public" is not itself a lawful basis. Ask once, in writing, cite
    the answer.
 
-## Hypotheses (falsifiable, and the paper is interesting either way)
+### Hypotheses (falsifiable, and the paper is interesting either way)
 
 - **H1** Under a deterministic policy, A2 succeeds regardless of technique — hash and HMAC leak
-  comparably. *Consequence: the field optimises the wrong axis.* Split in two once measured:
-  - **H1a — the frequency signal is technique-independent.** *Supported.* It survives completely and
-    identically across all five techniques, on both corpora tested. This is a property of the mapping
-    read against co-reference gold, so no corpus-provenance finding touches it.
-  - **H1b — whether that signal *identifies* anyone is a property of the corpus, not the function.**
-    *Needs re-derivation before it goes in the paper.* The direction held on the first measurement,
-    but the provenance audit showed the mechanism was not the one claimed: what looked like two
-    natural frequency skews is document genre on one side and an artefact of our own header-derived
-    annotation on the other. The claim may well survive restatement on repaired gold; it may not.
-
+  comparably. *Consequence: the field optimises the wrong axis.*
+  **Measured 2026-09-07 and split in two** (`experiments/RESULTS_enron_vs_tab.md`):
+  **H1a** the frequency signal survives *completely and identically* across all five techniques —
+  Spearman ρ = 1.000 on both TAB and Enron, every technique the same. **H1b** whether that signal
+  *identifies* anyone is a property of the corpus's frequency skew, not of the function: A2 top-1 is
+  0.013 on TAB, whose entities are mentioned once or twice, and **0.201 on Enron**, whose people
+  recur across thousands of messages. The practitioner's question is not which hash was used but how
+  often the corpus's people recur.
 - **H2** Detector recall dominates total leakage: a missed name leaks fully whatever the function.
   Measurable by comparing each detector — including the ensemble — against the gold-span oracle.
   If the ensemble closes most of the gap to the oracle, detection ceases to be the bottleneck and
@@ -225,29 +344,7 @@ following hold, which cost the study nothing:
   throughout, so the surrogate form is compared at fixed model weights and no training confound
   enters.
 
-## What the corpora can and cannot carry
-
-A provenance audit read each release's own de-identification specification and checked it against the
-data. Three consequences are arguments the paper has to make; the measurements behind them are in
-[`experiment_plan.md`](experiment_plan.md) §9 and are not restated here.
-
-**No corpus is simultaneously identifier-real and surface-real.** The corpora with the most untouched
-identifiers have the most processed text, and the one with the most natural text has the most
-processed identifiers. Every result in this study is therefore measured at some remove from
-deployment, and the paper should say which remove rather than imply none.
-
-**Two corpora were already pseudonymised, to a degree that voids their leakage cells.** Where the
-prior de-identification collapsed an identifier class onto a handful of constants, there is nothing
-for a dictionary or a frequency attack to consume, and a linkage attack inverts rather than fails —
-it links everything to everything. Per `experiment_plan.md` §0 those cells are reported as
-impossible, named with their obstacle, and never substituted by a proxy.
-
-**"Real names in a natural frequency distribution" is one sentence doing two jobs.** All three
-tier-one corpora carry real names; none carries an unqualified natural frequency distribution. The
-*shape* of the distribution survives in all three; the *head* survives in none, for a different
-reason in each. Results that depend on the head — A1's frequency banding above all — must say so.
-
-## Deliverables
+### Deliverables
 
 Released code, the full factorial results, and the **stability–leakage frontier** per language and
 domain — the curve a practitioner actually needs and which currently does not exist. No new corpus,
@@ -255,13 +352,15 @@ no new detector: the contribution is the axis nobody varied.
 
 ## Open questions
 
-- Is the full A×B×C×D×D′×E factorial affordable, or do we fix a sensible default per axis and vary one
+- ~~Balance implies capping~~ — **settled (AM, 2026-09-08).** Size is a *reported parameter*, not
+  something to balance away. Corpora that support all three measurements (TAB, OntoNotes, Enron)
+  carry the full design, with Enron triaged to **10 %**; corpora that support only utility
+  (CodEAlltag, CARDIO:DE, BRONCO150) carry **utility alone**, triaged to a comparable size, and are
+  framed as a task-domain investigation rather than a full screen. Sampling scheme is chosen per
+  measurement and recorded with every result — see `data/metacorpus.md` §14.
+- Is the full A×B×C×D×D′×E×F factorial affordable, or do we fix a sensible default per axis and vary one
   at a time around it? Compute is available; annotation-limited corpora may not support every cell.
-  **This remains AM's to decide and no agent may settle it** by default, by omission, or by starting
-  small. (Axis F was struck on 2026-09-08 and is not part of the design.)
-- **The study has no scorable German detection cell**, so it cannot presently make a German detection
-  claim at all. That is an acquisition problem, not a reason to drop the language — what exists and
-  what would fill it is in `experiment_plan.md` §10.
+- Which E3C languages carry enough PII density to be worth including?
 - Does the **2026 revision of ISO 25237** change any recommendation we would make? Somebody needs a
   copy — it is not open access.
 - Ensemble composition: which LLMs, and is the combination rule fixed across languages or tuned per
