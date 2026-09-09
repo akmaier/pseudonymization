@@ -2,7 +2,7 @@
 
 The independent variable of this study is the pseudonymisation function and policy. This file
 specifies what that means concretely, what has to be built, and what has to be decided first.
-`PLAN.md` §Factors is the specification; nothing here changes it.
+`experiment_plan.md` §1 is the specification; nothing here changes it.
 
 ---
 
@@ -42,7 +42,7 @@ metrics measure anything:
 | option | effect |
 |---|---|
 | **gold co-reference id** | fragmentation is **zero by construction** under a deterministic policy. Measures nothing; useful only as an upper bound |
-| **raw surface form** | *Dr. Weber*, *Weber*, *F. Weber* are three keys → three pseudonyms. This is what a real deployed system does, and it is exactly the failure `PLAN.md` §Measurements/2 wants to quantify |
+| **raw surface form** | *Dr. Weber*, *Weber*, *F. Weber* are three keys → three pseudonyms. This is what a real deployed system does, and it is exactly the failure `experiment_plan.md` §2/2 wants to quantify |
 | **normalised surface form** | a middle position: casefolding, title stripping, initial expansion. Realistic for a good implementation |
 
 **Decided (AM, 2026-09-07): choose from the data.** Measured on TAB's gold co-reference chains —
@@ -68,7 +68,7 @@ Two further observations from the same measurement:
   so fragmentation is a real phenomenon on real text, not a hypothetical.
 - **LOC barely varies — 0.7 %.** Place names are written the same way each time, so the LOC arm is
   dominated by *collisions* and the PERSON arm by *fragmentation*. The two entity types that
-  `PLAN.md` singles out for stability fail in opposite directions, which no prior work reports.
+  `experiment_plan.md` singles out for stability fail in opposite directions, which no prior work reports.
 
 **Default: N2** — casefold, strip punctuation and honorifics — which halves nothing but removes the
 free 2 % of fragmentation that pure casefolding leaves on the table, at 2.3 % collisions. **The
@@ -167,7 +167,7 @@ decided the meta corpus.
 | **A1 dictionary** | the §4 inventory; the *function*, applied by the attacker | **unkeyed** techniques only — hash, and counter trivially. HMAC and AES require the key, so A1 not succeeding there is a fact about the threat model, not a result. State that explicitly |
 | **A2 frequency** | pseudonym frequency distribution + a reference name-frequency distribution | **every** technique, including keyed ones. This is H1 |
 | **A3 linkage** | co-occurrence graph + an auxiliary record | Enron's ~184-employee org chart is the only real auxiliary we have |
-| **A4 LLM re-identification** | the NHR@FAU gateway (verified, 10 chat models, free) | scored as recovery of the corpus surface form, stratified by public-figure status — see the Enron safeguards in `PLAN.md` |
+| **A4 LLM re-identification** | the NHR@FAU gateway (verified, 10 chat models, free) | scored as recovery of the corpus surface form, stratified by public-figure status — see the Enron safeguards in `experiment_plan.md` |
 
 A1 and A2 report **inversion rate against name frequency and name length**, which is the curve the
 hash-vs-HMAC question actually turns on.
@@ -233,7 +233,7 @@ field uses, not to be exhaustive.
 | fine-tuned NER | **XLM-RoBERTa-large** token classifier, fine-tuned per language on the corpus's own train split | the standard multilingual baseline; one model per language arm |
 | zero-shot NER | **GLiNER** (and GLiNER2-PII, arXiv 2605.09973) | covers entity types with no training data, which matters for the long tail of 48 types |
 | domain-specific | **CodEAlltag `privacy_tagger`** (flair, German e-mail) | the authors' own tagger, already on disk — a strong in-domain baseline for the German e-mail arm and an honest comparator |
-| LLM, single | via the **NHR@FAU gateway**, free: `gpt-oss-120b`, `Qwen3.6-35B-A3B`, `RedHatAI/gemma-4-31B`, `Mistral-Small-3.2-24B`, `DeepSeek-V4-Flash-0731` | JSON span extraction with offset validation and retry; at least two distinct models run individually, per `PLAN.md` axis D |
+| LLM, single | via the **NHR@FAU gateway**, free: `gpt-oss-120b`, `Qwen3.6-35B-A3B`, `RedHatAI/gemma-4-31B`, `Mistral-Small-3.2-24B`, `DeepSeek-V4-Flash-0731` | JSON span extraction with offset validation and retry; at least two distinct models run individually, per `experiment_plan.md` axis D |
 | **ensemble** | union **and** majority vote over {Presidio, XLM-R, GLiNER, ≥2 LLMs} | reported separately — union maximises recall, vote maximises precision, and the gap between them is the privacy/utility trade-off appearing at the detector level |
 | **gold spans** | oracle | separates detector error from pseudonymisation error; without it everything downstream is confounded by a 0.40-F1 name detector |
 
@@ -399,7 +399,7 @@ protect*, so its recall on that corpus is inflated in a way that does not transf
 would flatter the detector and, through it, the whole downstream pipeline. Off-the-shelf checkpoints
 remove that confound, and they are also what a practitioner actually downloads.
 
-`PLAN.md` axis D should therefore read "a publicly released fine-tuned NER" rather than "fine-tuned
+`experiment_plan.md` axis D should therefore read "a publicly released fine-tuned NER" rather than "fine-tuned
 XLM-R", which is a change of meaning worth being explicit about.
 
 ## 11. The exception: the attacker (AM, 2026-09-08 — proposed)
@@ -449,7 +449,7 @@ is not. That is the hidden information the attack recovers.
 | trained? | no | **yes — the one trained model in the study** |
 | role | classical baseline | the strongest adversary we can build |
 
-A3 already exists in `PLAN.md`; A5 is its learned counterpart. Reporting both makes "frozen
+A3 already exists in `experiment_plan.md`; A5 is its learned counterpart. Reporting both makes "frozen
 defenders, trained attackers" measurable rather than merely asserted: **the A5 − A3 gap is what
 learning buys the adversary.**
 

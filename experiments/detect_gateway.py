@@ -43,15 +43,19 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable, Iterable
 
+from dataclasses import replace as _replace
+
 from pseudonymkit.adapters import cardiode, codealltag, ontonotes, tab
 from pseudonymkit.detectors.cache import DetectorCache
 from pseudonymkit.detectors.llm import LlmDetector
 from pseudonymkit.detectors.prompting import PROMPT_VERSION
 from pseudonymkit.domain import Corpus
+from pseudonymkit.serialisation import iter_documents
 
 SHARED = Path("/cluster/shared_dataset/pseudonymization-corpora")
 ONTONOTES = Path("data/ontonotes")
 CARDIODE = Path("/cluster/maier/dua-restricted/cardiode/corpus")
+ENRON = Path("data/enron_subject010.jsonl.gz")
 
 DEFAULT_MODELS = (
     "gpt-oss-120b",
@@ -75,7 +79,21 @@ CORPORA: tuple[tuple[str, int, Callable[[], Corpus]], ...] = (
     ("codealltag", 800, lambda: codealltag.load(SHARED / "codealltag")),
     ("tab", 1268, lambda: tab.load(SHARED / "tab")),
     ("ontonotes", 5994, lambda: ontonotes.load(ONTONOTES)),
+    ("enron", 66432, lambda: _load_enron(ENRON)),
 )
+
+def _load_enron(path: Path) -> Corpus:
+    """Read the shipped ``subject`` @ 0.10 sample, **without** its gold mentions.
+
+    Detection needs a document's id and its text and nothing else, while the gold layer is 1.5
+    million ``Mention`` objects — several hundred megabytes that would sit untouched for the whole
+    run, on a head node whose per-user memory limit has already killed one Enron load. The gold
+    stays in the file, where the stability metrics and the attacks read it later.
+    """
+    name = "enron[subject@0.1#0]"
+    documents = [_replace(d, mentions=()) for d in iter_documents(path)]
+    return Corpus(name, tuple(documents))
+
 
 _stop = threading.Event()
 

@@ -8,7 +8,7 @@ verified* were not opened directly and must be checked before being relied on.
 | **DIN EN ISO 25237:2026-06** — *Medizinische Informatik — Pseudonymisierung* (ISO/DIS 25237), `10.31030/3696721` | the health-informatics pseudonymisation standard, **revised June 2026** | metadata verified via Crossref; **text not obtained — not open access** |
 | DIN EN ISO 25237:2017-05, `10.31030/2555889` | superseded edition | metadata verified |
 | BSI *Health informatics. Pseudonymization*, `10.3403/30285709` | BSI equivalent | metadata verified |
-| **ENISA (2021), *Data Pseudonymisation: Advanced Techniques and Use Cases*** | the practical European reference; source of the technique and policy taxonomies used in `PLAN.md` | **downloaded and read** |
+| **ENISA (2021), *Data Pseudonymisation: Advanced Techniques and Use Cases*** | the practical European reference; source of the technique and policy taxonomies used in `experiment_plan.md` | **downloaded and read** |
 | ENISA (2019), *Pseudonymisation techniques and best practices* | the earlier report ENISA 2021 builds on | page verified, PDF not read |
 | ISO/IEC 20889 | privacy-enhancing de-identification terminology and technique classification | *not verified* |
 | GDPR Art. 4(5) | legal definition of pseudonymisation | — |

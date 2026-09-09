@@ -11,7 +11,7 @@
 
 **Decision by AM, 2026-09-06.** Rather than pick corpora one at a time, assemble a **single balanced
 meta corpus** spanning tasks and languages, in one unified format. It answers the study's questions
-in one pass instead of corpus by corpus, and it makes the cells of `PLAN.md` §Factors comparable
+in one pass instead of corpus by corpus, and it makes the cells of `experiment_plan.md` §1 comparable
 across languages and domains for the first time.
 
 Two criteria set by AM in the same decision:
@@ -74,7 +74,7 @@ Balanced on four things at once: **language · domain · downstream task · prov
 - **Tasks:** legal outcome prediction · e-mail folder and topic classification · clinical
   risk-factor extraction · clinical coding · co-reference + NER · financial PII. Six task families,
   four domains, so utility is no longer a clinical-only claim.
-- **Stability:** the metric `PLAN.md` calls essentially unevaluated needs entity identity across
+- **Stability:** the metric `experiment_plan.md` calls essentially unevaluated needs entity identity across
   mentions or documents. Only four corpora supply it — **TAB** and **OntoNotes** (co-reference within
   document), **i2b2 2014** (the same patient across a longitudinal record) and **Enron** (the same
   person across a mailbox). Two of the four are e-mail and clinical, i.e. exactly the domains where
@@ -159,7 +159,7 @@ semantics (allegedly violated), not ECtHR_B (actually violated). For an outcome-
 rather than an issue-classification task, join on `doc_id` to the Chalkidis set. Either way the legal
 task exists.
 
-PERSON (24,322) and LOC (9,982) are exactly the two classes `PLAN.md` singles out as carrying the
+PERSON (24,322) and LOC (9,982) are exactly the two classes `experiment_plan.md` singles out as carrying the
 stability requirement, and they are co-reference-chained. This is the strongest single member.
 
 ### ✅ i2b2 / n2c2 2014 — Track 1 and Track 2 are the same records
@@ -275,7 +275,7 @@ slices in AI4Privacy, PIIBench and REDACT are synthetic (T5). So the requirement
 and the option *"exclude Enron"* cannot both hold unless we license **Avocado (LDC2015T03,
 ~900 k messages)** as the substitute — which is a purchase decision with its own lead time.
 
-**Resolved, AM 2026-09-07: Enron is in**, with the safeguards in `PLAN.md`. English e-mail is
+**Resolved, AM 2026-09-07: Enron is in**, with the safeguards in `experiment_plan.md`. English e-mail is
 therefore covered and Avocado is not needed.
 
 ---
@@ -303,7 +303,7 @@ is not possible. So the deliverable is:
   their own agreement;
 - **derived artefacts only** where the licence permits — statistics, span offsets, mappings, results.
 
-This is the same pattern PIIBench and BigBIO use, and it should be stated in `PLAN.md` §Deliverables
+This is the same pattern PIIBench and BigBIO use, and it should be stated in `experiment_plan.md` §Deliverables
 so the release plan is not built on an assumption that turns out to be illegal.
 
 ---
@@ -412,7 +412,7 @@ What that removes, until it reopens:
 
 | what is lost | why it matters |
 |---|---|
-| **Cross-document stability in the clinical domain** | i2b2 2014 is longitudinal — 1,304 records over 296 patients — and was one of only two members where the same person recurs across documents. The other is **Enron**. So cross-document stability, the metric `PLAN.md` calls essentially unevaluated, now rests on **e-mail alone**, with no clinical evidence at all |
+| **Cross-document stability in the clinical domain** | i2b2 2014 is longitudinal — 1,304 records over 296 patients — and was one of only two members where the same person recurs across documents. The other is **Enron**. So cross-document stability, the metric `experiment_plan.md` calls essentially unevaluated, now rests on **e-mail alone**, with no clinical evidence at all |
 | **The one cell where detection and utility share documents** | Track 1 and Track 2 annotate the *same* records, so utility could be measured without confounding by corpus. Nothing else in the meta corpus has that property |
 | **The only T2 clinical corpus** | with n2c2 gone the clinical arm is CARDIO:DE and BRONCO150 (T3, placeholder-masked), MEDDOCAN (T4, PHI-inserted) and MedDeID (T5, synthetic). **No clinical corpus with real or realistically substituted names remains** — which is precisely the tier the A1/A2 attacks need |
 | **English clinical** | disappears entirely |
@@ -448,7 +448,7 @@ meanwhile. See `applications/n2c2_request.md`. Everything else here is AM's call
 
 The rationale points at something stronger than "has a downstream task". Attributing an effect to a
 method requires **detection, stability and utility measured on the same documents** — which is
-exactly the gap `PLAN.md` §2 claims nobody has closed. Applying that test:
+exactly the gap `experiment_plan.md` §C.1 claims nobody has closed. Applying that test:
 
 | corpus | detection (gold spans) | stability (co-ref or cross-doc id) | utility (task) | verdict |
 |---|---|---|---|---|

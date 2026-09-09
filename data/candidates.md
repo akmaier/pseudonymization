@@ -20,14 +20,14 @@ repository or record page on that date. Everything else remains title-level.
 
 ## What the corpora do and do not support
 
-Three facts emerged from the verification pass that constrain `PLAN.md` and should be settled before
+Three facts emerged from the verification pass that constrain `experiment_plan.md` and should be settled before
 any download.
 
 **1. Only TAB and OntoNotes annotate co-reference.** The stability metrics — collision rate and fragmentation
 rate — are functions of the *mapping*, and scoring them needs co-reference-resolved gold: you must
 know that *Dr. Weber*, *Weber* and *F. Weber* are one person. TAB annotates `entity_id` co-reference
 explicitly. MEDDOCAN, CARDIO:DE, BRONCO150, E3C and MedDeID annotate spans and types only. So
-`PLAN.md` §Measurements/2 is measurable on **TAB alone**, unless we resolve co-reference ourselves on
+`experiment_plan.md` §2/2 is measurable on **TAB alone**, unless we resolve co-reference ourselves on
 the others — which would be a new annotation effort, not a run.
 
 **2. BRONCO150 is sentence-scrambled.** *"The original documents were scrambled at the sentence level
@@ -154,7 +154,7 @@ clinical *text*, but it cannot supply the gold-span oracle level of axis D.
 ## Decided — Enron is in (AM, 2026-09-07)
 
 **Enron is included, and the ethics point is made explicitly in the paper.** This closes the repo's
-oldest open question. The full reasoning and the five binding safeguards are in `PLAN.md`
+oldest open question. The full reasoning and the five binding safeguards are in `experiment_plan.md`
 §"Enron is in — decided, with safeguards"; the short form:
 
 - Excluding it protects nobody — the corpus stays public and the field keeps using it silently.

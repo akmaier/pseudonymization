@@ -30,7 +30,7 @@ Both numbers are right, and the gap is the interesting part. TAB's entity-freque
 almost flat: most people are named once or twice inside a single judgment. Rank alignment inside a
 tie block that large is arbitrary, so a perfectly preserved signal fails to *identify* anyone.
 
-So H1 needs stating more precisely than `PLAN.md` currently does:
+So H1 needs stating more precisely than `experiment_plan.md` currently does:
 
 > Under a deterministic policy the frequency signal is preserved **completely and identically across
 > techniques**. Whether that signal converts into identification depends on the **corpus's frequency

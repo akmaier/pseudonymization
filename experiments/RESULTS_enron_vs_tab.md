@@ -57,7 +57,7 @@ became unavailable. Under a deterministic policy with N2:
 **Drift is eight times fragmentation.** The same person is written differently in different
 messages, so a scheme that looks stable inside a document is markedly less stable across a corpus.
 That gap is invisible to every benchmark that scores spans within documents, and it is the concrete
-form of the gap `PLAN.md` §3 identifies. Under a document-randomised policy drift is 1.000 by
+form of the gap `experiment_plan.md` §3 identifies. Under a document-randomised policy drift is 1.000 by
 construction, as specified.
 
 ## Caveats
