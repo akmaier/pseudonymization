@@ -1,558 +1,88 @@
-# The meta corpus
+# Corpus list
 
-> **⚠ SUPERSEDED — historical record only.**
-> **[`experiment_plan.md`](../experiment_plan.md) is the sole authority** (AM, 2026-09-08). Where this file disagrees
-> with it, this file is wrong. It is kept because it records how decisions were reached, not because
-> anything here is still binding. In particular the **"axis F / identifier provenance"** factor and
-> the **T1–T5 tier taxonomy** below were an agent's constructions on top of AM's remark of
-> 2026-09-06 — *"PHI inserted is not great. Same for synthetic. Pseudonymised is ok"* — which was a
-> **corpus-selection criterion, not a factor**. Both were struck on 2026-09-08. Do not reintroduce
-> them, and do not plan from this file.
+**What each corpus *is*.** What each corpus is *for* — its role in the design, which measurements it
+carries, and how it is sampled — is in [`experiment_plan.md`](../experiment_plan.md) §4 and §5, and
+only there. This file specifies nothing.
 
-**Decision by AM, 2026-09-06.** Rather than pick corpora one at a time, assemble a **single balanced
-meta corpus** spanning tasks and languages, in one unified format. It answers the study's questions
-in one pass instead of corpus by corpus, and it makes the cells of `experiment_plan.md` §1 comparable
-across languages and domains for the first time.
-
-Two criteria set by AM in the same decision:
-
-1. **Identifier provenance matters.** *"PHI-inserted is not great. Same for synthetic. Pseudonymised
-   is ok — we can revert with rule-based approaches."*
-2. **Task coverage, not just medical.** Every domain in the meta corpus must carry a real downstream
-   task, e-mail included, so the utility axis is measurable outside the clinic.
+Rewritten 2026-09-09 (AM): it had grown into a second requirements document, complete with a
+"T1–T5 identifier provenance" tier taxonomy that was an agent's construction and was struck. The
+requirements it carried — the unified record schema, the entity-type taxonomy, the build-recipe
+distribution, the sampling schemes — were merged into `experiment_plan.md` before this rewrite.
 
 ---
 
-## 1. Identifier provenance — the tiering AM's criterion implies
+## In the design
 
-Why it matters: **A1 (dictionary) and A2 (frequency analysis) both consume the name-frequency
-distribution.** A2 works precisely because, under a deterministic policy, pseudonym frequency mirrors
-real-name frequency. A corpus whose identifiers were generated or inserted has no natural surname
-distribution, so a result on it does not transfer.
+| corpus | languages | domain | size on disk | annotates | licence |
+|---|---|---|---|---|---|
+| **TAB / ECHR** | en | legal judgments | 77 MB, 3 split JSONs | 8 entity types, DIRECT/QUASI/NO_MASK, **co-reference chains**, 30-label ECHR articles in `meta.articles` | MIT |
+| **OntoNotes 5.0** | en · zh · ar | news · broadcast · magazine · telephone · web · pivot | 890 MB, packed | 18 NE types, **co-reference** | LDC (FAU licensed LDC2013T19 since 2020-02-06; covers the whole group) |
+| **Enron** | en | corporate e-mail | 423 MB tarball, 443,254,787 B byte-exact | nothing — spans are derived from message headers by our adapter; ~184-employee org chart exists as a public auxiliary record | public (FERC release) |
+| **CodEAlltag** | de | e-mail (`pS`, donated) · usenet (`pXL`, 7 topic segments) | 6.6 GB — ~1.4 M individual message files, so any recursive scan is slow | **no spans in the release**; topic = the `pXL` partition; per-document formality scores ship separately | CC-BY-SA-4.0 |
+| **CARDIO:DE** 🔒 | de | cardiology discharge letters | 459 MB | medication IE (9 classes), section types (14), medication relations; Becker token-level extension (Diagnosis/Therapy/Medical_Finding) | DUA, **per individual user** |
 
-| tier | provenance | why it is or is not usable | corpora |
-|---|---|---|---|
-| **T1** | **real names, natural distribution** | the only tier where A1/A2 results mean what they claim | TAB/ECHR · Enron · OntoNotes |
-| **T2** | **realistic surrogates, consistently substituted** | natural *placement* and near-natural distribution. Rule-based span recovery works only where the surrogate inventory is published — it is for i2b2, **not** for CodEAlltag (§5) | i2b2/n2c2 2014 · CodEAlltag |
-| **T3** | **placeholder-masked** (`<NAME>`, `[Datum]`) | spans recoverable by rule, but the names are *gone* — the distribution is destroyed, and refilling them is insertion | CARDIO:DE · BRONCO150 |
-| **T4** | **PHI inserted into text that never had it** | placement is artificial as well as the names; MEDDOCAN is explicitly *"a synthetic corpus of clinical cases enriched with PHI expressions"*, added to published SciELO case reports by health documentalists | MEDDOCAN |
-| **T5** | **fully synthetic** | *"no real personal data. Every identifier is fabricated"* | MedDeID · REDACT · AI4Privacy |
-
-**T4 and T5 are not dropped — they become a control.** Provenance enters the design as an explicit
-factor (axis F). Running the same attacks across T1→T5 measures how much a benchmark's own
-construction inflates or deflates apparent privacy, which is a second-order finding the field needs
-and nobody has reported: every 2026 detection benchmark lives in T5.
-
----
-
-## 2. Composition
-
-Balanced on four things at once: **language · domain · downstream task · provenance tier**, with
-**stability support** as the constraint that decides membership.
-
-| corpus | lang | script | domain / genre | task for the utility axis | stability support | tier |
-|---|---|---|---|---|---|---|
-| **TAB / ECHR** | en | Latin | legal judgments | **ECHR article classification, multi-label** — ships in `meta.articles`, 30 labels, no join needed (§5) | **co-reference** (`entity_id`), DIRECT/QUASI/NO_MASK | T1 |
-| **Enron** | en | Latin | corporate e-mail | **folder classification** (Klimt & Yang 2004) | **cross-document**: sender/recipient identity from headers; org chart (~184 employees) as A3 auxiliary | T1 |
-| **OntoNotes 5.0** | en, **zh**, **ar** | Latin, Han, Arabic | news · broadcast · weblog · telephone speech · usenet | **co-reference resolution + NER** (the task pseudonymisation most directly damages) | **co-reference**, 18 NE types | T1 |
-| **i2b2 / n2c2 2014** | en | Latin | clinical, **longitudinal** | heart-disease **risk-factor extraction** (Track 2 — **confirmed same records**, §5) | **cross-document**: 1,304 records over **296 patients** | T2 |
-| **CodEAlltag** | de | Latin | e-mail (donated) · usenet (XL) | **7-way topic classification** (XL segments) + **formality scores** (released separately) | **no gold spans in the release** (§5); consistent surrogates only | T2 |
-| **CARDIO:DE** | de | Latin | cardiology letters | **medication information extraction** (ActiveIng, Dosage, Drug, Duration, Form, Frequency, Reason, Route, Strength) + **CDA section classification** (14 classes); V1.1.2 adds token-level Diagnosis/Therapy/Medical_Finding | placeholders give free gold spans; no names | T3 |
-| **BRONCO150** | de | Latin | oncology discharge | **ICD-10 / OPS / ATC coding** | none — sentence-scrambled, no document | T3 |
-| **MEDDOCAN** | es | Latin | clinical case reports | Spanish clinical NER | none (no co-reference) | T4 |
-| **MedDeID** | nl | Latin | clinical (synthetic) | Dutch de-identification NER | none | T5 |
-| **REDACT** | 25 langs / 9 scripts | many | mixed, 9 controlled axes | detection only | none | T5 |
-| **AI4Privacy** | 6 langs | Latin+ | general + **finance** (FinPII-80k) | financial PII detection | none | T5 |
-| **E3C** | it, en, fr, es, eu (+el, pl, sk, sl) | Latin, Greek | clinical cases | clinical entity + temporal extraction | **no PII layer at all** | — |
-
-### What each axis buys
-
-- **Languages:** en, de, es, nl, zh, ar as the balanced core, plus REDACT's 25 and E3C's 9 as the
-  breadth tail. **zh and ar come from OntoNotes** and matter because the OPF evaluation reports
-  detector collapse on non-Latin scripts (Arabic 0.04, Cyrillic 0.03) — that is where H1/H2 are
-  stressed hardest, and until now we had no non-Latin corpus with real names.
-- **Tasks:** legal outcome prediction · e-mail folder and topic classification · clinical
-  risk-factor extraction · clinical coding · co-reference + NER · financial PII. Six task families,
-  four domains, so utility is no longer a clinical-only claim.
-- **Stability:** the metric `experiment_plan.md` calls essentially unevaluated needs entity identity across
-  mentions or documents. Only four corpora supply it — **TAB** and **OntoNotes** (co-reference within
-  document), **i2b2 2014** (the same patient across a longitudinal record) and **Enron** (the same
-  person across a mailbox). Two of the four are e-mail and clinical, i.e. exactly the domains where
-  cross-document linkage is the point.
-
----
-
-## 3. Unified schema
-
-The meta corpus is one format; each source gets a converter and nothing else changes downstream.
-
-```jsonc
-{
-  "doc_id":      "tab/001-12345",
-  "corpus":      "tab",
-  "language":    "en",
-  "script":      "Latn",
-  "domain":      "legal",
-  "genre":       "court_judgment",
-  "provenance":  "real",            // real | surrogate | placeholder | inserted | synthetic
-  "split":       "train",
-  "text":        "...",
-  "subject_id":  "patient_0042",    // cross-document identity where it exists; null otherwise
-  "task":        {"name": "echr_violation", "label": ["Art.6", "Art.13"]},
-  "spans": [
-    {"start": 143, "end": 154,
-     "text":       "John Weber",
-     "type":       "PERSON",        // harmonised taxonomy
-     "type_src":   "NOMBRE_SUJETO_ASISTENCIA",
-     "entity_id":  "e17",           // co-reference chain; null where unannotated
-     "identifier_class": "DIRECT"}  // DIRECT | QUASI | NO_MASK, where annotated
-  ]
-}
-```
-
-**Do not invent the taxonomy.** PIIBench already normalises 80+ label variants into 48 canonical
-types across ten corpora; adopt its mapping and record every deviation. Sources to harmonise:
-MEDDOCAN 29 types · i2b2 18 PHI classes · CodEAlltag's hierarchy (ACTOR{ORG, PERSON{FAMILY,
-GIVEN{FEMALE, MALE}}, USER}, DATE, FID{PASS, UFID}, LOC{STREET, STREETNO, CITY, ZIP}, ADD{EMAIL,
-PHONE, URL}) · TAB's semantic categories · OntoNotes 18 NE types · REDACT 51 types.
-
-`entity_id` and `subject_id` are what make the stability metrics computable; every converter must
-either populate them or declare them null, and a corpus with both null cannot enter a stability cell.
-
----
-
-## 4. What the meta corpus answers that no single corpus can
-
-| open question | how the meta corpus settles it |
-|---|---|
-| Is the full `A×B×C×D×E` factorial affordable? | one format means one harness; corpus stops being a cost multiplier on engineering and becomes a data dimension |
-| Which languages carry enough PII density? | measurable directly once every corpus reports density in the same schema |
-| Does the policy dominate the technique (H1)? | testable on T1 with real name distributions, and separately on T4/T5 — if the answer differs by tier, that is a finding about the field's benchmarks |
-| Does detection recall dominate leakage (H2)? | the gold-span oracle is available on every member except E3C |
-| Does document-randomisation cost cross-document tasks (H3)? | i2b2 (patient timelines) and Enron (threads) are the two corpora where it can actually hurt |
-
----
-
-## 5. Check results (run 2026-09-06)
-
-All four pre-acquisition checks were run. TAB and CodEAlltag were cloned and inspected directly;
-i2b2 was settled from the corpus paper.
-
-### ✅ TAB carries the legal task itself — no join needed
-
-TAB's `meta` block already contains the ECHR articles, so the downstream task ships with the corpus:
-
-| | |
-|---|---|
-| documents | **1,268** (1,014 train / dev / test), all with `meta.articles` and `meta.applicant` |
-| task labels | **30 distinct articles**, multi-label; **752 of 1,268 documents carry more than one** |
-| label skew | Art. 6 → 792 docs · Art. 41 → 578 · Art. 5 → 234 · Art. 29 → 200 · long tail to n=1 |
-| spread | **17 respondent countries**, judgments **1975–2017** |
-| `doc_id` | the **HUDOC ITEMID** (e.g. `001-90194`) — so a join to the Chalkidis/LexGLUE ECHR set (~11.5 k cases, same HUDOC source) is still available |
-| annotators | 994 documents single-annotated; **274 have 2–10 annotators** → inter-annotator variation is measurable on the oracle itself |
-| entity types | DATETIME 53,668 · ORG 40,695 · **PERSON 24,322** · **LOC 9,982** · DEM 8,683 · MISC 7,044 · CODE 6,471 · QUANTITY 4,141 |
-| identifier class | QUASI 98,244 · NO_MASK 50,023 · **DIRECT 6,739** |
-| co-reference | `entity_id` chains present per annotator |
-
-**One caveat.** The README calls `meta.articles` the *"legal articles involved"* — that is ECtHR_A
-semantics (allegedly violated), not ECtHR_B (actually violated). For an outcome-prediction task
-rather than an issue-classification task, join on `doc_id` to the Chalkidis set. Either way the legal
-task exists.
-
-PERSON (24,322) and LOC (9,982) are exactly the two classes `experiment_plan.md` singles out as carrying the
-stability requirement, and they are co-reference-chained. This is the strongest single member.
-
-### ✅ i2b2 / n2c2 2014 — Track 1 and Track 2 are the same records
-
-Confirmed from the corpus paper: the records *"were selected for use in Track 2 … identification of
-risk factors for Coronary Artery Disease in diabetic patients"*, and *"the resulting annotations were
-used both to de-identify the data and to set the gold standard for the de-identification track"*.
-
-**1,304 records · 296 patients · 805,118 tokens**, real longitudinal clinical narratives, PHI replaced
-by realistic surrogates (automatic, then manually corrected), double-annotated with arbitration.
-
-That makes it the strongest clinical cell in the design: real longitudinal documents, gold PHI, and a
-downstream clinical task **on identical documents** — the only member where the utility axis and the
-detection axis cannot be confounded by using different data.
-
-### ❌ CodEAlltag ships no annotations
-
-`CodEAlltag_pS` contains `emails/`, `LICENSE`, `README.md` and nothing else: **800 plain `.txt` files,
-zero annotation files** of any format. The manually annotated set described in the paper
-(CodE Alltag<sub>S+d</sub>, 1,390 e-mails) is not what was released. So CodEAlltag is T2 text
-**without gold spans** and cannot supply the oracle level of axis D.
-
-What the release *does* give, found while checking (all CC-BY-SA-4.0 unless noted):
-
-| repository | what it is |
-|---|---|
-| `CodEAlltag_pS` | 800 pseudonymised donated e-mails, plain text |
-| `CodEAlltag_pXL_{EVENTS, FINANCE, GERMAN, MOVIES, PHILOSOPHY, TEENS, TRAVELS}` | seven topical segments, ~590 MB total → **7-class topic classification task** |
-| `CodEAlltag_formality_scores` | **formality scores** → a second German e-mail task, regression or ordinal |
-| `privacy_tagger` (**MIT**) | the authors' own flair-based German e-mail PII tagger, fine-tuned on 3,000 pseudonymised CodEAlltag e-mails; model 2.6 GB, hosted off-repo. A strong **domain-matched detector for axis D** — but a detector, not gold |
-
-No surrogate inventory or gazetteer is published, so AM's rule-based recovery route is not directly
-available for this corpus. Three ways forward, and they are not exclusive: **ask Eder / Krieg-Holz /
-Hahn for the annotated S+d subset**; use `privacy_tagger` as a strong domain detector and accept
-detector-only cells here; or keep CodEAlltag purely as a utility-task corpus and let German gold
-spans come from CARDIO:DE.
-
-### ✅ Licence resolved — CC-BY-SA-4.0, not NC
-
-The `LICENSE` file in every CodEAlltag repository is **Attribution-ShareAlike 4.0 International**. The
-CC-BY-NC seen earlier applies to the ELRA *proceedings paper*, not to the corpus. No NC constraint.
-
-**But ShareAlike is now the binding constraint on what we can release** — see §6.
-
----
-
-## 5b. E-mail is mandatory (AM, 2026-09-06) — and both members have a defect
-
-*"We need mails in the corpus."* Recorded as a requirement, not a preference. What that requires:
-
-### CodEAlltag XL — the seven segments, and what "GERMAN" is
-
-All seven are German-language; the segment name is the **topic**, not the language. **GERMAN means
-e-mails about the German language itself** — grammar, usage, linguistics — the `de.etc.sprache.*`
-newsgroup family.
+**CodEAlltag, the two parts.** `pS` is 800 **donated private e-mails** — the only part that was
+manually annotated before substitution, and the annotations are not in the release. `pXL` is
+~1,469,000 **Usenet postings** in mail format, *"extracted from Usenet newsgroups and underwent
+merely rudimentary data cleansing"*, pseudonymised **automatically**. All seven segments are German;
+the segment name is the topic, not the language — **GERMAN means e-mails about the German language
+itself**, the `de.etc.sprache.*` newsgroups.
 
 | segment | topic, verbatim from the release | messages |
 |---|---|---:|
 | EVENTS | *"topics related to events of the day"* | ~246,000 |
-| **GERMAN** | *"topics related to the **German language**"* | ~241,000 |
+| GERMAN | *"topics related to the German language"* | ~241,000 |
 | TEENS | *"topics of interest for teenagers"* | ~239,000 |
 | PHILOSOPHY | *"philosophical issues"* | ~209,000 |
 | MOVIES | *"discussing movies"* | ~206,000 |
 | FINANCE | *"financial issues, including stock exchange news"* | ~174,000 |
 | TRAVELS | *"travel and tourism"* | ~154,000 |
-| | **total** | **~1,469,000** |
 
-Three caveats the release states itself:
+The release states a **documented gender bias**: *"likely to contain a gender bias since taggers
+recognized more mentions of male given names."* No surrogate inventory or gazetteer is published.
 
-- **XL is Usenet, not private mail.** *"extracted from Usenet newsgroups and underwent merely
-  rudimentary data cleansing."* These are public postings in mail format. Only the small donated
-  **S** set (800 released) is private correspondence — and that is the set with no annotations.
-- **XL is *automatically* pseudonymised**; only S had manual annotation before substitution. So XL
-  surrogate quality is detector-limited, and detector errors are baked into the text we would treat
-  as input.
-- **A documented gender bias:** *"likely to contain a gender bias since taggers recognized more
-  mentions of male given names."* This bears directly on axis C level 3 (attribute-matched surrogates
-  preserving gender) and on H4 — the skew is in the data before we touch it, and must be reported.
+**Enron artefacts of the release**: 5,112 files carry the synthetic address `no.address@enron.com`;
+attachments were stripped, leaving `<<>>` stubs; some messages were removed at the request of
+affected employees.
 
-FINANCE also gives a **second financial slice** that is not synthetic, unlike AI4Privacy's FinPII.
+**CARDIO:DE storage.** Not in the shared folder. The grant covers AM alone — Heidelberg confirmed one
+countersigned agreement per person — so it lives at `/cluster/maier/dua-restricted/cardiode`, mode
+`700`. Laptop copies were deleted after transfer; the agreement names the chair's cluster as the
+storage infrastructure. **500 letters split 400 / 100, and only the 400 carry annotations** —
+*"Annotations of CARDIO:DE100 are kept internally as held-out data for future shared task
+purposes."*
 
-### Enron — what it actually is
+Everything else public sits in the group shared dataset folder, fetched by
+[`scripts/fetch_corpora.sh`](../scripts/fetch_corpora.sh), which is idempotent.
 
-Enron Corporation was a Houston energy, commodities and services firm that collapsed in December 2001
-in one of the largest accounting-fraud scandals on record. The corpus is the **internal e-mail of
-about 150 employees, mostly senior management — executives, traders, schedulers — roughly 1998–2002,
-~500,000 messages**, made public by the **Federal Energy Regulatory Commission** during its
-investigation. Content is ordinary corporate correspondence: gas and power trading, deal
-confirmations, scheduling, market commentary, legal and HR traffic — plus a large amount of personal
-mail, because whole mailboxes were released, not a filtered selection.
+## Wanted, not on disk
 
-| | |
+| corpus | state |
 |---|---|
-| distribution | CMU, `enron_mail_20150507.tar.gz`, **443 MB compressed** (~1.7 GB unpacked), dated 2015-05-07, live as of 2026-09-06 |
-| structure | per-user maildir folders → gives the **folder-classification task** and sender/recipient identity across messages |
-| cleanup | SRI (Melinda Gervasio) normalised invalid addresses to `user@enron.com` / `no_address@enron.com` |
-| deletions | *"as part of a redaction effort due to requests from affected employees"* — a partial, request-driven redaction only |
-| auxiliary | organisational hierarchy for ~184 employees with roles → the **A3 linkage** auxiliary record |
-| known issue | the CMU page itself notes a **2026 discovery of a vulnerability allowing impersonation of users, including executives**, judged *"probably does not affect NLP uses"* |
+| **BRONCO150** | de, oncology discharge, ICD-10/OPS/ATC coding. Application sent 2026-09-07, no reply. Its clause 5 requires deletion by **2027-09-07** with Leser informed |
+| **n2c2 2014** | en, clinical, longitudinal — 1,304 records over 296 patients, Track 1 and Track 2 annotate the same records. ⛔ Registration closed, "temporarily unavailable". No route |
 
-Why it is the corpus the study wants: real names in natural frequency distribution, the same people
-recurring across thousands of messages (cross-document stability), a genuine downstream task, and a
-real public auxiliary record to link against. No other public e-mail corpus has all four.
+## On disk, not in the design
 
-Why it is the corpus the study should hesitate over: none of those people consented, the redaction
-was request-driven rather than systematic, and 50,000 PII instances were still found in 2020.
+Fetched before the corpus set was settled; still on the cluster.
 
-### The consequence of making e-mail mandatory
+| corpus | languages | size | licence |
+|---|---|---|---|
+| MEDDOCAN | es | 78 MB | CC-BY-4.0 |
+| MedDeID | nl | 13 MB | CC-BY-4.0 |
+| REDACT | 25 langs / 9 scripts | 7.5 MB repo (the 213 MB benchmark itself is behind Git-LFS) | CC-BY-SA-4.0 |
+| AI4Privacy | 6 langs | 767 MB | custom: academic free, commercial separate |
+| E3C | it, en, fr, es, eu | 924 MB | public via European Language Grid |
+| PIIBench | multi | 6.1 MB | **ships no corpus** — pipeline and taxonomy only |
 
-**If Enron is excluded, the meta corpus has no English e-mail at all.** CodEAlltag is German;
-Avocado is LDC-licensed and unverified; the 2017 e-mail-header corpus is headers only; the e-mail
-slices in AI4Privacy, PIIBench and REDACT are synthetic (T5). So the requirement *"we need mails"*
-and the option *"exclude Enron"* cannot both hold unless we license **Avocado (LDC2015T03,
-~900 k messages)** as the substitute — which is a purchase decision with its own lead time.
+Two facts about these that were established on inspection and are easy to rediscover the hard way:
 
-**Resolved, AM 2026-09-07: Enron is in**, with the safeguards in `experiment_plan.md`. English e-mail is
-therefore covered and Avocado is not needed.
+- **AI4Privacy's FinPII-80k is not in the public release.** `ai4privacy/pii-masking-300k` holds 18
+  files, all OpenPII. There is no financial split to download.
+- **PIIBench ships no corpus**, only `run_data_pipeline.py` and `src/`. It contributes the
+  80+ → 48 canonical label mapping; a corpus slice only if rebuilt from its ten sources.
 
----
+## Storage
 
-## 6. Distribution: the meta corpus must be a build recipe, not a dataset
-
-The members' licences cannot be combined into one redistributable artefact:
-
-| licence | members |
-|---|---|
-| MIT | TAB |
-| CC-BY-4.0 | MEDDOCAN · MedDeID |
-| **CC-BY-SA-4.0 (copyleft)** | CodEAlltag · REDACT |
-| custom, academic free / commercial separate | AI4Privacy |
-| **DUA, per individual user** | i2b2/n2c2 · CARDIO:DE · BRONCO150 |
-| LDC licence | OntoNotes |
-| public | Enron |
-
-A single distributed blob would have to satisfy ShareAlike *and* three separate DUAs at once, which
-is not possible. So the deliverable is:
-
-- **converters** — one per source, source format → the §3 schema;
-- **a manifest** — exact versions, URLs, DOIs, splits and checksums;
-- **a builder** that assembles the meta corpus locally once the user has obtained each source under
-  their own agreement;
-- **derived artefacts only** where the licence permits — statistics, span offsets, mappings, results.
-
-This is the same pattern PIIBench and BigBIO use, and it should be stated in `experiment_plan.md` §Deliverables
-so the release plan is not built on an assumption that turns out to be illegal.
-
----
-
-## 6b. DUA clauses — checked, and they do not constrain the design
-
-BRONCO150's and CARDIO:DE's agreements were read in full while preparing `applications/`. Both
-contain a no-re-identification clause and a no-third-party clause. Neither bites:
-
-| clause | AM's ruling, 2026-09-07 |
-|---|---|
-| BRONCO 3 / CARDIO:DE 1.4 — no attempt to identify individuals | *"De-ID means to find the true identity of the patients. We are not doing that."* The attacks invert **pseudonyms we generate ourselves**; no real identity is sought or recoverable. CARDIO:DE 1.4 is explicit that it concerns identifying individuals *"based on the Data received"* |
-| BRONCO 8 / CARDIO:DE 2.2 — no transfer to third parties or outside services | *"Our data stays in house. We don't use third party APIs."* Processing runs on the lab's own cluster; the LLM endpoint is NHR@FAU, the university's own HPC centre, not a commercial online service |
-
-**No cells are licence-blocked.** Both questions are still stated plainly in the covering letters, so
-the providers see exactly what we intend rather than discovering it later.
-
-What does still constrain BRONCO is the corpus, not the licence: sentence-scrambling leaves the
-document-randomised policy level undefined, cross-document stability unmeasurable, and A3 without
-co-occurrence structure.
-
-**Obligations that survive.** BRONCO: single copy under the Data User's administration, delete after
-**12 months** and inform Leser, each user signs individually, cite Kittner et al. 2021. CARDIO:DE:
-term **5 years**, secure environment, derived data retrievable on request, a new application for any
-further project, each user signs individually.
-
----
-
-## 6c. Acquisition status (2026-09-07)
-
-Public members fetched to the group shared dataset folder by
-[`scripts/fetch_corpora.sh`](../scripts/fetch_corpora.sh) (idempotent — re-running skips what is
-present). **Zero failures.** ~8.9 GB total.
-
-| corpus | landed | size |
-|---|---|---|
-| Enron | `enron_mail_20150507.tar.gz`, byte-exact at 443,254,787 B | 423 MB |
-| TAB / ECHR | full repo, 3 split JSONs | 77 MB |
-| CodEAlltag | `pS`, all seven `pXL_*` segments, `formality_scores`, `privacy_tagger` | 6.6 GB |
-| E3C | full corpus repo | 924 MB |
-| AI4Privacy | 15 files incl. per-language JSONL (en, nl, fr, de, it, es) | 767 MB |
-| MEDDOCAN | `meddocan.zip` + guidelines + converter scripts | 78 MB |
-| MedDeID | synthetic data zip + EN/NL annotation guidelines | 13 MB |
-| REDACT | benchmark repo | 7.5 MB |
-| PIIBench | pipeline + taxonomy | 6.1 MB |
-| **OntoNotes 5.0** | `ontonotes-release-5.0_LDC2013T19.tgz`, MD5 verified at both ends | 890 MB |
-| **CARDIO:DE** *(restricted, AM only)* | 500 letters as text + UIMA CAS XMI, plus the Becker extension; both archives MD5-verified at both ends | 459 MB |
-
-CodEAlltag dominates the footprint because the git working trees hold ~1.4 M individual message
-files; note that any `du` or recursive scan over that tree is slow.
-
-**OntoNotes** (added 2026-09-07) needed no application: FAU had licensed LDC2013T19 since
-2020-02-06, so it was downloaded from the LDC account and verified against the catalogue's MD5
-locally and again after transfer. Its licence permits use across the whole research group, so it sits
-with the public corpora rather than apart from them.
-
-**CARDIO:DE** (acquired 2026-09-08) is **not** in the shared folder. The grant covers AM alone —
-Heidelberg confirmed one countersigned agreement per person — so it lives at
-`/cluster/maier/dua-restricted/cardiode`, mode `700`, and the laptop copies were deleted after
-transfer because the agreement names the chair's cluster as the storage infrastructure.
-
-Structure, and one correction to our earlier notes: **500 letters split 400 / 100, and only the 400
-carry annotations.** *"Annotations of CARDIO:DE100 are kept internally as held-out data for future
-shared task purposes."* So the usable annotated set is **400 discharge letters**, not 500 — in plain
-text and UIMA CAS XMI — plus the Becker token-level extension (`json/`, `layer.json`, `tagset.json`).
-
-**Still not on disk:**
-
-| corpus | why |
-|---|---|
-| BRONCO150 | sent 2026-09-07, no reply yet |
-| **n2c2 2014** | ⛔ registration closed — see §6d for what that costs |
-
-**Ten of the twelve meta-corpus members are now local.** The two clinical DUA corpora are in flight;
-n2c2 is the only one with no route at all.
-
-### Two gaps found on inspection (2026-09-07)
-
-- **AI4Privacy's FinPII-80k is not in the public release.** The HuggingFace repo
-  `ai4privacy/pii-masking-300k` holds 18 files, all **OpenPII** — six languages, train and
-  validation, plus a QA file and two charts. There is no financial split to download; the licence
-  page directs commercial use to `licensing@ai4privacy.com`. So the **synthetic** financial slice is
-  unobtainable. The financial domain survives instead through **CodEAlltag `pXL_FINANCE`** —
-  174,182 German e-mails on financial topics and stock-exchange news — which is real text at tier T2
-  rather than synthetic, and therefore the better source for A1/A2 anyway.
-- **PIIBench ships no corpus, only the pipeline** (confirmed: `run_data_pipeline.py`, `src/`, no
-  parquet or JSONL anywhere). It contributes the **80+ → 48 canonical label mapping** the schema
-  depends on, and a corpus slice only if we rebuild it from its ten sources. Its role in axis E
-  should be read as *taxonomy*, not *data*.
-- Minor: the E3C repository carries five annotated languages (Basque, English, French, Italian,
-  Spanish), not the nine the project page describes. It has no PII layer either way.
-
-Storage note: the OntoNotes tarball is left **packed**. `/cluster` is at 95 % and unpacking is part of
-the build step, not acquisition — check free space before expanding it.
-
----
-
-## 6d. n2c2 is blocked, and it costs the design more than one corpus
-
-Checked on the portal 2026-09-07, signed in: **registration for the i2b2/n2c2 notes is closed** and
-the datasets are marked *"temporarily unavailable"*. The 2014 set is still listed, so this is a
-suspension rather than a withdrawal, but there is no route in today. Reported, not substituted
-(`CLAUDE.md` §1).
-
-What that removes, until it reopens:
-
-| what is lost | why it matters |
-|---|---|
-| **Cross-document stability in the clinical domain** | i2b2 2014 is longitudinal — 1,304 records over 296 patients — and was one of only two members where the same person recurs across documents. The other is **Enron**. So cross-document stability, the metric `experiment_plan.md` calls essentially unevaluated, now rests on **e-mail alone**, with no clinical evidence at all |
-| **The one cell where detection and utility share documents** | Track 1 and Track 2 annotate the *same* records, so utility could be measured without confounding by corpus. Nothing else in the meta corpus has that property |
-| **The only T2 clinical corpus** | with n2c2 gone the clinical arm is CARDIO:DE and BRONCO150 (T3, placeholder-masked), MEDDOCAN (T4, PHI-inserted) and MedDeID (T5, synthetic). **No clinical corpus with real or realistically substituted names remains** — which is precisely the tier the A1/A2 attacks need |
-| **English clinical** | disappears entirely |
-
-**H3 is the hypothesis most affected.** It predicts that document-randomisation costs little for tasks
-that do not need cross-document linkage and a great deal for those that do — patient timelines being
-the named example. Without i2b2 there is no patient timeline in the study.
-
-**One lever:** ask DBMI when registration reopens and whether a named project can be granted access
-meanwhile. See `applications/n2c2_request.md`. Everything else here is AM's call, not ours.
-
-## 7. Still open
-
-- **Balance means capping.** Enron has ~500 k messages and TAB has 1,268 documents. A balanced meta
-  corpus requires sampling the large members. **This is a design decision for AM, not a cost saving**
-  — `CLAUDE.md` §1 forbids reducing a corpus to save time, and a deliberate balance criterion is a
-  different thing. It must be written down as a stated rule (per-corpus cap? per-cell cap? equal
-  token budget per language?) before any sampling happens.
-- **Ask the CodEAlltag authors** for the annotated S+d subset (see above).
-- **OntoNotes is free to non-members** from LDC (no licence fee, shipping/handling only) — confirm
-  FAU's LDC status and whether the download route is now electronic.
-- **PIIBench located:** `github.com/pritesh-2711/pii-bench` — the *construction pipeline and
-  evaluation code*, which is what we want for the 80+ → 48 canonical label mapping. Confirm whether
-  the assembled corpus ships or has to be rebuilt from the ten sources.
-
-
----
-
-## 13. Restricting to corpora with utility (AM, 2026-09-08)
-
-> *"Let's only use data that has some utility. This is what we want to use and it gives us a good
-> understanding which method affects what."*
-
-The rationale points at something stronger than "has a downstream task". Attributing an effect to a
-method requires **detection, stability and utility measured on the same documents** — which is
-exactly the gap `experiment_plan.md` §C.1 claims nobody has closed. Applying that test:
-
-| corpus | detection (gold spans) | stability (co-ref or cross-doc id) | utility (task) | verdict |
-|---|---|---|---|---|
-| **TAB / ECHR** | ✅ 8 types, DIRECT/QUASI | ✅ co-reference chains | ✅ 30-label ECHR articles | **full** |
-| **OntoNotes** | ✅ 18 NE types | ✅ co-reference | ✅ co-reference + NER | **full** |
-| **Enron** | ⚠ structural, header-derived | ✅ cross-document identity | ✅ folder · intent · formality | **full** |
-| CodEAlltag | ❌ **none released** | ❌ | ✅ formality · 7-way topic | partial |
-| CARDIO:DE | ⚠ placeholders, rule-recoverable | ❌ | ✅ medication IE · section classes | partial |
-| BRONCO150 *(pending)* | ✅ ICD/OPS/ATC | ❌ sentence-scrambled | ✅ coding | partial |
-| MEDDOCAN | ✅ 29 types | ❌ | ❌ PharmaCoNER offsets do not align | **out** |
-| MedDeID · REDACT · AI4Privacy | ✅ | ❌ | ❌ detection benchmarks only | **out** |
-| E3C | ❌ no PII layer | ❌ | (clinical entities) | **out** |
-
-**Only three corpora carry all three measurements: TAB, OntoNotes, Enron.** They are also the three
-tier-T1 members — the ones with real names. That is a tidier study than the twelve-member list, and
-it is the configuration in which "which method affects what" is actually answerable.
-
-### What the restriction costs
-
-| lost | with it |
-|---|---|
-| MEDDOCAN | **Spanish** |
-| MedDeID | **Dutch** |
-| REDACT | the 25-language / 9-script breadth tail |
-| AI4Privacy | the synthetic financial slice — though CodEAlltag `pXL_FINANCE` covers finance in German with *real* text |
-| **all of T4 and T5** | **axis F's control arm** |
-
-The last is the one to weigh. Axis F exists because **every 2026 detection benchmark is synthetic**,
-and running the same attacks across T1→T5 measures how much a benchmark's own construction flatters
-its privacy numbers. Dropping every synthetic corpus removes the comparison that finding depends on.
-
-**Suggested resolution, for AM:** apply the restriction *per measurement* rather than per corpus.
-Utility is scored only where a task exists; detection and leakage may still run on the synthetic
-members, which cost nothing to include since they need no annotation effort from us. That honours
-"only data with utility" for the utility axis and keeps axis F alive.
-
-### The imbalance is worse, not better
-
-| corpus | documents | note |
-|---|---:|---|
-| CodEAlltag XL | **1,469,000** | Usenet, automatically pseudonymised |
-| Enron | 517,000 | 20,000 sampled at stride 25 so far |
-| OntoNotes | ~3,600 (en) + zh + ar | 2.9 M words total |
-| TAB | 1,268 | |
-| CARDIO:DE | **400** | annotated subset; the 100 held-out have no annotations |
-| BRONCO150 | **150** | pending |
-
-**Four orders of magnitude between the largest and smallest**, and the restriction removed mid-sized
-members while leaving both extremes. Language balance is worse too: English and German dominate,
-Spanish and Dutch are gone, and non-Latin script survives only through OntoNotes — where **Arabic is
-300 K words and news-only** against Chinese's 1.0 M.
-
-So the capping rule is now *more* necessary, not less. It is still the one open decision, and it now
-governs a set where the ratio is 1,469,000 : 150.
-
-
-## 14. Sampling — size as a parameter, not a nuisance (AM, 2026-09-08)
-
-AM's three decisions:
-
-1. **The size spread is an opportunity.** Corpus size becomes a *reported parameter* rather than
-   something to balance away — we can measure which conclusions survive shrinking the data.
-2. **Partial corpora carry utility only**, triaged to a size comparable with the three full ones.
-   That makes them a **task-domain investigation**, not a full screen — which is the honest framing,
-   since they cannot support detection and stability anyway.
-3. **Full corpora carry everything**, but Enron is triaged to **10 %** (~51,700 messages). Nothing
-   trains, so a sample costs only statistical power.
-
-### There is no single fair sample
-
-The sampling unit decides which structure survives, and the measurements depend on different
-structures. Measured on a synthetic corpus of 20 subjects × 20 documents, at rate 0.2:
-
-| scheme | documents | entities kept | **profile retained per entity** |
-|---|---:|---:|---:|
-| `document` | 80 | 20 | 20.0 % |
-| `stratified` | 80 | 20 | 20.0 % |
-| **`subject`** | 80 | **6** | **66.7 %** |
-| `time` | 80 | 20 | 20.0 % |
-
-Subject sampling trades **entity population for profile completeness**: a third of the people, three
-times the evidence about each. That is precisely the trade A3 and A5 want, and precisely the wrong
-one for A2, which reads the marginal frequency distribution across many entities.
-
-**No scheme keeps a profile whole except taking everything.** `by_subject` keeps every document of a
-kept subject, so a person confined to one mailbox survives intact — but in Enron the interesting
-people appear in many mailboxes, and each dropped mailbox truncates them. The schemes rank; they do
-not solve.
-
-### Which scheme for which measurement
-
-| measurement | scheme | why |
-|---|---|---|
-| detection, utility, within-document stability | **`stratified`** | every subject stays represented in proportion; profile thinning is irrelevant to these |
-| **A2 frequency** | `stratified` or `document` | reads marginal frequencies, whose *ranks* survive thinning |
-| **A3 / A5 relational, drift** | **`subject`** or **`time`** | profile completeness is the signal; document sampling starves it |
-
-The scheme is recorded in `Corpus.name` and in every document's metadata, so no result can be quoted
-without its sampling provenance.
-
-### The size sweep this enables
-
-Run the same cells at rates 0.01, 0.05, 0.10, 0.25 and report which measurements are stable. The
-prediction worth testing: **A2 is robust to rate, A3/A5 are not** — frequency ranks survive thinning
-while assembled profiles do not. If that holds, it tells a practitioner something directly useful:
-the leakage you can measure on a sample is not the leakage you have on the whole corpus, and which
-of the two you are looking at depends on the attack.
+`/cluster` was at 95 % on 2026-09-06. The OntoNotes tarball is left packed; unpacking is a build
+step, not acquisition. Check free space before expanding it.

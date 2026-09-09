@@ -374,7 +374,7 @@ plus a no-context condition.
 |---|---|---|---|
 | **A1** | dictionary / brute force | **unkeyed techniques only** | inversion rate vs **name frequency** and **name length** |
 | **A2** | frequency analysis | **all five techniques** | top-1 / top-5, Spearman ρ; rank alignment is the optimal 1-D assignment, so no Hungarian solver is needed |
-| **A3** | structural linkage (fixed cosine over entity profiles) | all | Rank-1 / Rank-5 / mAP |
+| **A3** | structural linkage (fixed cosine over entity profiles); on Enron the **~184-employee org chart** is the public auxiliary record to link against | all | Rank-1 / Rank-5 / mAP |
 | **A4** | LLM re-identification | all | **ranked candidate list** — see below |
 | **A5** | learned relational re-identification | all | Rank-1 / Rank-5 / mAP |
 
@@ -490,6 +490,47 @@ public-figure split, and report a no-context control. The same confound is a *re
   detector, prompt version, library versions, commit hash.
 - Bootstrap CIs over documents where a CI is wanted.
 - Results are parquet/JSONL artefacts on disk, never numbers in prose.
+
+## 3.1 The unified record schema
+
+One format, one converter per source, nothing else changes downstream. Merged verbatim from
+`data/metacorpus.md` on 2026-09-09, where it was the only place a record shape was ever specified.
+
+```jsonc
+{
+  "doc_id":      "tab/001-12345",
+  "corpus":      "tab",
+  "language":    "en",
+  "script":      "Latn",
+  "domain":      "legal",
+  "genre":       "court_judgment",
+  "provenance":  "real",            // real | surrogate | placeholder | inserted | synthetic
+  "split":       "train",
+  "text":        "...",
+  "subject_id":  "patient_0042",    // cross-document identity where it exists; null otherwise
+  "task":        {"name": "echr_violation", "label": ["Art.6", "Art.13"]},
+  "spans": [
+    {"start": 143, "end": 154,
+     "text":       "John Weber",
+     "type":       "PERSON",        // harmonised taxonomy
+     "type_src":   "NOMBRE_SUJETO_ASISTENCIA",
+     "entity_id":  "e17",           // co-reference chain; null where unannotated
+     "identifier_class": "DIRECT"}  // DIRECT | QUASI | NO_MASK, where annotated
+  ]
+}
+```
+
+**Do not invent the taxonomy.** PIIBench already normalises 80+ label variants into 48 canonical
+types across ten corpora; adopt its mapping and record every deviation. Sources to harmonise:
+MEDDOCAN 29 types · i2b2 18 PHI classes · CodEAlltag's hierarchy (ACTOR{ORG, PERSON{FAMILY,
+GIVEN{FEMALE, MALE}}, USER}, DATE, FID{PASS, UFID}, LOC{STREET, STREETNO, CITY, ZIP}, ADD{EMAIL,
+PHONE, URL}) · TAB's semantic categories · OntoNotes 18 NE types · REDACT 51 types.
+
+`entity_id` and `subject_id` are what make the stability metrics computable; every converter must
+either populate them or declare them null, and a corpus with both null cannot enter a stability cell.
+
+---
+
 
 ---
 
@@ -816,5 +857,10 @@ it a smaller gallery, so the deterministic 1.04× sits inside that confound).
 9. Which E3C languages carry enough PII density to be worth including?
 10. Does the **2026 revision of ISO 25237** change any recommendation we would make? Somebody needs a
    copy — it is not open access.
-11. Ensemble composition: which LLMs, and is the combination rule fixed across languages or tuned per
+11. **Ask Eder / Krieg-Holz / Hahn for CodEAlltag's annotated S+d subset.** The release ships the
+    800 donated e-mails without the manual span annotations that were made before substitution. If
+    the authors will share them, CodEAlltag gains gold spans — and it is one of only two routes to a
+    scorable German detection cell, the other being BRONCO150. Carried over from
+    `data/metacorpus.md` §7, which was rewritten as a corpus list on 2026-09-09.
+12. Ensemble composition: which LLMs, and is the combination rule fixed across languages or tuned per
    language? Tuning per language risks overfitting the benchmark.
