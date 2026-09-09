@@ -195,20 +195,34 @@ that does end to end.
 
 ## 5. The thesis
 
-ENISA states the tension and never measures it (2021 report, §8, on pseudonymisation **policies**):
+ENISA states the tension and does not measure it (2021 report, §2, on pseudonymisation policies):
 
 > *"fully-randomised pseudonymisation offers the best protection level but prevents any comparison
 > between databases. Document-randomised and deterministic functions provide utility but allow
 > linkability between records."*
 
-**Stability is not free.** The requirement that person 1 never collapses into person 2 — and that the
-same person keeps the same pseudonym across a corpus — *forces* the deterministic policy, which is
-the one the standard says permits linkage. Nobody has quantified the price.
+Pseudonym stability — one entity, one pseudonym, held across a corpus — is required for the data to
+remain usable: patient timelines, co-reference chains and e-mail threads all depend on it. Stability
+is obtainable only under the deterministic policy, which is the policy ENISA identifies as permitting
+linkage between records. A practitioner who preserves usability therefore selects the weakest of the
+three policies, and no standard states what that costs. This study measures it.
 
-**Claim.** Across languages and domains, the *policy* (deterministic / document-randomised /
-fully-randomised) dominates both residual risk and utility loss, while the *cryptographic technique*
-— the axis practitioners actually agonise over — is close to irrelevant under a deterministic policy,
-because the effective attack is distributional, not cryptanalytic.
+All claims below concern an attacker who does not hold the mapping. Every policy and every technique
+is fully invertible to whoever does (§3), so the policy axis governs only what is recoverable without
+it.
+
+The claim has two parts. **Empirically**, the policy — deterministic, document-randomised,
+fully-randomised — dominates both residual re-identification risk and utility loss; A2, A3 and A5
+measure the first (§8.4) and the task scores measure the second (§8.3). **Structurally**, the
+cryptographic technique cannot affect a distributional attacker under a deterministic policy, because
+that policy makes the entity-to-pseudonym mapping injective and frequency is invariant under any
+injection: counter, hash, HMAC and AES-SIV are indistinguishable to an attacker who counts
+occurrences. This follows from the construction rather than from measurement, and the paper states it
+as such.
+
+The claim is made for the languages and domains the corpora support: legal (en), e-mail (en, de),
+news (en, zh, ar), clinical (de) — with detection scorable on three of the five corpora and no
+scorable German detection cell at present (§12, §19).
 
 ## 6. Hypotheses (falsifiable, and the paper is interesting either way)
 
