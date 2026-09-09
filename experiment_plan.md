@@ -10,14 +10,36 @@ Last updated 2026-09-08. Every decision is attributed and dated; nothing here is
 
 ## 1. The rule above the design
 
-**No agent may change the scope or the number of experiments to save time, money, tokens or
-wall-clock.** The budget is sufficient (AM, 2026-09-06). If a cell is genuinely impossible — corpus
-unobtainable, licence refused, service down — **stop and report it**, naming the cell and the
+### The design is AM's
+
+**No axis, level, corpus, metric, attack or corpus role is added, removed or redefined without AM's
+explicit decision, recorded here with a date.** This binds in both directions: inventing a factor is
+as much a change as dropping one.
+
+If a cell cannot be run because the data or the service does not exist — corpus unobtainable, licence
+refused, annotation absent, backend down — **stop, and record it in §19**, naming the cell and the
 obstacle. Do not substitute, do not silently narrow, do not run "a representative subset".
 
-Sampling is *not* an exception to this: sampling rates are a **declared experimental parameter**
-(§13), chosen for statistical and structural reasons and recorded with every result — never chosen to
-make a run finish.
+Sampling is part of the design, not an exception to it: rates are fixed before a run and recorded
+with every result (§13).
+
+### This file is not edited without AM's explicit approval
+
+**Approval is given before the edit, never after.** An agent proposes the change — quoting the
+passage, stating what is wrong, offering the replacement — and then waits. It does not edit and
+report.
+
+**Approval is never assumed from a statement by AM.** It is not implied by AM asking about a passage,
+criticising it, calling it outdated or wrong, approving a different change that resembles this one,
+or saying anything from which an agent infers consent. Approval is AM approving *this* change. If
+AM's answer is ambiguous, ask again; do not resolve the ambiguity in favour of editing.
+
+### There is one plan document
+
+**This one. No further plan, specification, design note or requirements document is to be created**,
+under any name, in any directory. Requirements written elsewhere drift out of step and then
+contradict this file — which is what happened to `PLAN.md` and to `data/metacorpus.md`, and is how an
+invented axis and a five-level tier taxonomy came to sit in the design for three days.
 
 ---
 
