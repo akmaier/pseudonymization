@@ -437,6 +437,22 @@ one redistributable artefact. Ship converters, a manifest with checksums, and a 
 | **CodEAlltag_S carries realistic surrogates** — its README: privacy-sensitive spans were annotated manually, then *"substituting them with realistic surrogates automatically"* | read from the release, not inferred; bounds where A1/A2 transfer (§4) |
 | **The CodEAlltag formality scores were Git-LFS pointers**, not data — the cluster has no `git-lfs` | fetched over `media.githubusercontent.com`; all eight document-level files now present. The adapter refuses to read a stub as "no scores" |
 
+**Provenance audit, 2026-09-09** — five corpora, each read against its own specification and then
+checked against the data, each audit adversarially challenged:
+
+| finding | consequence |
+|---|---|
+| **CARDIO:DE person tokens are the de-identifier's own IOB output**, shaped `<letter>-<CLASS>`: 22,531 tokens, 89 types, **11 distinct strings in the person slot** across 400 letters; the rarest still occurs in 386 of them, and one string fills the patient slot in 384 | **A1 and A2 are impossible here**, not weak — no dictionary to look up, no distribution to match. A naive cross-document linker links all 400 letters to each other and returns a spuriously perfect rate. Reported as impossible per §0, never substituted |
+| **62–83 % of every model's CARDIO:DE spans land inside a `<[Pseudo] …>` marker**; 95.7–98.9 % of PERSON spans land on a tag | CARDIO:DE PERSON detection measures artefact-spotting. The one supportable cell is DATETIME against the marker layer (F1 0.678–0.888), a valid within-corpus model ranking and an invalid cross-corpus F1 |
+| **CARDIO:DE dates**: admission years span 2019–2519; 70 of 400 letters state ages of 280–459; the per-document offset is constant (age reproduced in 400/400) | within-document intervals and orderings are intact and usable; absolute dates and any model-judged plausibility are not |
+| **CodEAlltag surrogates were drawn frequency-independent by construction** — measured surname Zipf slope **−0.335** against a natural ≈ −1; given names near-uniform from a closed list of 975; **0 `.de`, 0 `.com`, 0 real freemail** among all 56 pS e-mail addresses | A2 is weakened rather than void — the given-name head is at natural concentration, the surname head flattened ~7× |
+| **Enron gold is 44.3 % artefact**: `Mail`, `mail`, `info`, `eren` admitted as person entities; 26.6 % of gold spans matched mid-word (`Mail` inside `JavaMail`) because grounding uses `str.find` without a word boundary | fixable in the adapter at **zero detector cost** — gold is recomputed at scoring time. No Enron P/R/F1 may be quoted before it is |
+| **Enron surface**: 45.7 % of characters are RFC-822 headers, 51.4 % of gold PERSON mentions sit in the header block, 58.0 % of long-body character mass is duplicate, 13.0 % of documents have an empty body | the head of Enron's name distribution is mailbox owners stamped mechanically into every message |
+| **TAB**: applicants named verbatim in 1,242/1,268; court-anonymised cases excluded at selection. But the applicant's surname occurs **once** in 69.2 % of judgments while *"the applicant"* occurs a median of 17 times, and 79.6 % of PERSON mentions are agents, judges and counsel | A2 on TAB scores mostly non-protected persons unless scored against the applicant |
+| **OntoNotes was not de-identified at all** — exhaustive documentation grep and a 5,994-document pattern scan both return zero. Surname Zipf −0.925 against a US-Census −0.918 | but Spearman ρ with census frequency is 0.263: a newswire-celebrity distribution, real but not population-representative |
+| **No corpus is both identifier-real and surface-real.** OntoNotes is Penn-Treebank tokenised throughout, Chinese space-segmented, Arabic 82.6 % diacritised; Enron is real identifiers inside a processed archive dump | a limitation to state, not a reason to withdraw anything |
+| **H1b's stated mechanism is not the measured one** | see §10 |
+
 **Unresolved:** the fair A3-vs-A5 comparison on identical galleries (A5's entity-disjoint split gives
 it a smaller gallery, so the deterministic 1.04× sits inside that confound).
 

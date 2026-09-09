@@ -163,7 +163,7 @@ combination rules), the corpora and their roles, the three stability metrics, th
 protocol, the five attacks, the statistical protocol and the sampling schemes are **all specified in
 [`experiment_plan.md`](experiment_plan.md)**. They are deliberately not repeated here.
 
-Two design commitments belong to the argument rather than to the specification, and so are stated
+One design commitment belongs to the argument rather than to the specification, and so is stated
 here:
 
 **Frozen defenders, trained attackers.** The defence is measured as it is deployed — no model is
@@ -171,11 +171,6 @@ fine-tuned by us, because a detector trained on a corpus's own split has already
 then protect. The attacker, by contrast, is made as strong as we can make it: A5 is the study's only
 trained model. A leakage number is only meaningful against the best adversary available, and the
 A5 − A3 gap is what learning buys that adversary.
-
-**Three stability numbers, never one.** Collision, fragmentation and drift must each be read against
-the policy in force, because what is a defect under one policy is the definition of another. Drift is
-a failure under a deterministic policy and the whole point of a document-randomised one. Reporting a
-single "stability rate" across policies is a category error.
 
 ## Enron is in — decided, with safeguards
 
@@ -208,24 +203,15 @@ following hold, which cost the study nothing:
 ## Hypotheses (falsifiable, and the paper is interesting either way)
 
 - **H1** Under a deterministic policy, A2 succeeds regardless of technique — hash and HMAC leak
-  comparably. *Consequence: the field optimises the wrong axis.*
-  **Measured 2026-09-07 and split in two:**
-  **H1a — stands.** The frequency signal survives *completely and identically* across all five
-  techniques: Spearman ρ = 1.000 on both TAB and Enron, spread across techniques 0.000–0.008 in every
-  run. This is a function of the mapping over co-reference gold and is unaffected by the corpus
-  provenance findings below.
-  **H1b — must be re-derived before it goes in the paper.** As first written it read: *whether that
-  signal identifies anyone is a property of the corpus's frequency skew*, evidenced by A2 top-1 0.013
-  on TAB against 0.201 on Enron. The 2026-09-09 provenance audit showed that is not the measured
-  mechanism. On TAB the applicant's surname occurs **once** in 69.2 % of judgments while the role noun
-  *"the applicant"* occurs a median of 17 times, and 79.6 % of PERSON mentions are agents, judges and
-  counsel rather than the protected person. On Enron **51.4 % of gold mentions sit in the RFC-822
-  header block**, where a mailbox owner's name is stamped mechanically into every message, and 58.0 %
-  of long-body character mass is duplicated. The contrast is therefore between *named-once-then-called-
-  a-role* and *stamped-into-every-header-and-duplicated*, which is document genre on one side and an
-  artefact of our own header-derived annotation on the other — not two natural skews. The finding may
-  well survive restatement, but it must be re-derived on cleaned Enron mentions and on TAB scored
-  against the applicant.
+  comparably. *Consequence: the field optimises the wrong axis.* Split in two once measured:
+  - **H1a — the frequency signal is technique-independent.** *Supported.* It survives completely and
+    identically across all five techniques, on both corpora tested. This is a property of the mapping
+    read against co-reference gold, so no corpus-provenance finding touches it.
+  - **H1b — whether that signal *identifies* anyone is a property of the corpus, not the function.**
+    *Needs re-derivation before it goes in the paper.* The direction held on the first measurement,
+    but the provenance audit showed the mechanism was not the one claimed: what looked like two
+    natural frequency skews is document genre on one side and an artefact of our own header-derived
+    annotation on the other. The claim may well survive restatement on repaired gold; it may not.
 
 - **H2** Detector recall dominates total leakage: a missed name leaks fully whatever the function.
   Measurable by comparing each detector — including the ensemble — against the gold-span oracle.
@@ -239,34 +225,27 @@ following hold, which cost the study nothing:
   throughout, so the surrogate form is compared at fixed model weights and no training confound
   enters.
 
-## What the corpora can and cannot carry — measured, 2026-09-09
+## What the corpora can and cannot carry
 
-A five-corpus provenance audit read each release's own specification and checked it against the data.
-Three findings bear directly on the claims above and belong in the paper's limitations rather than in
-a footnote.
+A provenance audit read each release's own de-identification specification and checked it against the
+data. Three consequences are arguments the paper has to make; the measurements behind them are in
+[`experiment_plan.md`](experiment_plan.md) §9 and are not restated here.
 
-**No corpus is simultaneously identifier-real and surface-real.** OntoNotes has the most untouched
-identifiers and the least natural text — Penn Treebank tokenisation throughout, Chinese segmented by
-spaces, Arabic 82.6 % diacritised. Enron has real identifiers inside a processed archive dump: 45.7 %
-of the characters an LLM receives are RFC-822 headers and 58.0 % of long-body mass is duplicate. The
-study measures pseudonymisation on text that is in every case *some* remove from deployment, and it
-should say so.
+**No corpus is simultaneously identifier-real and surface-real.** The corpora with the most untouched
+identifiers have the most processed text, and the one with the most natural text has the most
+processed identifiers. Every result in this study is therefore measured at some remove from
+deployment, and the paper should say which remove rather than imply none.
 
-**Two of the five corpora were already pseudonymised, and to a degree that voids their leakage
-cells.** CARDIO:DE's person, institution and contact tokens were replaced not with surrogates but
-with the de-identification tagger's own IOB output — **11 distinct strings in the person slot across
-400 letters**, the rarest of which still occurs in 386 of them. A1 has nothing to look up and A2 has
-no distribution; a naive cross-document linker links all 400 letters to each other and returns a
-spuriously perfect rate. CodEAlltag's surrogate names were drawn *frequency-independent* by
-construction (measured Zipf slope −0.335 against a natural ≈ −1). Per `experiment_plan.md` §0 these
-are reported as impossible cells, named with their obstacle, and never substituted.
+**Two corpora were already pseudonymised, to a degree that voids their leakage cells.** Where the
+prior de-identification collapsed an identifier class onto a handful of constants, there is nothing
+for a dictionary or a frequency attack to consume, and a linkage attack inverts rather than fails —
+it links everything to everything. Per `experiment_plan.md` §0 those cells are reported as
+impossible, named with their obstacle, and never substituted by a proxy.
 
-**The claim that TAB, OntoNotes and Enron carry "real names in a natural frequency distribution" is
-one sentence doing two jobs.** All three carry real names; none carries an unqualified natural
-frequency distribution. OntoNotes is a newswire-celebrity distribution (Spearman ρ with census
-frequency 0.263). TAB's protected persons are named once. Enron's head is mailbox owners stamped into
-headers. The shape survives; the head does not. Where a result depends on the head — A1's frequency
-banding above all — that must be stated.
+**"Real names in a natural frequency distribution" is one sentence doing two jobs.** All three
+tier-one corpora carry real names; none carries an unqualified natural frequency distribution. The
+*shape* of the distribution survives in all three; the *head* survives in none, for a different
+reason in each. Results that depend on the head — A1's frequency banding above all — must say so.
 
 ## Deliverables
 
@@ -276,20 +255,13 @@ no new detector: the contribution is the axis nobody varied.
 
 ## Open questions
 
-- ~~Balance implies capping~~ — **settled (AM, 2026-09-08).** Size is a *reported parameter*, not
-  something to balance away. Corpora that support all three measurements (TAB, OntoNotes, Enron)
-  carry the full design, with Enron triaged to **10 %**; corpora that support only utility
-  (CodEAlltag, CARDIO:DE, BRONCO150) carry **utility alone**, triaged to a comparable size, and are
-  framed as a task-domain investigation rather than a full screen. **Enron uses one scheme, `subject` @ 0.10** (AM, 2026-09-08): two schemes are two document
-  sets, and detection would have to cover their union. See `experiment_plan.md` §5.
 - Is the full A×B×C×D×D′×E factorial affordable, or do we fix a sensible default per axis and vary one
   at a time around it? Compute is available; annotation-limited corpora may not support every cell.
   **This remains AM's to decide and no agent may settle it** by default, by omission, or by starting
   small. (Axis F was struck on 2026-09-08 and is not part of the design.)
-- **There is no scorable German detection cell.** CARDIO:DE supports DATETIME against its own marker
-  layer and nothing else; CodEAlltag releases no spans; BRONCO150 has not arrived. Every German
-  detection claim currently rests on nothing, and this is an acquisition problem, not a reason to
-  drop the language.
+- **The study has no scorable German detection cell**, so it cannot presently make a German detection
+  claim at all. That is an acquisition problem, not a reason to drop the language — what exists and
+  what would fill it is in `experiment_plan.md` §10.
 - Does the **2026 revision of ISO 25237** change any recommendation we would make? Somebody needs a
   copy — it is not open access.
 - Ensemble composition: which LLMs, and is the combination rule fixed across languages or tuned per
