@@ -275,13 +275,13 @@ under full randomisation, while the Enron tasks that depend on the same person r
 messages degrade under both. Leakage moves the opposite way, measured by A2, A3 and A5 across the
 three policies.
 
-**H4 — matching a surrogate to the attributes of the name it replaces buys utility and costs
-privacy.** Gender and locale matching keeps the text coherent for a downstream model; frequency
-matching additionally preserves the distribution a distributional attack consumes. No published
-surrogate generator matches frequency (§4), so that level is new and its cost is unmeasured. Measured
-by the task scores against the opaque-tag and realistic levels (§8.3) and by A2 and A4 (§8.4).
-*Prediction: attribute matching raises task scores and raises A2 top-1, with frequency matching
-raising it most.*
+**H4 — matching a surrogate to the frequency of the name it replaces buys utility and costs
+privacy.** A realistic surrogate keeps the text plausible for a downstream model; a frequency-matched
+one additionally preserves the distribution a distributional attack consumes. No published surrogate
+generator matches frequency (§4), so that level is new and its cost is unmeasured. Measured by the
+task scores against the opaque-tag and realistic levels (§8.3) and by A2 and A4 (§8.4). *Prediction:
+realistic surrogates raise task scores over opaque tags, and frequency matching raises A2 top-1
+further while adding little or no further utility — that is, it costs privacy for nothing.*
 
 **H5 — pseudonym stability is measurable, and its failures are systematic rather than random.**
 Collision, fragmentation and drift (§8.2) are functions of the mapping and the key normaliser, not of
@@ -311,11 +311,11 @@ it was measured on.*
 | **key normaliser** | N0 raw · N1 casefold · **N2 + strip titles/punctuation (default)** · N3 + drop initials · N4 last token only | Chosen from data: on TAB these trace a monotone collision–fragmentation frontier *before any cryptography*. Run as a reported sub-axis |
 | **A. policy** | deterministic · document-randomised · fully-randomised | ENISA's three. Implemented purely as a **scoping rule** on the entity key |
 | **B. technique** | counter · RNG+mapping table (**both** with- and without-replacement) · SHA-256 hash · HMAC-SHA256 · **AES-SIV** | AES-SIV is the deterministic encryption level; FF1 is **cited, not run** — its format preservation is a surrogate-form property and would confound B with C |
-| **C. surrogate form** | opaque tag · realistic · attribute-matched (gender/locale/frequency) | Realistic and attribute-matched draw from the gazetteers in §14 |
-| **D. detector pool** | Presidio (rule) · GLiNER (zero-shot) · `obi/deid_roberta_i2b2` (public fine-tuned de-ID) · CodEAlltag `privacy_tagger` (domain, German e-mail) · ≥2 gateway LLMs · **gold spans (oracle)** | **No detector is trained by us.** One fine-tuned on a corpus's own split has seen the entities we then protect, inflating its recall and confounding everything downstream |
+| **C. surrogate form** | opaque tag · realistic · **frequency-matched** | Realistic draws a locale-appropriate name from the gazetteers (§14) — locale is a correctness requirement, not a variable, since a Chinese document cannot receive an English name. Frequency-matched additionally draws from the frequency-weighted inventory, and is its own level because no published generator does it (§4) |
+| **D. detector pool** | Presidio (rule, spaCy backbone) · GLiNER (`gliner_multi-v2.1`, `gliner_multi_pii-v1`) · `obi/deid_roberta_i2b2` and `StanfordAIMI/stanford-deidentifier-base` (public fine-tuned de-ID) · `Davlan/xlm-roberta-large-ner-hrl` (multilingual NER) · CodEAlltag `privacy_tagger` (domain, German e-mail) · gateway LLMs · **gold spans (oracle)** | **No detector is trained by us.** Software and weights are on the cluster (§14) |
 | **D′. combination rule** | *span-level:* union · vote(k) · intersection · weighted vote · cascade — *token-level:* per-token BIO voting (ROVER analogue) | Swept over **subsets** of the pool, with `require=` pinning so **LLMs-only** and **LLMs + ≥1 classical** are compared on equal footing |
 | **E. corpus** | see §11 | Roles differ: full vs utility-only |
-| **sampling rate** | 0.01 · 0.05 · 0.10 · 0.25 · 1.0 where affordable | **Size is a reported parameter** (AM, 2026-09-08), not something to balance away |
+| **sampling rate** | fixed per corpus before the run and recorded with every result (§13) | Enron is `subject` @ 0.10 as a single scheme (AM, 2026-09-08). Where a corpus is run at more than one rate the sweep is 0.01 · 0.05 · 0.10 · 0.25 · 1.0; §13 says which corpora carry it. **Size is a reported parameter**, not something to balance away |
 
 ### 7.1 Why the corpora are one assembly, and why the oracle level exists
 
@@ -382,6 +382,13 @@ GLiNER (zero-shot), the CodEAlltag `privacy_tagger` on the German e-mail arm, tw
 LLMs individually, and gold spans; the rules carry at least union, majority vote and weighted vote.
 
 ---
+
+**`privacy_tagger` is included deliberately as an overfitting probe** (AM, 2026-09-09). It was
+fine-tuned on 3,000 pseudonymised CodEAlltag e-mails, so on CodEAlltag it has already seen the
+substitutions it is asked to find. Running it there *and* on German text it has not seen measures how
+much a corpus-trained detector inflates its own recall — a number the field assumes and nobody
+reports. Its README concedes the mechanism from the other side: *"ORG, CITY, URL and EMAIL currently
+do not get recognized well due to their replacements in the pseudonymized texts."*
 
 **Why the factorial is affordable.** A, B and C compose rather than multiply: the policy is a scoping
 rule, the technique a keyed map to an integer, the surrogate form a rendering of that integer. Three
