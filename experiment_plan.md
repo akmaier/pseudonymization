@@ -8,7 +8,20 @@ Last updated 2026-09-08. Every decision is attributed and dated; nothing here is
 
 ---
 
-## A. Standards — and one was revised this year
+## 1. The rule above the design
+
+**No agent may change the scope or the number of experiments to save time, money, tokens or
+wall-clock.** The budget is sufficient (AM, 2026-09-06). If a cell is genuinely impossible — corpus
+unobtainable, licence refused, service down — **stop and report it**, naming the cell and the
+obstacle. Do not substitute, do not silently narrow, do not run "a representative subset".
+
+Sampling is *not* an exception to this: sampling rates are a **declared experimental parameter**
+(§13), chosen for statistical and structural reasons and recorded with every result — never chosen to
+make a run finish.
+
+---
+
+## 2. Standards — and one was revised this year
 
 | | |
 |---|---|
@@ -21,7 +34,7 @@ Last updated 2026-09-08. Every decision is attributed and dated; nothing here is
 
 Publishing against a standard revised in **June 2026** is a good position for a workshop paper.
 
-## B. ENISA's technique taxonomy — the source of axes A and B
+## 3. ENISA's technique taxonomy — the source of axes A and B
 
 Quoted/paraphrased from the 2021 report, §"pseudonymisation techniques":
 
@@ -41,7 +54,7 @@ Quoted/paraphrased from the 2021 report, §"pseudonymisation techniques":
 
 None of that trade-off has been measured empirically on real text. That is the opening.
 
-## C. What already exists — the pieces, never assembled
+## 4. What already exists — the pieces, never assembled
 
 **Detection is solved and crowded.** REDACT (arXiv 2606.19881, 2026) — 25 languages, 9 scripts, 51
 entity types, domain as a controlled axis, five detectors across rule/NER/LLM families. PIIBench
@@ -70,7 +83,7 @@ multilingual *clinical*, ten languages. Plus MEDDOCAN (es), i2b2/n2c2 (en), CARD
 **The thesis has a precedent worth citing rather than hiding:** *Automatic end-to-end
 De-identification: Is high accuracy the only metric?* (arXiv 1901.10583, 2019).
 
-## C.1 The gap, stated precisely
+### 4.1 The gap, stated precisely
 
 1. **Nobody treats the pseudonymisation function as the independent variable.** The field varies the
    *detector* and holds replacement fixed. ENISA gives five techniques and a qualitative verdict on
@@ -84,7 +97,7 @@ De-identification: Is high accuracy the only metric?* (arXiv 1901.10583, 2019).
    on arXiv returns almost entirely **blockchain** work; the term is taken. That is part of why the
    question is under-served.
 
-## C.2 E-mail as a domain — yes, there are corpora
+### 4.2 E-mail as a domain — yes, there are corpora
 
 AM, 2026-09-06: **public data only**, no group data in this paper. That removes the Datenschutz
 dependency and makes the whole study releasable. E-mail is a good second domain for exactly that
@@ -132,9 +145,9 @@ matters most is the worst-detected one.** Everything downstream — surrogate as
 consistency, collision rate, leakage — is built on a 0.40-F1 foundation, and nobody has measured what
 that does end to end.
 
-## D. The thesis
+## 5. The thesis
 
-ENISA states the tension and never measures it (2021 report, §2, on pseudonymisation **policies**):
+ENISA states the tension and never measures it (2021 report, §8, on pseudonymisation **policies**):
 
 > *"fully-randomised pseudonymisation offers the best protection level but prevents any comparison
 > between databases. Document-randomised and deterministic functions provide utility but allow
@@ -149,7 +162,7 @@ fully-randomised) dominates both residual risk and utility loss, while the *cryp
 — the axis practitioners actually agonise over — is close to irrelevant under a deterministic policy,
 because the effective attack is distributional, not cryptanalytic.
 
-## E. Hypotheses (falsifiable, and the paper is interesting either way)
+## 6. Hypotheses (falsifiable, and the paper is interesting either way)
 
 - **H1** Under a deterministic policy, A2 succeeds regardless of technique — hash and HMAC leak
   comparably. *Consequence: the field optimises the wrong axis.*
@@ -172,63 +185,20 @@ because the effective attack is distributional, not cryptanalytic.
   throughout, so the surrogate form is compared at fixed model weights and no training confound
   enters.
 
-## F. Enron is in — decided, with safeguards
-
-**AM, 2026-09-07: Enron is included, and the ethics point is made explicitly in the paper.**
-
-The reasoning, recorded because the paper has to state it: excluding Enron protects nobody. The
-corpus stays public, the field keeps citing it silently, and the people in it are no safer. What
-exclusion would cost is concrete — it is the only public e-mail corpus with real names in a natural
-frequency distribution, the same people recurring across thousands of messages, a genuine downstream
-task, and a real public auxiliary record to link against. E-mail is a required domain (AM,
-2026-09-06), and no other English e-mail corpus supplies those four.
-
-The attack target is **our own pipeline output**, not the corpus. We pseudonymise Enron ourselves and
-then invert *our* pseudonyms; recovering a name that has sat on a public web server for twenty years
-discloses nothing new. Marginal harm is what matters, and it is close to zero — provided the
-following hold, which cost the study nothing:
-
-1. **No real name from the corpus appears anywhere** in the paper, figures, tables, appendices or
-   released artefacts. Attacks are reported as aggregate rates only.
-2. **No released artefact re-exposes PII** — no mapping tables, no worked inversions, no example
-   documents reproduced verbatim.
-3. **A4 is scored against the corpus surface form**, not against external knowledge of the person,
-   and is **stratified by public-figure status**.
-4. **The 2020 audit is cited** (arXiv 2001.10374, 50,000 previously unreported PII instances) and the
-   position is stated in the paper rather than left implicit.
-5. **One written check with the FAU DPO.** Public US data processed in the EU for research is routine
-   under GDPR Art. 89, but "it is public" is not itself a lawful basis. Ask once, in writing, cite
-   the answer.
-
----
-
-## 0. The one rule above the design
-
-**No agent may change the scope or the number of experiments to save time, money, tokens or
-wall-clock.** The budget is sufficient (AM, 2026-09-06). If a cell is genuinely impossible — corpus
-unobtainable, licence refused, service down — **stop and report it**, naming the cell and the
-obstacle. Do not substitute, do not silently narrow, do not run "a representative subset".
-
-Sampling is *not* an exception to this: sampling rates are a **declared experimental parameter**
-(§5), chosen for statistical and structural reasons and recorded with every result — never chosen to
-make a run finish.
-
----
-
-## 1. Factors
+## 7. Factors
 
 | axis | levels | notes |
 |---|---|---|
 | **key normaliser** | N0 raw · N1 casefold · **N2 + strip titles/punctuation (default)** · N3 + drop initials · N4 last token only | Chosen from data: on TAB these trace a monotone collision–fragmentation frontier *before any cryptography*. Run as a reported sub-axis |
 | **A. policy** | deterministic · document-randomised · fully-randomised | ENISA's three. Implemented purely as a **scoping rule** on the entity key |
 | **B. technique** | counter · RNG+mapping table (**both** with- and without-replacement) · SHA-256 hash · HMAC-SHA256 · **AES-SIV** | AES-SIV is the deterministic encryption level; FF1 is **cited, not run** — its format preservation is a surrogate-form property and would confound B with C |
-| **C. surrogate form** | opaque tag · realistic · attribute-matched (gender/locale/frequency) | Realistic and attribute-matched draw from the gazetteers in §6 |
+| **C. surrogate form** | opaque tag · realistic · attribute-matched (gender/locale/frequency) | Realistic and attribute-matched draw from the gazetteers in §14 |
 | **D. detector pool** | Presidio (rule) · GLiNER (zero-shot) · `obi/deid_roberta_i2b2` (public fine-tuned de-ID) · CodEAlltag `privacy_tagger` (domain, German e-mail) · ≥2 gateway LLMs · **gold spans (oracle)** | **No detector is trained by us.** One fine-tuned on a corpus's own split has seen the entities we then protect, inflating its recall and confounding everything downstream |
 | **D′. combination rule** | *span-level:* union · vote(k) · intersection · weighted vote · cascade — *token-level:* per-token BIO voting (ROVER analogue) | Swept over **subsets** of the pool, with `require=` pinning so **LLMs-only** and **LLMs + ≥1 classical** are compared on equal footing |
-| **E. corpus** | see §4 | Roles differ: full vs utility-only |
+| **E. corpus** | see §11 | Roles differ: full vs utility-only |
 | **sampling rate** | 0.01 · 0.05 · 0.10 · 0.25 · 1.0 where affordable | **Size is a reported parameter** (AM, 2026-09-08), not something to balance away |
 
-### 1.1 Why the corpora are one assembly, and why the oracle level exists
+### 7.1 Why the corpora are one assembly, and why the oracle level exists
 
 **On the meta corpus (axis E) and provenance (axis F).** AM, 2026-09-06: rather than pick corpora
 one at a time, assemble a **single balanced meta corpus** spanning tasks and languages in one unified
@@ -254,7 +224,7 @@ The **gold-spans** level of D is essential: it separates *detector* error from *
 error, which no prior work does. Everything downstream is otherwise confounded by a 0.40-F1 name
 detector.
 
-### 1.2 The ensemble, and why the pool and the rule are separate axes
+### 7.2 The ensemble, and why the pool and the rule are separate axes
 
 **On the ensemble (axes D and D′).** In the group's own testing an ensemble outperformed every
 single detector — but **that ensemble combined large language models only** (AM, 2026-09-07). Whether
@@ -300,14 +270,14 @@ small interfaces, not forty-five pipelines.
 
 ---
 
-## 2. Measurements
+## 8. Measurements
 
-### 2.1 Detection
+### 8.1 Detection
 
 P/R/F1 per entity type, **PERSON and LOCATION reported separately** because those carry the stability
 requirement. Recall is the privacy metric, precision the utility metric.
 
-### 2.2 Stability — three numbers, never one
+### 8.2 Stability — three numbers, never one
 
 Functions of the mapping plus co-reference gold. **Each must be read against the policy in force**,
 because what is a defect under one policy is the definition of another:
@@ -321,7 +291,10 @@ because what is a defect under one policy is the definition of another:
 Reporting a single "fragmentation rate" across policies is a category error. The policy is recorded
 alongside every number.
 
-### 2.3 Utility — frozen models, task-based, no single scalar
+Both collision and fragmentation need **co-reference-resolved gold**, which is why TAB matters: it
+annotates co-reference and confidential attributes, not just categories.
+
+### 8.3 Utility — frozen models, task-based, no single scalar
 
 **No training anywhere in the study** (AM, 2026-09-08). Not an economy: a TrustFMI audience prompts a
 foundation model over a corpus rather than fine-tuning an encoder on one, so **degradation at fixed
@@ -357,6 +330,13 @@ never silently averaged away.
 - **Benjamini–Hochberg** across the comparison family. Dozens of conditions per task produce
   spurious significance by construction otherwise.
 
+**Co-reference is the sharpest of these**, and it was previously buried as a proxy. Fragmentation
+*is* chain breakage: a resolver's CoNLL F1 on pseudonymised text measures the utility cost of exactly
+the failure the stability metrics count, on the same documents. It ties §8.2 to §8.3 directly, which
+no prior work does.
+
+The Enron folder task is Klimt & Yang's (ECML 2004), scored zero-shot against the mailbox folder.
+
 Two task-independent proxies — LM perplexity shift and embedding drift — are **sanity signals only**.
 They always show that something changed and never show whether anything useful was lost.
 
@@ -368,7 +348,7 @@ by definition and belongs in future work.
 from memory rather than from the text. Control with the same public-figure stratification A4 uses,
 plus a no-context condition.
 
-### 2.4 Leakage — five attacks
+### 8.4 Leakage — five attacks
 
 | | attack | applies to | scored as |
 |---|---|---|---|
@@ -377,6 +357,19 @@ plus a no-context condition.
 | **A3** | structural linkage (fixed cosine over entity profiles); on Enron the **~184-employee org chart** is the public auxiliary record to link against | all | Rank-1 / Rank-5 / mAP |
 | **A4** | LLM re-identification | all | **ranked candidate list** — see below |
 | **A5** | learned relational re-identification | all | Rank-1 / Rank-5 / mAP |
+
+**Stated predictions, so the hypotheses can fail.** A1: hash inverts almost completely for short
+frequent names, HMAC resists. A2: **indifferent to the cryptographic technique** — if it succeeds it
+shows the crypto axis is the wrong thing to optimise. A5: strong under deterministic, weaker under
+document-randomised, failing under fully-randomised, and flat across all five techniques; if that
+holds, **the stability requirement is itself the vulnerability**.
+
+**A5 is the text analogue of Packhäuser et al.**, *Deep learning-based patient re-identification …*
+(Sci Rep 2022, `10.1038/s41598-022-19045-3`), which showed that images believed de-identified are
+not. It attacks what pseudonymisation cannot remove: the name is replaced, the profile is not.
+
+**A4 is scored as recovery of the surface form already present in the corpus**, never as inference of
+new facts about an individual — see the Enron safeguards.
 
 **A1 refuses to score keyed techniques and non-deterministic policies, and says why.** Without the
 key there is nothing for the attacker to compute; reporting "HMAC resisted the dictionary attack"
@@ -402,88 +395,7 @@ adversary. The **A5 − A3 gap measures what learning buys the adversary**.
    released corpus are the same documents, differing only in replaced spans, and the attack matches
    a corpus against itself. **This was violated in the first run and inflated Rank-1 by 0.29.**
 
-### 2.5 The reasoning behind the measurements, as first recorded
-
-Kept verbatim from the earlier plan. It states *why* each measurement is the one chosen, which §2.1
-to §2.4 above do not, and it carries citations that exist nowhere else.
-
-### Measurements
-
-**1. Detection** — P/R/F1 per entity type, reported separately for PERSON and LOCATION since those
-carry the stability requirement. Recall is the privacy metric, precision the utility metric.
-
-**2. Stability** — the axis nobody reports:
-- **collision rate** — distinct real entities sharing a pseudonym ("person 1 confused with person 2")
-- **fragmentation rate** — one real entity receiving several pseudonyms (*Dr. Weber*, *Weber*,
-  *F. Weber* → three), which is the more common failure and hurts utility more
-- both require coreference-resolved gold, which is why **TAB matters** — it annotates co-reference
-  and confidential attributes, not just categories
-
-**3. Utility — measured with frozen models, no training** (AM, 2026-09-08).
-
-The instrument is inference, not fine-tuning. The reason is not cost: **a TrustFMI audience does not
-fine-tune an encoder on a de-identified corpus, it prompts a foundation model over one**, so the
-question that matters is how much pseudonymisation degrades a *frozen* model. Every signal below is
-obtained by running an existing model over the original and the pseudonymised text and comparing.
-
-| signal | method | cost |
-|---|---|---|
-| legal task | ECHR **article classification**, zero-shot, gold labels ship in TAB `meta.articles` | free gateway |
-| e-mail task | Enron **folder classification** (Klimt & Yang 2004), zero-shot | free gateway |
-| clinical task *(if the DUA corpora arrive)* | ICD-10/OPS/ATC coding, medication IE, zero-shot | free gateway |
-| **co-reference** | frozen resolver over original vs pseudonymised, scored against gold chains | CPU/small GPU |
-| NER | frozen multilingual NER, agreement between the two versions | CPU/small GPU |
-| semantic drift | embedding displacement, `multilingual-e5-large` — one model across all six languages | free gateway |
-| fluency | LM perplexity shift, one frozen LM across all cells | small GPU |
-
-**Co-reference is the sharpest of these** and was previously buried as a proxy. Fragmentation *is*
-chain breakage: a resolver's CoNLL F1 on pseudonymised text measures the utility cost of exactly the
-failure the stability metrics count, on the same documents. It ties measurement 2 to measurement 3
-directly, which no prior work does.
-
-**What this gives up, stated plainly:** whether a model *retrained* on pseudonymised text recovers
-its performance. If it does, the field's assumption that de-identification costs utility is a
-domain-shift artefact rather than information loss. That is a real question and it is the one thing
-here that requires training by definition; it is out of scope for this paper and belongs in the
-future-work section rather than being quietly dropped.
-
-**One confound to control.** A frozen LLM may recognise an ECHR case or an Enron thread from its
-training data and answer from memory rather than from the text in front of it. Task scores would then
-measure memorisation, not utility. Mitigation: **stratify by memorisation**, reusing A4's
-public-figure split, and report a no-context control. The same confound is a *result* for A4 and a
-*bias* for utility, and it must not be handled in only one of the two places.
-
-**4. Leakage** — four attacks of increasing knowledge:
-- **A1 dictionary / brute force.** Enumerate a candidate name list (census surnames, gazetteers),
-  apply the pseudonymisation function, match. Directly tests the hash-vs-HMAC question, reported as
-  inversion rate against name frequency and name length. *Prediction: hash inverts almost completely
-  for short frequent names; HMAC resists.*
-- **A2 frequency analysis.** No inversion needed — under a deterministic policy the pseudonym
-  frequency distribution mirrors the real one, so the most frequent pseudonym is the most frequent
-  name. **This attack is indifferent to the cryptographic technique.** If it succeeds, it shows the
-  crypto axis is the wrong thing to optimise.
-- **A3 linkage.** Link pseudonymised documents to each other, and to an auxiliary public record, via
-  co-occurrence structure.
-- **A5 relational re-identification** (AM, 2026-09-08) — the one place a *trained* model is worth
-  building. A learned embedding of the facts and relations around an entity, linking a pseudonymised
-  entity to a known one; the text analogue of Packhäuser et al., *Deep learning-based patient
-  re-identification …* (Sci Rep 2022, `10.1038/s41598-022-19045-3`), which showed that images
-  believed de-identified are not. Attacks what pseudonymisation cannot remove: the name is replaced,
-  the profile is not. Paired with A3 so the **A5 − A3 gap measures what learning buys the adversary**.
-  Rank-1 / Rank-5 / mAP on entity-disjoint splits, on Enron. *Prediction: strong under deterministic,
-  weaker under document-randomised, fails under fully-randomised, and flat across all five
-  techniques.* Corollary if it holds: **the stability requirement is itself the vulnerability**.
-- **A4 LLM re-identification.** Give a modern LLM the pseudonymised document and ask who it is,
-  with and without auxiliary context. This is the threat model of 2026 and the one the workshop cares
-  about. **Scored as recovery of the surface form already present in the corpus**, never as inference
-  of new facts about an individual — see the Enron safeguards below. **Stratified by public-figure
-  status**, because a corpus subject the model has memorised and one it has not are different
-  experiments; that split also tests *Personal Information Parroting in Language Models*
-  (arXiv 2602.20580) directly.
-
----
-
-## 3. Statistics and reporting
+## 9. Statistics and reporting
 
 - Per-document score vectors are the primary artefact; summaries are derived from them.
 - Every result row carries: cell configuration, seed, **sampling scheme + rate**, corpus version,
@@ -491,7 +403,7 @@ public-figure split, and report a no-context control. The same confound is a *re
 - Bootstrap CIs over documents where a CI is wanted.
 - Results are parquet/JSONL artefacts on disk, never numbers in prose.
 
-## 3.1 The unified record schema
+## 10. The unified record schema
 
 One format, one converter per source, nothing else changes downstream. Merged verbatim from
 `data/metacorpus.md` on 2026-09-09, where it was the only place a record shape was ever specified.
@@ -534,10 +446,10 @@ either populate them or declare them null, and a corpus with both null cannot en
 
 ---
 
-## 4. Corpora and their roles
+## 11. Corpora and their roles
 
 A corpus enters the **full** design only if detection, stability **and** utility can be measured on
-the same documents — which is the gap `experiment_plan.md` §C.1 claims nobody has closed.
+the same documents — which is the gap `experiment_plan.md` §4.1 claims nobody has closed.
 
 | corpus | detection | stability | utility | role |
 |---|---|---|---|---|
@@ -574,7 +486,125 @@ person needs their own countersigned agreement before touching corpus, derived f
 
 ---
 
-## 5. Sampling — there is no single fair sample
+## 12. Data preparation — what each corpus needs before it can be used
+
+Established 2026-09-08/09 by running every adapter against the real releases and auditing each
+corpus against its own de-identification specification. Nothing here was visible against synthetic
+fixtures; every item was found by touching the actual data.
+
+**The general lesson, because it cost four restarted runs.** Detection was started four times before
+the corpus underneath it was settled — first on a 1.2 % Enron skim, then on a corpus whose gold turns
+out to be markers, then against a text rendering that is going to be replaced. Detection is the only
+step that costs model time, and it is the step whose input must be frozen first. A corpus is ready
+when its text is decided, its gold is verified against the release, and it is written down which
+measurements it can carry.
+
+### 12.1 Per corpus
+
+**TAB / ECHR.** Text is preprocessed by the release: paragraph numbers stripped in 90.6 % of
+documents, and every judgment truncated after the Statement of Facts (`THE LAW` occurs in 0 of
+1,268). 19.2 % of PERSON mentions — 3,068, in 23.2 % of documents — are the Court's own initials for
+third parties, plus 133 bracketed substitutions and 30 `Mr X` pseudonyms; the applicant is never
+among them and is named verbatim in 1,242 of 1,268. The applicant's surname occurs **once** in 69.2 %
+of judgments while the role noun *"the applicant"* occurs a median of 17 times, and 79.6 % of PERSON
+mentions are agents, judges and counsel. 75.6 % of PERSON co-reference chains are singletons, so
+fragmentation is measurable on 2,122 chains, not on all of them.
+*Defect to fix:* `_annotations()`'s `quality_checked` branch never tests membership in
+`record['quality_checked']` — it rotates to the lexicographically second annotator whenever any
+quality-checked entry exists. Plain `first` is lexicographically biased (annotator10 chosen 309×,
+annotator9 never) and over-annotates by +3.52 mentions per document (t = 5.41, n = 274).
+*Open:* which annotator policy, and whether the applicant should be identified from the record so
+that A2 can be scored against the protected person rather than against all PERSON mentions.
+
+**OntoNotes.** The `.name` and `.coref` layers are pulled from the 900 MB archive in one streaming
+pass; **the directory structure below the language must be preserved**, because document basenames
+collide across genres (`nw/…/ann_0001` and `bn/…/ann_0001` both exist) and flattening silently
+overwrites documents.
+*Defect fixed:* co-reference attached to **zero** of 4,560 layers. The adapter required the two
+layers to strip to identical text, and they never do — `.coref` carries the Penn Treebank null
+elements (`*pro*`, `*T*-1`, `*PRO*`, `*OP*`, the null complementiser `0`) that `.name` has no
+counterpart for, and wraps its body in `<TEXT PARTNO=…>`. Over 102 document pairs, ~27,000 tokens
+appear only in `.coref` against five that appear only in `.name`. Chains are now carried across by
+token alignment, and a span transfers only when every one of its tokens lands in a matched block.
+Result: 4,264 documents with chains, 67,529 mentions in 33,618 chains. The unmappable spans are the
+null elements themselves, which are co-reference mentions in OntoNotes but have no surface in
+`.name`; Chinese has the most, because it drops pronouns systematically.
+Co-reference is usable on **4,294** documents — the 4,560 figure counts `.coref` *files*, 260 of
+which are English pivot text with no `.name` at all.
+*Open:* the text is Penn Treebank tokenised throughout, Chinese segmented by spaces, Arabic 82.6 %
+diacritised and 31.1 % clitic-fragmented. That is not text a deployment sees. Whether to detokenise,
+and at what cost to the gold offsets, is undecided.
+
+**Enron.** The document text is **sender, recipients, names, addresses, subject and body** (AM,
+2026-09-09), with the HTML/ASCII duplication removed. Measured on the shipped sample: headers are
+31.1 % of all characters, 41.3 % of gold PERSON mentions sit in the header block, 55.4 % of body
+characters are byte-duplicates of another message's body, and `Bcc` duplicates `Cc` byte-for-byte in
+20,749 of 20,749 cases.
+*Contamination:* `X-Folder` appears verbatim in 100 % of documents and **is the folder-classification
+label**. The utility task's answer is in its own input.
+*Defect to fix:* the gold is derived from message headers by our own adapter and is 44.3 % artefact —
+`Mail` (70,118), `mail` (72,574), `info` (26,387) and `eren` (23,798) are admitted as person
+entities, and 26.6 % of gold spans are matched mid-word (`Mail` inside `JavaMail`) because grounding
+uses `str.find` with no word-boundary test. Gold is recomputed at scoring time, so repairing it costs
+no detector records — but changing the *text* invalidates every record computed against the old one.
+Enron gold emits only PERSON and EMAIL, so **there is no LOC gold on Enron** and §8.1's
+PERSON-and-LOCATION-separately requirement cannot be met there.
+
+**CodEAlltag.** The release ships **no span annotations**, which is why it is utility-only. Its
+formality scores were **Git-LFS pointers**, not data — the cluster has no `git-lfs`, so a plain
+checkout leaves 130-byte stubs; fetched over `media.githubusercontent.com`. `pXL` is ~1.47 M files in
+shard directories, so a recursive scan over it is expensive and must be bounded. Given names are
+near-uniform draws from a closed list of 975 and surnames were drawn *frequency-independent* by
+construction, so A1 and A2 transfer weakly at best.
+**Check every corpus directory for LFS stubs before counting it as present** — REDACT's real 213 MB
+benchmark was a 134-byte stub by the same mechanism.
+
+**CARDIO:DE.** Every de-identified date is marked in place as `<[Pseudo] 12/03/2019>` — 14,854 in the
+400-letter split, 6.20 % of all characters, one every 320 characters — and the marker wraps nothing
+but dates. That is the corpus's only identifier gold, and it is DATETIME only. Person, institution
+and contact tokens were replaced by the de-identifier's own IOB output, shaped `<letter>-<CLASS>`:
+**11 distinct strings in the person slot across 400 letters**, one of which fills the patient slot in
+384 of them.
+*Alignment rule:* the CAS `sofaString` and the `.txt` are **equal in length and differ in content** —
+every newline in the `.txt` is a space in the attribute, because XML normalises a literal newline
+inside an attribute value. The invariant an offset needs is **equal length, not equal characters**;
+demanding both discarded two letters of 400, one of them over a single capital letter. Where the
+lengths genuinely differ — one letter in 400, whose CAS lacks a newline — the CAS text is used, since
+that is what the annotations were made against.
+*Defect to fix:* `custom:Sectionsentence` marks section **headings**, 4–18 characters, ~62 k of
+4.76 M characters — not sections. A section-classification task built on them scores ~1.3 % of the
+text. Sections must be derived by extending each heading to the next.
+*Also unused:* the Becker extension (`extension/…/json/`) carries a token-level NER layer —
+Diagnosis, Diagnostic, Drug, Medical_Finding, Therapy — that no adapter loads.
+
+### 12.2 Cross-cutting
+
+**Chinese and Arabic are pseudonymised with English surrogates.** `engine.mention_language` reads
+`mention.attributes['language']`, which **no adapter sets**, so it falls back to `"en"`. 1,911
+Chinese and 446 Arabic OntoNotes documents are affected. Non-Latin script is the reason OntoNotes is
+in the study.
+
+**Detector output is not on the harmonised grid.** `alignment.ground_snippets` writes the model's raw
+string into `Span.type` and never sets `type_src`. The cache holds **55 distinct out-of-taxonomy
+labels** — `URL`, `FILE`, `MONEY`, `TIME`, `AGE`, `OTHER`, the typo `PERGSON`, and a literal
+`<[PSEUDO] 15/10/39>` used as a type — across 1.05 % of Enron spans and 0.53 % of CARDIO:DE spans.
+
+**Serialisation loses data.** `_document_record` drops `Span.source` and `Span.score`, so a
+round-tripped corpus cannot say which model produced a span; `_encode` tags dataclasses with
+`__type__` but there is no decoder, so CARDIO:DE's medication and section spans return as plain dicts
+and `span.section_type` raises. There is no round-trip test.
+
+**The detector cache records no text version.** It is keyed `(corpus, detector, doc_id)`. If a
+document's text changes, `done()` skips it and the stale spans are scored against the new text at
+wrong offsets, silently. Records affected by a text change must be **deleted**, not skipped.
+
+**A truncated model reply is indistinguishable from an empty one** unless `finish_reason` is
+recorded. Under a 2,048-token budget one reasoning model returned zero spans on every document it saw
+with no error at all, which an ensemble reads as "found nothing" rather than "never answered". The
+budget is now 16,384 and `finish_reason`, token usage and a truncation count are written with every
+record.
+
+## 13. Sampling — there is no single fair sample
 
 The sampling unit decides which structure survives, and the measurements depend on different
 structures. Measured at rate 0.2 on a synthetic corpus:
@@ -597,17 +627,17 @@ structures. Measured at rate 0.2 on a synthetic corpus:
 
 The per-measurement assignment above was the design, and it is **superseded for Enron**. Two schemes
 are two different document sets, so detection would have to cover their **union** — and Enron is
-already 86 % of the detection budget (§7.4.1). One scheme, and it is `subject`:
+already 86 % of the detection budget (§15.4.1). One scheme, and it is `subject`:
 
 - **Profile completeness cannot be recovered any other way.** 67 % retained per entity against
   `stratified`'s 20 %, measured. A3 and A5 are starved by the alternative; nothing is starved by
   this one.
 - **A2 tolerates it.** Inside a kept mailbox the frequency distribution is *complete*, so pseudonym
   frequency still mirrors real-name frequency. What is lost is statistical power — fewer entities —
-  not the effect, and §5 predicts A2 is robust to rate anyway.
+  not the effect, and §13 predicts A2 is robust to rate anyway.
 - **Detection and utility do not care which documents**, only how many.
 - With one scheme, detection, stability, utility and leakage land on **the same documents**, which is
-  the property §4 claims for Enron in the first place.
+  the property §11 claims for Enron in the first place.
 
 **How it is built** (`experiments/build_enron.py`): Enron cannot be materialised in full anywhere —
 the head node has too little memory, and a full pass on an 18 GB laptop was **killed by memory
@@ -628,7 +658,7 @@ Prediction: A2 robust to rate, A3/A5 not.
 
 ---
 
-## 6. Models and resources — none trained except A5
+## 14. Models and resources — none trained except A5
 
 | role | model |
 |---|---|
@@ -650,9 +680,9 @@ source of the gender attribute) · GeoNames `cities15000` (34,135, CC-BY).
 
 ---
 
-## 7. Compute and job planning
+## 15. Compute and job planning
 
-### 7.1 What the first detection run got wrong — recorded, not hidden
+### 15.1 What the first detection run got wrong — recorded, not hidden
 
 The array submitted on 2026-09-08 was **9 Slurm tasks, one per (corpus, model), each a serial HTTP
 client**: one request in flight, 2.3–25.6 s per document. It therefore held **all 8 of the
@@ -668,10 +698,10 @@ Two planning errors, both to be fixed before anything is resubmitted:
    concurrency in one eighth of the footprint, and leaves the cluster free for GPU work.
 2. **No accounting of the detection surface.** The array covered **3 of the ~10 corpora** and **one
    of axis D's six detector levels**, with no table of what the whole of detection costs — so there
-   was no way to say whether the run was on schedule for 2026-09-25. §7.5 is that table's
+   was no way to say whether the run was on schedule for 2026-09-25. §15.5 is that table's
    precondition list.
 
-### 7.2 Resource classes — they are not interchangeable
+### 15.2 Resource classes — they are not interchangeable
 
 | work | bound by | GPU | job shape |
 |---|---|---|---|
@@ -681,10 +711,10 @@ Two planning errors, both to be fixed before anything is resubmitted:
 | gold spans (oracle level) | nothing | no | free; it is adapter output |
 | pseudonymisation, stability, A1–A3, A5 | CPU | no | minutes |
 
-Mixing the first class into Slurm tasks is what §7.1 got wrong. The third class has **not been
+Mixing the first class into Slurm tasks is what §15.1 got wrong. The third class has **not been
 written yet** and is the real gap in axis D.
 
-### 7.3 Measured LLM throughput — seconds per document, serial
+### 15.3 Measured LLM throughput — seconds per document, serial
 
 From the 1,599 cached records of the cancelled run. These are the numbers any schedule must use;
 they are not estimates.
@@ -700,9 +730,9 @@ they are not estimates.
 Document **length**, not model size, dominates: `gemma-4-31B` ran CodEAlltag at 2.3 s and TAB at
 18.5 s. Any schedule must be per (corpus, model), never a single global rate.
 
-### 7.4 The detection surface, sized — 2026-09-08
+### 15.4 The detection surface, sized — 2026-09-08
 
-Counted from the releases on the cluster. **Only the corpora AM kept** (§4): the synthetic members
+Counted from the releases on the cluster. **Only the corpora AM kept** (§11): the synthetic members
 are out, so they are not in this table and cost nothing.
 
 | corpus | documents | language(s) | note |
@@ -722,11 +752,11 @@ are out, so they are not in this table and cost nothing.
 `.name` at all. Stability on OntoNotes is scored on the ~4,560 documents carrying both layers, and
 **that** number is reported, never the corpus total.
 
-### 7.4.1 What that costs — and where the cost actually sits
+### 15.4.1 What that costs — and where the cost actually sits
 
 Detection is needed on the three **full** corpora (axis D/D′ is scored there) and on CodEAlltag and
 CARDIO:DE (no gold, so detection is the *input* to pseudonymisation rather than something scored).
-Three gateway models, at the measured rates of §7.3:
+Three gateway models, at the measured rates of §15.3:
 
 | corpus | documents | calls | serial hours | share |
 |---|---:|---:|---:|---:|
@@ -742,11 +772,11 @@ Two consequences:
 
 1. **Everything except Enron is affordable today.** 104 h serial is ~7 h at *W* = 16, in one
    allocation. That is a night's work and needs no decision from anyone.
-2. **The Enron rate is the schedule.** §5 already prescribes a **size sweep** — 0.01 / 0.05 / 0.10 /
+2. **The Enron rate is the schedule.** §13 already prescribes a **size sweep** — 0.01 / 0.05 / 0.10 /
    0.25 — with the explicit prediction that A2 is robust to rate and A3/A5 are not. Running the
    sweep *upward* (0.01 → 0.10) is the plan's own design, not a reduction of it: at 0.01 Enron is
    5,170 documents and 65 serial hours, and each higher rate is a further experimental point rather
-   than a repetition. **AM decides where that sweep stops**; no agent may settle it (§0).
+   than a repetition. **AM decides where that sweep stops**; no agent may settle it (§1).
 
 | shape | 104 h (all but Enron) | +Enron @0.01 | +Enron @0.10 |
 |---|---|---|---|
@@ -754,10 +784,10 @@ Two consequences:
 | one allocation, *W* = 16 | **6.5 h** | 10.6 h | 47 h (needs checkpoint + resubmit) |
 | one allocation, *W* = 32 | 3.3 h | 5.3 h | 23 h |
 
-**The runner rewrite in §7.5 is not an optimisation.** Serially, even the 104-hour remainder cannot
+**The runner rewrite in §15.5 is not an optimisation.** Serially, even the 104-hour remainder cannot
 finish inside a 24 h wall clock.
 
-### 7.5 Preconditions before any detection job is resubmitted
+### 15.5 Preconditions before any detection job is resubmitted
 
 1. **`DetectorCache.append` must take a lock.** It is currently correct only because there is one
    writer per file; a thread pool breaks that assumption and would interleave JSONL records.
@@ -765,14 +795,14 @@ finish inside a 24 h wall clock.
    1.3 GB decompression per task.
 3. **Size the whole detection surface first** — OntoNotes (en/zh/ar), CARDIO:DE 400, MEDDOCAN,
    MedDeID, REDACT, AI4Privacy, PIIBench — and put document counts and estimated hours in a table
-   here. Submitting before that table exists is what §7.1 describes.
+   here. Submitting before that table exists is what §15.1 describes.
 4. **Write the classical-detector job.** Four of axis D's six levels have no code and no job.
 5. **Ask AM before submitting.** The cluster is shared with the group and with AM's own work.
 
-### 7.6 Standing cluster rules
+### 15.6 Standing cluster rules
 
 - **Everything resumes.** A killed job re-reads the cache and skips what is recorded; documents that
-  errored are retried rather than frozen into the results. This is what made §7.1 cost nothing.
+  errored are retried rather than frozen into the results. This is what made §15.1 cost nothing.
 - **Slurm limits:** assoc `MaxJobs` = 8; QOS `miti` = 4 concurrent, `turbo` = **10 concurrent, 100
   submitted**, 24 h wall clock. Throttle arrays with `%8` — and prefer *not* to need an array.
 - **The head node is not for jobs.** A 20,000-message load was OOM-killed there; the same load runs
@@ -781,7 +811,37 @@ finish inside a 24 h wall clock.
   runs; a missing directory fails the job with no log at all.
 - `/cluster` is at 95 %. Text corpora are small; do not write model checkpoints.
 
-## 8. Deliverables
+## 16. Enron is in — decided, with safeguards
+
+**AM, 2026-09-07: Enron is included, and the ethics point is made explicitly in the paper.**
+
+The reasoning, recorded because the paper has to state it: excluding Enron protects nobody. The
+corpus stays public, the field keeps citing it silently, and the people in it are no safer. What
+exclusion would cost is concrete — it is the only public e-mail corpus with real names in a natural
+frequency distribution, the same people recurring across thousands of messages, a genuine downstream
+task, and a real public auxiliary record to link against. E-mail is a required domain (AM,
+2026-09-06), and no other English e-mail corpus supplies those four.
+
+The attack target is **our own pipeline output**, not the corpus. We pseudonymise Enron ourselves and
+then invert *our* pseudonyms; recovering a name that has sat on a public web server for twenty years
+discloses nothing new. Marginal harm is what matters, and it is close to zero — provided the
+following hold, which cost the study nothing:
+
+1. **No real name from the corpus appears anywhere** in the paper, figures, tables, appendices or
+   released artefacts. Attacks are reported as aggregate rates only.
+2. **No released artefact re-exposes PII** — no mapping tables, no worked inversions, no example
+   documents reproduced verbatim.
+3. **A4 is scored against the corpus surface form**, not against external knowledge of the person,
+   and is **stratified by public-figure status**.
+4. **The 2020 audit is cited** (arXiv 2001.10374, 50,000 previously unreported PII instances) and the
+   position is stated in the paper rather than left implicit.
+5. **One written check with the FAU DPO.** Public US data processed in the EU for research is routine
+   under GDPR Art. 89, but "it is public" is not itself a lawful basis. Ask once, in writing, cite
+   the answer.
+
+---
+
+## 17. Deliverables
 
 Released **code**, the **full factorial results**, and the **stability–leakage–utility frontier** per
 language and domain — reported **one panel per task**, since a single utility scalar was rejected.
@@ -792,7 +852,7 @@ one redistributable artefact. Ship converters, a manifest with checksums, and a 
 
 ---
 
-## 9. Results so far
+## 18. Results so far
 
 | finding | status |
 |---|---|
@@ -811,10 +871,10 @@ one redistributable artefact. Ship converters, a manifest with checksums, and a 
 | finding | consequence |
 |---|---|
 | **CARDIO:DE marks every de-identified date in place** — `<[Pseudo] 12/03/2019>`, 18,148 occurrences in 500 letters, and the marker wraps **nothing but dates** | the corpus gains a real, narrow **DATETIME gold layer**; the adapter emits it |
-| **CARDIO:DE has almost no semantic placeholders** — 178 `<NONE>`, one `<TIME>`, one `<ORG>` in 5.9 M characters | it is **not** placeholder-masked for persons, as this repo's notes previously assumed. How names were handled is **not stated in the release README** — open item, §10 |
+| **CARDIO:DE has almost no semantic placeholders** — 178 `<NONE>`, one `<TIME>`, one `<ORG>` in 5.9 M characters | it is **not** placeholder-masked for persons, as this repo's notes previously assumed. How names were handled is **not stated in the release README** — open item, §19 |
 | **CARDIO:DE's CAS text and `.txt` are not byte-identical** — same length, agreeing everywhere except that each newline is a space in `sofaString` (XML attribute-value normalisation) | offsets coincide; the adapter keeps the `.txt` and asserts the invariant per letter, dropping and counting any that fail |
 | **CARDIO:DE100 carries no annotations** — the CAS files exist but hold no `custom:` layers | the heldout split supports neither utility task; the adapter defaults to CARDIO:DE400 |
-| **CodEAlltag_S carries realistic surrogates** — its README: privacy-sensitive spans were annotated manually, then *"substituting them with realistic surrogates automatically"* | read from the release, not inferred; bounds where A1/A2 transfer (§4) |
+| **CodEAlltag_S carries realistic surrogates** — its README: privacy-sensitive spans were annotated manually, then *"substituting them with realistic surrogates automatically"* | read from the release, not inferred; bounds where A1/A2 transfer (§11) |
 | **The CodEAlltag formality scores were Git-LFS pointers**, not data — the cluster has no `git-lfs` | fetched over `media.githubusercontent.com`; all eight document-level files now present. The adapter refuses to read a stub as "no scores" |
 
 **Provenance audit, 2026-09-09** — five corpora, each read against its own specification and then
@@ -822,7 +882,7 @@ checked against the data, each audit adversarially challenged:
 
 | finding | consequence |
 |---|---|
-| **CARDIO:DE person tokens are the de-identifier's own IOB output**, shaped `<letter>-<CLASS>`: 22,531 tokens, 89 types, **11 distinct strings in the person slot** across 400 letters; the rarest still occurs in 386 of them, and one string fills the patient slot in 384 | **A1 and A2 are impossible here**, not weak — no dictionary to look up, no distribution to match. A naive cross-document linker links all 400 letters to each other and returns a spuriously perfect rate. Reported as impossible per §0, never substituted |
+| **CARDIO:DE person tokens are the de-identifier's own IOB output**, shaped `<letter>-<CLASS>`: 22,531 tokens, 89 types, **11 distinct strings in the person slot** across 400 letters; the rarest still occurs in 386 of them, and one string fills the patient slot in 384 | **A1 and A2 are impossible here**, not weak — no dictionary to look up, no distribution to match. A naive cross-document linker links all 400 letters to each other and returns a spuriously perfect rate. Reported as impossible per §1, never substituted |
 | **62–83 % of every model's CARDIO:DE spans land inside a `<[Pseudo] …>` marker**; 95.7–98.9 % of PERSON spans land on a tag | CARDIO:DE PERSON detection measures artefact-spotting. The one supportable cell is DATETIME against the marker layer (F1 0.678–0.888), a valid within-corpus model ranking and an invalid cross-corpus F1 |
 | **CARDIO:DE dates**: admission years span 2019–2519; 70 of 400 letters state ages of 280–459; the per-document offset is constant (age reproduced in 400/400) | within-document intervals and orderings are intact and usable; absolute dates and any model-judged plausibility are not |
 | **CodEAlltag surrogates were drawn frequency-independent by construction** — measured surname Zipf slope **−0.335** against a natural ≈ −1; given names near-uniform from a closed list of 975; **0 `.de`, 0 `.com`, 0 real freemail** among all 56 pS e-mail addresses | A2 is weakened rather than void — the given-name head is at natural concentration, the surname head flattened ~7× |
@@ -831,14 +891,14 @@ checked against the data, each audit adversarially challenged:
 | **TAB**: applicants named verbatim in 1,242/1,268; court-anonymised cases excluded at selection. But the applicant's surname occurs **once** in 69.2 % of judgments while *"the applicant"* occurs a median of 17 times, and 79.6 % of PERSON mentions are agents, judges and counsel | A2 on TAB scores mostly non-protected persons unless scored against the applicant |
 | **OntoNotes was not de-identified at all** — exhaustive documentation grep and a 5,994-document pattern scan both return zero. Surname Zipf −0.925 against a US-Census −0.918 | but Spearman ρ with census frequency is 0.263: a newswire-celebrity distribution, real but not population-representative |
 | **No corpus is both identifier-real and surface-real.** OntoNotes is Penn-Treebank tokenised throughout, Chinese space-segmented, Arabic 82.6 % diacritised; Enron is real identifiers inside a processed archive dump | a limitation to state, not a reason to withdraw anything |
-| **H1b's stated mechanism is not the measured one** | see §10 |
+| **H1b's stated mechanism is not the measured one** | see §19 |
 
 **Unresolved:** the fair A3-vs-A5 comparison on identical galleries (A5's entity-disjoint split gives
 it a smaller gallery, so the deterministic 1.04× sits inside that confound).
 
 ---
 
-## 10. Open items
+## 19. Open items
 
 1. **BRONCO150** — no reply from Prof. Leser since 2026-09-07.
 2. **n2c2 2014** — registration closed; ask DBMI when it reopens. Its loss removes clinical
@@ -848,9 +908,9 @@ it a smaller gallery, so the deterministic 1.04× sits inside that confound).
    README does not say what was done to them. Read it out of Richter-Pechanski et al., *Sci Data*
    10, 207 (2023) before making any claim about the corpus's identifiers.
 5. **Where the Enron size sweep stops** — Enron at rate 0.10 is 86 % of the whole detection budget
-   (§7.4.1). The sweep 0.01 → 0.25 is the plan's own design; its upper end is AM's to set.
+   (§15.4.1). The sweep 0.01 → 0.25 is the plan's own design; its upper end is AM's to set.
 6. **Four of axis D's six detector levels have no code** — Presidio, GLiNER, `obi/deid_roberta_i2b2`
-   and `privacy_tagger` are GPU work and are unwritten (§7.2).
+   and `privacy_tagger` are GPU work and are unwritten (§15.2).
 7. **Paper scoping** — which panels fit eight pages.
 8. Is the full A×B×C×D×D′×E×F factorial affordable, or do we fix a sensible default per axis and vary one
    at a time around it? Compute is available; annotation-limited corpora may not support every cell.
@@ -861,6 +921,6 @@ it a smaller gallery, so the deterministic 1.04× sits inside that confound).
     800 donated e-mails without the manual span annotations that were made before substitution. If
     the authors will share them, CodEAlltag gains gold spans — and it is one of only two routes to a
     scorable German detection cell, the other being BRONCO150. Carried over from
-    `data/metacorpus.md` §7, which was rewritten as a corpus list on 2026-09-09.
+    `data/metacorpus.md` §15, which was rewritten as a corpus list on 2026-09-09.
 12. Ensemble composition: which LLMs, and is the combination rule fixed across languages or tuned per
    language? Tuning per language risks overfitting the benchmark.

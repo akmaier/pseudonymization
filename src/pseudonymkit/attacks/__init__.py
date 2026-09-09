@@ -1,4 +1,4 @@
-"""Leakage attacks (experiment_plan.md §2.4).
+"""Leakage attacks (experiment_plan.md §8.4).
 
 A1 inverts by enumeration and is defined only against unkeyed techniques.  A2 needs no inversion at
 all and applies to every technique, which is the whole of H1.  A3 and A5 attack what pseudonymisation
