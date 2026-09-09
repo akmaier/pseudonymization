@@ -104,11 +104,17 @@ not where the risk is**. H1 (§6) states it falsifiably.
 
 ## 4. What already exists
 
-**Detection is crowded, and not solved.** REDACT (arXiv 2606.19881), PIIBench (arXiv 2604.15776),
-MultiGraSCCo (LREC 2026), plus MEDDOCAN (es), i2b2/n2c2 (en), CARDIO:DE and BRONCO (de). But the
-OpenAI Privacy Filter evaluation (arXiv 2608.02616) reports **person names at F1 0.40** and collapse
-on non-Latin script — and PERSON is the class the stability requirement rests on. So: do not build
-another detection benchmark, and do not assume detection is a solved input.
+**Detection is crowded, and not solved.** REDACT (arXiv 2606.19881) covers 25 languages and 51
+entity types; PIIBench (arXiv 2604.15776) unifies ten corpora into 48 types; MultiGraSCCo (LREC 2026)
+is multilingual clinical; MEDDOCAN, i2b2/n2c2, CARDIO:DE and BRONCO precede them. Building another
+detection benchmark would add nothing.
+
+But detection is not solved where it matters most. The OpenAI Privacy Filter evaluation
+(arXiv 2608.02616), across 14 languages and 5 domains, reports **person names at F1 0.40** and
+addresses at 0.49, against e-mail addresses 0.78 and phone 0.76, and collapses on non-Latin script
+(Arabic 0.04, Cyrillic 0.03). **The entity class on which pseudonym stability depends is the
+worst-detected one.** Surrogate assignment, cross-document consistency, collision rate and leakage
+are all built on that foundation, and nobody has measured what it does end to end.
 
 **Surrogate generation is well developed and under-evaluated.** The *hiding in plain sight* line runs
 from Carrell et al. (JAMIA 2012, `10.1136/amiajnl-2012-001034`), which conceals ~90 % of residual
@@ -141,6 +147,17 @@ learned profiler at 73.4 % top-1 over 5,139 households, verified on a disjoint u
 smart-meter time series; and pseudonym-change strategy is a mature paradigm in vehicular networks
 (Boualouache et al., IEEE COMST 2017, `10.1109/comst.2017.2771522`).
 
+In German e-mail specifically, Eder et al. (RANLP 2019, ACL Anthology R19-1030) decompose the task
+into detecting privacy-bearing entities and then replacing them *"by synthetically generated
+surrogates (e.g., a person originally named 'John Doe' is renamed as 'Bill Powers')"*, with a system
+architecture for surrogate generation, evaluated on CodEAlltag (Krieg-Holz et al.,
+`10.1515/9783110464856-013`). That is this study's pipeline in its German e-mail arm — and its
+corpus, since CodEAlltag as released is that paper's output. It does not vary the function and
+measures neither utility nor leakage; and its surrogates were drawn frequency-independent by
+construction (§12), which is why A1 and A2 barely transfer there. *Cloaked Classifiers* (PrivateNLP
+2024, `10.18653/v1/2024.privatenlp-1.13`) crosses pseudonymisation strategy with a downstream
+classification task — the utility axis in miniature.
+
 **Utility after de-identification** — *Utility Preservation of Clinical Text After De-Identification*
 (BioNLP 2022, `10.18653/v1/2022.bionlp-1.38`); *The Impact of De-identification on Downstream Named
 Entity Recognition in Clinical Text* (LOUHI 2020, `10.18653/v1/2020.louhi-1.1`); Manzanares-Salor et
@@ -157,7 +174,9 @@ that documents with several subjects leave the non-target ones far more exposed.
 recognised 4.65 % of their own de-identified notes and were right about none. Base rates come from El
 Emam et al. (PLoS ONE 2011, `10.1371/journal.pone.0028071`) and Rocher et al. (Nat Commun 2019,
 `10.1038/s41467-019-10933-3`), which puts 99.98 % of Americans within reach of 15 demographic
-attributes. DeIDClinic (arXiv 2410.01648) is a risk-aware framework. TAB (Computational Linguistics
+attributes. DeIDClinic (arXiv 2410.01648) is a risk-aware framework. *The Enron Corpus: Where the Email Bodies
+are Buried?* (arXiv 2001.10374) reports 50,000 previously unreported instances of exposed PII in the
+field's most-used public e-mail corpus. TAB (Computational Linguistics
 2022, `10.1162/coli_a_00458`) remains the only benchmark marking which spans must be masked *to
 conceal identity* rather than to hit a category.
 
@@ -197,54 +216,6 @@ pseudonymisation on unstructured data.
    reports a collision, fragmentation or drift rate, or what stability costs in leakage and buys in
    utility. Searching for it is hard because the terminology is taken: "pseudonym consistency"
    returns blockchain work, and a dozen targeted queries returned nothing.
-
-### 4.2 E-mail as a domain — yes, there are corpora
-
-AM, 2026-09-06: **public data only**, no group data in this paper. That removes the Datenschutz
-dependency and makes the whole study releasable. E-mail is a good second domain for exactly that
-reason — the corpora are already public.
-
-| corpus | notes |
-|---|---|
-| **CodEAlltag** | German e-mail corpus, built for **forensic linguistics** (2016). `10.1515/9783110464856-013` and *CodE Alltag: A German-Language E-Mail Corpus*. The corpus the German pseudonymisation work below runs on |
-| **Enron** | the canonical public English e-mail corpus. See the ethics note below |
-| Email-header corpus | *A Corpus of Email Headers with Personal Privacy Protection* (2017), `10.18178/jacn.2017.5.2.240` |
-| Avocado (LDC) | ~licensed rather than free — **not verified here** |
-| e-mail slices | AI4Privacy, PIIBench and REDACT all carry e-mail as a domain slice |
-
-**The direct precedent, and our baseline.** *De-Identification of Emails: Pseudonymizing
-Privacy-Sensitive Data in a German Email Corpus* — RANLP 2019, ACL Anthology **R19-1030**. Abstract,
-verbatim: the task is decomposed into two steps — identify privacy-bearing named entities, then
-replace them "by synthetically generated surrogates (e.g., a person originally named 'John Doe' is
-renamed as 'Bill Powers')" — with "a system architecture for surrogate generation", evaluated on
-**CodEAlltag**. That is our pipeline, in our second domain, in German, from 2019. It is a baseline
-and a starting corpus, not a pre-emption: it does not vary the pseudonymisation function, and it
-does not measure utility or leakage.
-
-Also relevant: *Cloaked Classifiers: Pseudonymization Strategies on Sensitive Classification Tasks*,
-PrivateNLP 2024 (`10.18653/v1/2024.privatenlp-1.13`) — pseudonymisation strategy crossed with a
-downstream classification task, i.e. the utility axis already exists in miniature.
-
-### The Enron problem, which we should turn into a point
-
-*The Enron Corpus: Where the Email Bodies are Buried?* (arXiv 2001.10374, 2020) reports finding
-**50,000 previously unreported instances of exposed PII** in Enron. The most-used public e-mail
-corpus in the field is itself an unresolved privacy incident involving non-consenting individuals,
-and it is cited routinely without comment. A TrustFMI audience will notice if we use it silently.
-Better to say it out loud: it is evidence for the paper's own thesis about how the field evaluates
-privacy.
-
-### A third cross-lingual detection evaluation landed this year
-
-*OpenAI Privacy Filter: A Cross-Lingual, Cross-Domain PII Evaluation Across 32 Benchmarks*
-(arXiv 2608.02616, 2026) — 14 languages, 5 domains. It reinforces rather than blocks us, because of
-*what* it found: **person names F1 = 0.40** and addresses 0.49, against e-mail addresses 0.78 and
-phone 0.76; and collapse on non-Latin scripts (Arabic 0.04, Cyrillic 0.03).
-
-That is the strongest single argument for our paper. **The entity class where pseudonym stability
-matters most is the worst-detected one.** Everything downstream — surrogate assignment, cross-document
-consistency, collision rate, leakage — is built on a 0.40-F1 foundation, and nobody has measured what
-that does end to end.
 
 ## 5. The thesis
 
@@ -936,6 +907,10 @@ exclusion would cost is concrete — it is the only public e-mail corpus with re
 frequency distribution, the same people recurring across thousands of messages, a genuine downstream
 task, and a real public auxiliary record to link against. E-mail is a required domain (AM,
 2026-09-06), and no other English e-mail corpus supplies those four.
+
+Stating this in the paper is itself evidence for the thesis about how the field evaluates privacy:
+the corpus is an unresolved privacy incident involving non-consenting individuals, and it is cited
+routinely without comment.
 
 The attack target is **our own pipeline output**, not the corpus. We pseudonymise Enron ourselves and
 then invert *our* pseudonyms; recovering a name that has sat on a public web server for twenty years
