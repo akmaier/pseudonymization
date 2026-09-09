@@ -27,12 +27,19 @@ data/raw/
 # Third-party agreement forms and generated fill-in sheets: local only.
 applications/forms/
 
-# Artefacts
+# Artefacts.
+#
+# results/ is ignored WHOLESALE and re-admitted piece by piece. The reason is concrete: the detector
+# cache stores each detected span's *verbatim text*, so results/detector_cache/cardiode/ holds
+# 126,856 CARDIO:DE span strings — 1,572,267 characters, about a third of that corpus — and Enron's
+# cache holds live personal data from a non-consenting corpus. The old rules ignored only
+# results/*.csv and results/*.parquet, so a single `git add results/` would have committed
+# DUA-restricted clinical text into a repository the plan intends to release publicly.
+results/
+!results/*.md
 __pycache__/
 .venv/
 *.pyc
-results/*.csv
-results/*.parquet
 .DS_Store
 
 # Python venv (local, not shared)

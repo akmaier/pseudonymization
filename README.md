@@ -7,9 +7,11 @@ Target venue: **TrustFMI @ ACCV 2026** (workshop, Osaka, 14 Dec 2026). Submissio
 6–8 pages full / 4 pages short, LNCS, via OpenReview. Treat that deadline as the near-term target,
 not as a limit on the study — compute is available and the work is intended to outlive the workshop.
 
-**Read [`experiment_plan.md`](experiment_plan.md) first — it is the sole authority.** It carries the
-factor design, the metrics, the statistics and the corpora. `PLAN.md` and everything under `data/`
-are **superseded historical record**: they show how decisions were reached, and are not binding.
+**Read [`experiment_plan.md`](experiment_plan.md) first — it is the sole authority on what is run.**
+It carries the factor design, the metrics, the statistics, the corpora and the compute.
+[`PLAN.md`](PLAN.md) carries the *argument*: the thesis, the gap in the literature, the hypotheses and
+the limitations. Everything under `data/` is **superseded historical record** — it shows how
+decisions were reached and is not binding.
 
 ## Decisions already taken
 
@@ -39,7 +41,7 @@ are **superseded historical record**: they show how decisions were reached, and 
 | path | contents |
 |---|---|
 | [`experiment_plan.md`](experiment_plan.md) | **the authoritative experiment specification** — factors, metrics, statistics, corpora, sampling, models, compute |
-| [`PLAN.md`](PLAN.md) | **superseded, historical** — how the decisions were reached |
+| [`PLAN.md`](PLAN.md) | the argument — thesis, gap, hypotheses, related work, limitations |
 | [`AUTHORS.md`](AUTHORS.md) | author list — complete; middle order (2–5) still unsettled, **do not guess it** |
 | [`references/standards.md`](references/standards.md) | ISO 25237, ENISA, ISO/IEC 20889, GDPR |
 | [`references/text_pseudonymization.md`](references/text_pseudonymization.md) | detection benchmarks, surrogate generation, utility, leakage, email |
