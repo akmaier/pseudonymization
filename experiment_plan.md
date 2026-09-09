@@ -317,32 +317,6 @@ it was measured on.*
 | **E. corpus** | see §11 | Roles differ: full vs utility-only |
 | **sampling rate** | fixed per corpus before the run and recorded with every result (§13) | Enron is `subject` @ 0.10 as a single scheme (AM, 2026-09-08). Where a corpus is run at more than one rate the sweep is 0.01 · 0.05 · 0.10 · 0.25 · 1.0; §13 says which corpora carry it. **Size is a reported parameter**, not something to balance away |
 
-### 7.1 Why the corpora are one assembly, and why the oracle level exists
-
-**On the meta corpus (axis E) and provenance (axis F).** AM, 2026-09-06: rather than pick corpora
-one at a time, assemble a **single balanced meta corpus** spanning tasks and languages in one unified
-schema, so the study's questions are answered in one pass and the cells become comparable across
-languages for the first time. Two criteria came with the decision — *"PHI-inserted is not great. Same
-for synthetic. Pseudonymised is ok, we can revert with rule-based approaches"*, and **task coverage
-beyond medical, e-mail included**.
-
-That makes **identifier provenance an axis in its own right (F)**, not a filter. A1 and A2 consume
-the *name-frequency distribution*, so a corpus whose identifiers were generated or inserted cannot
-support a claim about them. Real and realistic-surrogate corpora carry the primary result;
-PHI-inserted and fully synthetic ones become the **control** that measures how much a benchmark's own
-construction distorts apparent privacy — which every 2026 detection benchmark needs, since all of
-them are fully synthetic.
-
-Three consequences already fixed by the data (see `data/candidates.md`): only **TAB** and
-**OntoNotes** annotate co-reference; only **i2b2 2014** (longitudinal, 296 patients) and **Enron**
-(mailbox identity) support *cross-document* stability; **E3C** has no PII layer at all and so cannot
-supply the gold-span oracle. **BRONCO150 is sentence-scrambled**, so the document-randomised policy
-level is undefined on it.
-
-The **gold-spans** level of D is essential: it separates *detector* error from *pseudonymisation*
-error, which no prior work does. Everything downstream is otherwise confounded by a 0.40-F1 name
-detector.
-
 ### 7.2 The ensemble, and why the pool and the rule are separate axes
 
 **On the ensemble (axes D and D′).** In the group's own testing an ensemble outperformed every
@@ -382,6 +356,10 @@ GLiNER (zero-shot), the CodEAlltag `privacy_tagger` on the German e-mail arm, tw
 LLMs individually, and gold spans; the rules carry at least union, majority vote and weighted vote.
 
 ---
+
+**The gold-spans level is essential, not decorative.** It separates *detector* error from
+*pseudonymisation* error, which no prior work does. Without it everything downstream is confounded by
+a name detector that the 2026 cross-lingual evaluations put at F1 0.40 (§4).
 
 **`privacy_tagger` is included deliberately as an overfitting probe** (AM, 2026-09-09). It was
 fine-tuned on 3,000 pseudonymised CodEAlltag e-mails, so on CodEAlltag it has already seen the
@@ -574,8 +552,13 @@ either populate them or declare them null, and a corpus with both null cannot en
 
 ## 11. Corpora and their roles
 
+**One assembly, one schema** (AM, 2026-09-06): rather than pick corpora one at a time, the corpora
+are assembled as a single set in one unified record schema (§10), so the study's questions are
+answered in one pass and the cells become comparable across languages and domains. Task coverage must
+reach beyond the clinical domain, and e-mail is required.
+
 A corpus enters the **full** design only if detection, stability **and** utility can be measured on
-the same documents — which is the gap `experiment_plan.md` §4.1 claims nobody has closed.
+the same documents — which is the gap §4.1 claims nobody has closed.
 
 | corpus | detection | stability | utility | role |
 |---|---|---|---|---|
