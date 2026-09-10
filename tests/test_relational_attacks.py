@@ -153,3 +153,98 @@ def test_same_document_evaluation_is_easier_than_disjoint():
         truth, "deterministic", "hmac",
     )
     assert honest.rank1 <= leaky.rank1
+
+
+# ------------------------------------------------------- condition A as the ceiling (§8.4)
+#
+# "A3, A4 and A5 are run on condition A as well, where nothing has been replaced. That is the
+# ceiling — what the adversary recovers with no protection at all — and without it a leakage rate
+# on B or C has no scale."  No attack needs a special case: conditions.Unmodified produces a
+# PseudonymisedCorpus whose text is the corpus's own and whose assignments map each mention to its
+# own surface, so build_queries, truth_map and build_items all read it unchanged.
+
+
+def _condition(name: str):
+    from pseudonymkit.conditions import build as build_condition
+    from pseudonymkit.inventories import SyntheticInventory
+
+    if name == "A":
+        return build_condition("A")
+    return build_condition(name, inventory=SyntheticInventory(pool_size=4096), key=b"\x55" * 32)
+
+
+def _condition_parts(name: str):
+    source = corpus()
+    result = _condition(name).pseudonymise_corpus(source)
+    return build_queries(result), build_gallery(source), truth_map(result)
+
+
+def test_condition_a_leaves_the_corpus_untouched_and_still_builds_queries():
+    source = corpus()
+    result = _condition("A").pseudonymise_corpus(source)
+    assert [d.text for d in result.documents] == [d.text for d in source.documents]
+    queries, gallery, truth = _condition_parts("A")
+    assert queries and gallery and truth
+
+
+def test_a3_runs_on_condition_a_as_the_ceiling():
+    queries, gallery, truth = _condition_parts("A")
+    result = StructuralLinkage().run(queries, gallery, truth, policy="none", technique="none")
+    assert result.queries > 0
+    assert result.rank1 == 1.0, "with no protection at all the adversary recovers everything"
+
+
+def test_a5_runs_on_condition_a_too():
+    queries, gallery, truth = _condition_parts("A")
+    # 0.7 rather than the default 0.5: the fixture holds six entities, and an even split leaves
+    # three to train on, which LearnedLinkage refuses as too few to make a disjoint split from.
+    result = LearnedLinkage(train_fraction=0.7, seed=1).run(
+        queries, gallery, truth, policy="none", technique="none"
+    )
+    assert result.queries > 0
+    assert "disjoint" in result.notes
+    assert result.rank1 == 1.0
+
+
+def test_the_ceiling_is_at_least_as_high_as_the_protected_conditions():
+    """The number that gives a leakage rate on B or C its scale."""
+    scores = {}
+    for name in ("A", "B", "C"):
+        queries, gallery, truth = _condition_parts(name)
+        scores[name] = StructuralLinkage().run(
+            queries, gallery, truth, policy="none", technique="none"
+        ).rank1
+    assert scores["A"] >= scores["B"] >= scores["C"]
+
+
+def test_condition_c_leaves_the_attacker_almost_nothing_to_link():
+    """Every person is one string, so there is no per-entity query left to score."""
+    queries, gallery, truth = _condition_parts("C")
+    assert set(queries) == {"[PERSON]"}
+    assert truth == {}, "one pseudonym over many gold entities cannot be scored either way"
+
+
+def test_a4_runs_on_condition_a():
+    from pseudonymkit.attacks.candidates import build_items
+    from pseudonymkit.attacks.candidates import score as score_candidates
+
+    source = corpus()
+    result = _condition("A").pseudonymise_corpus(source)
+    items = build_items(result, source, n_candidates=6, seed=0)
+    assert items
+
+    class Surface:
+        """Picks the candidate whose corpus surface is the marked text — trivial with no protection."""
+
+        name = "surface-match"
+
+        def rank(self, item):
+            marked = item.text.split("«")[1].split("»")[0]
+            order = sorted(
+                range(len(item.candidates)),
+                key=lambda i: item.candidates[i].surface != marked,
+            )
+            return order
+
+    report = score_candidates(items, Surface(), condition="A")
+    assert report.overall.rank1 == 1.0
