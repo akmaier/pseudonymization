@@ -35,7 +35,14 @@ from typing import Callable, Iterable, Iterator, Sequence
 
 from ..domain import Corpus, Document, Mention, Span
 
-__all__ = ["load", "iter_raw_messages", "IdentityTable", "build_identity_table"]
+__all__ = [
+    "build_text",
+    "strip_quoted",
+    "load",
+    "iter_raw_messages",
+    "IdentityTable",
+    "build_identity_table",
+]
 
 _ADDRESS_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 _DISPLAY_RE = re.compile(r"([^<>,][^<>]*?)\s*<[^>]*>")
@@ -186,6 +193,84 @@ def _mentions(doc_id: str, text: str, table: IdentityTable, known: Sequence[str]
     return found
 
 
+_QUOTE_MARKERS = (
+    "-----Original Message-----",
+    "-----Ursprüngliche Nachricht-----",
+    "----- Forwarded by",
+    "---------------------- Forwarded by",
+    "__________________________________",
+)
+
+_KEEP_HEADERS = (
+    ("From", "X-From"),
+    ("To", "X-To"),
+    ("Cc", "X-cc"),
+    ("Subject", None),
+)
+"""The fields condition A keeps (AM, 2026-09-09): sender, recipients, names, addresses, subject.
+
+Each pair is (address header, display-name header).  Both are kept because they carry different
+things: ``From`` is an address and ``X-From`` is the human name, and the name is where the person
+mentions live.  ``Bcc`` is not kept — it duplicates ``Cc`` byte for byte in every message of the
+sample.  Nor are ``Message-ID``, ``Date``, ``X-FileName``, ``X-Origin`` or the MIME headers, which
+are routing and archive artefacts rather than correspondence.
+
+**``X-Folder`` is excluded deliberately.** It names the mailbox folder, which *is* the target of the
+folder-classification task (§8.3).  Leaving it in the text would put the answer in the input.
+"""
+
+
+def strip_quoted(body: str) -> str:
+    """Drop quoted replies and forwarded blocks, keeping only what this message contributed.
+
+    Enron threads quote in full, so the same prose recurs across a chain and a naive corpus counts
+    one sentence many times — the audit measured a majority of long-body character mass as duplicate.
+    Two rules cover almost all of it: everything from a client's forwarding banner onwards, and any
+    line the client marked with ``>``.
+    """
+    cut = len(body)
+    for marker in _QUOTE_MARKERS:
+        found = body.find(marker)
+        if found != -1:
+            cut = min(cut, found)
+    kept = [line for line in body[:cut].splitlines() if not line.lstrip().startswith(">")]
+    return "\n".join(kept).strip()
+
+
+def _body(message: Message) -> str:
+    """The plain-text body, taking one part of a multipart alternative rather than both."""
+    if not message.is_multipart():
+        payload = message.get_payload(decode=False)
+        return payload if isinstance(payload, str) else ""
+    plain = [part for part in message.walk()
+             if part.get_content_type() == "text/plain" and not part.is_multipart()]
+    chosen = plain[0] if plain else next(
+        (part for part in message.walk() if not part.is_multipart()), None)
+    if chosen is None:
+        return ""
+    payload = chosen.get_payload(decode=False)
+    return payload if isinstance(payload, str) else ""
+
+
+def build_text(message: Message) -> str:
+    """The document text for condition A: sender, recipients, names, addresses, subject, body.
+
+    Constructed rather than taken raw.  A raw Enron message is largely archive metadata — the audit
+    measured about a third of its characters as RFC-822 headers — and one of those headers is the
+    label of a task the study scores, so the raw message cannot be the document text.
+    """
+    lines: list[str] = []
+    for address_header, name_header in _KEEP_HEADERS:
+        address = (message.get(address_header) or "").strip()
+        name = (message.get(name_header) or "").strip() if name_header else ""
+        value = ", ".join(v for v in (name, address) if v) if name and name != address else (
+            name or address)
+        if value:
+            lines.append(f"{address_header}: {value}")
+    body = strip_quoted(_body(message))
+    return "\n".join(lines) + ("\n\n" + body if body else "\n")
+
+
 def load(
     source: Path | str,
     limit: int | None = None,
@@ -218,12 +303,13 @@ def load(
     for path, mailbox, raw in raws:
         message = email.message_from_string(raw)
         folder = (message.get("X-Folder") or "").replace("\\", "/").rstrip("/").split("/")[-1]
+        text = build_text(message)
         documents.append(
             Document(
                 doc_id=path,
-                text=raw,
+                text=text,
                 language="en",
-                mentions=tuple(_mentions(path, raw, table, known)),
+                mentions=tuple(_mentions(path, text, table, known)),
                 corpus="enron",
                 domain="email",
                 provenance="real",
