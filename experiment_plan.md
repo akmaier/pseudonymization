@@ -582,18 +582,42 @@ One format, one converter per source, nothing else changes downstream. Merged ve
 }
 ```
 
-**Do not invent the taxonomy.** PIIBench normalises 80+ label variants into 48 canonical types across
-ten corpora; adopt its mapping and record every deviation.
+**The harmonised taxonomy is TAB's eight categories.** TAB is the only benchmark whose categories were
+designed for concealing an identity rather than for hitting a class (§4), so its set is adopted rather
+than a new one invented: **PERSON · LOC · ORG · DATETIME · CODE · DEMOGRAPHIC · QUANTITY · MISC**.
+Every gold layer and every detector routes into it. The source label is kept verbatim in `type_src`,
+so the mapping is reversible and every deviation is countable.
 
-Two sets of labels have to be harmonised, and they are different problems. **Gold** comes from TAB's
-eight semantic categories with DIRECT/QUASI, OntoNotes' 18 named-entity types, Enron's
-header-derived PERSON and EMAIL, and CARDIO:DE's date markers. **Detector output** comes from
-`privacy_tagger`'s fifteen classes (FEMALE, MALE, FAMILY, ORG, USER, DATE, STREET, STREETNO, CITY,
-ZIP, PASS, UFID, EMAIL, URL, PHONE), GLiNER's open label set, `obi/deid_roberta_i2b2`'s i2b2 PHI
-classes, and whatever a gateway model emits — the cache already holds labels outside any taxonomy,
-including a typo and a marker string used as a type (§12).
+| source | its labels | mapped |
+|---|---|---|
+| TAB gold | its own eight | identity |
+| OntoNotes gold | 18 NE types | PERSON; GPE·LOC·FAC → LOC; ORG; DATE·TIME → DATETIME; NORP → DEMOGRAPHIC; MONEY·PERCENT·QUANTITY·CARDINAL·ORDINAL → QUANTITY; rest → MISC |
+| Enron gold | PERSON, EMAIL | PERSON; EMAIL → CODE |
+| CARDIO:DE gold | date markers | DATETIME |
+| LLM prompt | PERSON, LOC, ORG, DATETIME, EMAIL, PHONE, ID, PROFESSION | EMAIL·PHONE·ID → CODE; PROFESSION → DEMOGRAPHIC; rest identity |
+| `privacy_tagger` | FEMALE, MALE, FAMILY, ORG, USER, DATE, STREET, STREETNO, CITY, ZIP, PASS, UFID, EMAIL, URL, PHONE | FEMALE·MALE·FAMILY → PERSON; STREET·STREETNO·CITY·ZIP → LOC; USER·PASS·UFID·EMAIL·URL·PHONE → CODE; DATE → DATETIME; ORG identity |
+| `obi/deid_roberta_i2b2` | AGE, DATE, EMAIL, HOSP, ID, LOC, OTHERPHI, PATIENT, PATORG, PHONE, STAFF | PATIENT·STAFF → PERSON; HOSP·PATORG → ORG; EMAIL·ID·PHONE → CODE; AGE → DEMOGRAPHIC; DATE → DATETIME; LOC identity; OTHERPHI → MISC |
+| `StanfordAIMI/stanford-deidentifier-base` | DATE, HCW, HOSPITAL, ID, PATIENT, PHONE, VENDOR | PATIENT·HCW → PERSON; HOSPITAL·VENDOR → ORG; ID·PHONE → CODE; DATE → DATETIME |
+| `Davlan/xlm-roberta-large-ner-hrl` | DATE, LOC, ORG, PER | PER → PERSON; DATE → DATETIME; LOC, ORG identity |
+| GLiNER | open — the label set is ours | prompted with the eight directly |
 
-FEMALE and MALE both map to PERSON: nothing downstream consumes the distinction (§7).
+Three choices in that table are judgement rather than translation, and are recorded as such.
+**Structured identifiers — e-mail, phone, URL, username, account and record numbers — all map to
+CODE**, which is TAB's own category for them; the source label survives in `type_src`, so H5's
+prediction about structured identifiers is still testable without a separate class. **Occupation and
+age map to DEMOGRAPHIC**, following TAB, which treats them as attributes rather than identifiers.
+**FEMALE and MALE both map to PERSON**: nothing downstream consumes the distinction (§7).
+
+**Unmapped labels are recorded, not discarded.** The detector cache already holds **89 distinct
+labels over 1.6 million spans**, including `FILENAME`, `FOLDER`, `GENE`, `COPYRIGHT`, a typo, and a
+`<[PSEUDO] …>` marker string used as a type. Anything with no route into the eight maps to MISC and
+is counted; the count is reported, because a detector inventing categories is a finding about that
+detector.
+
+PIIBench's `LABEL_NORM` — 187 source labels over 54 canonical types — was inspected and **not
+adopted**: it is a superset built for ten corpora this study does not use, its canonical set carries
+BIO-prefixed duplicates, and routing through it would add a translation step without adding a
+distinction any measurement here consumes.
 
 `entity_id` and `subject_id` are what make the stability metrics computable; every converter must
 either populate them or declare them null, and a corpus with both null cannot enter a stability cell.
