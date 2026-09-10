@@ -13,7 +13,15 @@ from .domain import Mention
 from .inventories import Inventory
 from .registry import Registry
 
-__all__ = ["SurrogateForm", "SURROGATES"]
+__all__ = ["SurrogateForm", "SURROGATES", "TypedPlaceholder", "PLACEHOLDER_NAMES"]
+
+PLACEHOLDER_NAMES: Mapping[str, str] = {"LOC": "LOCATION"}
+"""Harmonised type -> the name that appears inside the placeholder.
+
+``experiment_plan.md`` §7 gives condition C's examples as ``[PERSON]`` and ``[LOCATION]``, and
+``LOCATION`` is also Presidio's own name for the class whose default operator shape C adopts.  The
+harmonised taxonomy calls it ``LOC`` (§10), so exactly one entry is needed; everything else appears
+under its harmonised name."""
 
 
 @runtime_checkable
@@ -52,6 +60,37 @@ class OpaqueTag:
             self._next[mention.type] = ordinal + 1
             self._ordinals[key] = ordinal
         return self._template.format(type=mention.type, ordinal=ordinal)
+
+
+@SURROGATES.register("placeholder")
+class TypedPlaceholder:
+    """``[PERSON]`` — the type and nothing else.  Condition C (``experiment_plan.md`` §7).
+
+    **The index is deliberately discarded.**  That single line is what makes C de-identification
+    rather than pseudonymisation: every person in the corpus becomes the same string, so there is no
+    mapping, nothing is linkable, nothing is reversible, and the stability metrics of §8.2 are not
+    merely zero but meaningless — there is no mapping whose integrity could be measured.
+
+    It is also why the technique still runs underneath C.  B and C differ in **exactly one axis
+    level**, the surrogate form; keeping the rest identical is what makes the pair a clean contrast
+    for H2 rather than two differently configured pipelines.
+
+    The shape is Presidio's default replacement operator, which is also what HIPAA Safe Harbor
+    implies.  Tau-Eval (arXiv 2506.05979) measured precisely this — a Presidio placeholder against a
+    frozen model — as near-lossless across eight tasks, so C is the field's real comparison point
+    rather than a straw man.
+    """
+
+    name = "placeholder"
+
+    def __init__(
+        self, template: str = "[{type}]", names: Mapping[str, str] = PLACEHOLDER_NAMES
+    ) -> None:
+        self._template = template
+        self._names = dict(names)
+
+    def render(self, index: int, mention: Mention, language: str) -> str:
+        return self._template.format(type=self._names.get(mention.type, mention.type))
 
 
 @SURROGATES.register("realistic")
