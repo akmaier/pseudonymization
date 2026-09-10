@@ -76,6 +76,8 @@ __all__ = [
     "load",
     "load_cas",
     "parse_cas",
+    "Section",
+    "derive_sections",
 ]
 
 NS = {
@@ -386,3 +388,50 @@ def _numeric_key(path: Path) -> tuple[int, str]:
 
 def iter_documents(corpus: Corpus) -> Iterator[Document]:
     return iter(corpus.documents)
+
+
+@register_type
+@dataclass(frozen=True, slots=True)
+class Section:
+    """A whole section of a letter, derived from its heading."""
+
+    start: int
+    end: int
+    section_type: str
+    heading: str
+
+
+def derive_sections(
+    headings: Sequence[SectionSpan], text_length: int
+) -> tuple[Section, ...]:
+    """Turn the heading annotations into sections by extending each heading to the next.
+
+    ``custom:Sectionsentence`` does **not** mark sections.  It marks section **headings** of 4-18
+    characters — about 62,000 characters of the corpus's 4.76 million (``experiment_plan.md`` §12.1)
+    — so a section-classification task built directly on those annotations classifies roughly 1.3 %
+    of the text and reports it as if it had classified the letter.
+
+    Extending each heading to the start of the next, and the last one to the end of the letter, is
+    what §12.1 requires.  Two consequences are worth stating:
+
+    * The section **includes** its own heading.  The heading is part of the section it names, and
+      excluding it would leave the corpus's most informative 62,000 characters unclassified.
+    * Text **before the first heading** belongs to no section and is not classified.  Inventing a
+      leading section would put an unlabelled span into the gold, which is worse than leaving it out.
+
+    Headings are sorted and de-duplicated by position, because the CAS lists annotations in document
+    order but nothing enforces it.
+    """
+    ordered = sorted(
+        {(h.start, h.end, h.section_type) for h in headings if h.section_type}
+    )
+    sections: list[Section] = []
+    for index, (start, end, section_type) in enumerate(ordered):
+        following = ordered[index + 1][0] if index + 1 < len(ordered) else text_length
+        if following <= start:
+            continue                      # two headings at one offset: keep the first, drop the rest
+        sections.append(
+            Section(start=start, end=min(following, text_length), section_type=section_type,
+                    heading=f"{start}:{end}")
+        )
+    return tuple(sections)

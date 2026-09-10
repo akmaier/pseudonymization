@@ -1,5 +1,6 @@
 """Metrics: stability, utility, and (later) detection."""
 
+from .coref import b_cubed, ceaf_e, conll_f1, coref_scores, muc
 from .stability import StabilityReport, evaluate_stability, rates_by_type
 from .utility import (
     PairedComparison,
@@ -17,6 +18,11 @@ from .utility import (
 )
 
 __all__ = [
+    "muc",
+    "b_cubed",
+    "ceaf_e",
+    "conll_f1",
+    "coref_scores",
     "StabilityReport",
     "evaluate_stability",
     "rates_by_type",
