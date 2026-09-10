@@ -17,7 +17,7 @@ explicit decision, recorded here with a date.** This binds in both directions: i
 as much a change as dropping one.
 
 If a cell cannot be run because the data or the service does not exist — corpus unobtainable, licence
-refused, annotation absent, backend down — **stop, and record it in §19**, naming the cell and the
+refused, annotation absent, backend down — **stop, and record it in §18**, naming the cell and the
 obstacle. Do not substitute, do not silently narrow, do not run "a representative subset".
 
 Sampling is part of the design, not an exception to it: rates are fixed before a run and recorded
@@ -247,14 +247,14 @@ as such.
 
 The claim is made for the languages and domains the corpora support: legal (en), e-mail (en, de),
 news (en, zh, ar), clinical (de) — with detection scorable on three of the five corpora and no
-scorable German detection cell at present (§12, §19).
+scorable German detection cell at present (§12, §18).
 
 ## 6. Hypotheses
 
 Each is falsifiable, and the paper is informative either way. Two earlier hypotheses were dropped
 when the axes collapsed to three conditions (§7, AM 2026-09-10): one contrasted an unkeyed hash
 against HMAC under the dictionary attack, and one concerned frequency-matched surrogates. Neither has
-an experiment any more, and both are recorded in §19.
+an experiment any more, and both are recorded in §18.
 
 **H1 — detector recall dominates total leakage.** A missed name leaks in full, whatever is done to
 the names that were found. Measured by comparing every detector and every combination rule against
@@ -317,8 +317,9 @@ strip titles and punctuation), realistic surrogate drawn locale-appropriately fr
 in production: Kocaman et al. (2025) keep names consistent across a patient's documents to hold a
 longitudinal dataset together. HMAC because ENISA calls it *"generally considered a robust
 pseudonymisation technique from a data protection point of view"* (§3) and, being keyed, it resists
-the dictionary attack. N2 because §18 measured the collision–fragmentation frontier and N2 is the
-point on it this study takes.
+the dictionary attack. N2 because it casefolds and strips titles and punctuation, so *"Dr. Weber"*, *"weber"* and
+*"Weber"* resolve to one entity while distinct people do not — the least aggressive normalisation
+that still recognises the same person written two ways.
 
 **How C is configured, and why.** Presidio's default replacement operator: a typed placeholder with
 no index, which is also the shape HIPAA Safe Harbor implies. Tau-Eval (arXiv 2506.05979) measured
@@ -330,7 +331,7 @@ techniques × three surrogate forms. Those combinations are not run. The cost is
 hidden: the hash-versus-HMAC contrast is not measured, so **A1 has nothing to attack** (§8.4);
 frequency-matched surrogates are not measured, which was the one surrogate level no published
 generator implements (§4); and the document-randomised policy — linkable within a document, not
-across — is not run, so the middle of the linkability range is absent. All three are recorded in §19.
+across — is not run, so the middle of the linkability range is absent. All three are recorded in §18.
 
 | axis | levels | count |
 |---|---|---:|
@@ -419,7 +420,7 @@ keys map to one integer — ENISA flags this for RNG mapping tables; HMAC and AE
 negligible. The **normaliser** collides when it maps two entities to one key before any cryptography
 runs. B fixes the normaliser at N2, which casefolds and strips titles and punctuation, so
 *"Dr. Weber"* and *"Weber"* become one key deliberately while *"J. Smith"* and *"Jane Smith"* stay
-distinct. The normaliser frontier in §18 measures what other settings would have cost.
+distinct.
 
 Collision and fragmentation need co-reference within a document: TAB, OntoNotes and Enron. On TAB,
 6,579 of 8,701 PERSON chains hold one mention, so fragmentation is measured on 2,122 chains. On
@@ -500,9 +501,9 @@ plus a no-context condition.
 **Stated predictions, so the hypotheses can fail.** A2 succeeds on B and has nothing to work with on
 C, since every identifier of a type is the same string there. A3 and A5 are strong on B and weak on
 C. If that holds, **the stability requirement is itself the vulnerability**: what makes B usable is
-what makes it attackable. The residual on C is the more interesting number — an earlier run at full
-randomisation still reached Rank-1 0.064 against a 948-entity gallery (§18), so removing identity
-from the identifiers does not remove it from the text.
+what makes it attackable. The residual on C is the more interesting number: removing identity from the identifiers need not
+remove it from the surrounding text, and whatever A5 still recovers there is what pseudonymisation
+cannot reach.
 
 **A5 is the text analogue of Packhäuser et al.**, *Deep learning-based patient re-identification …*
 (Sci Rep 2022, `10.1038/s41598-022-19045-3`), which showed that images believed de-identified are
@@ -514,7 +515,7 @@ new facts about an individual — see the Enron safeguards.
 **A1 does not run.** Condition B uses HMAC-SHA256 (§7), and a dictionary attack against a keyed
 function has nothing to compute; reporting "HMAC resisted the dictionary attack" would be a category
 error rather than a finding. A1 would require an unkeyed variant of B, which is not in the design
-(§19).
+(§18).
 
 **A4 protocol (AM, 2026-09-08): ranked candidate list.** Present the pseudonymised document plus *N*
 candidate identities including the true one; score **Rank-1 / Rank-5 / mAP**. Three reasons: it is
@@ -677,6 +678,10 @@ null elements themselves, which are co-reference mentions in OntoNotes but have 
 `.name`; Chinese has the most, because it drops pronouns systematically.
 Co-reference is usable on **4,294** documents — the 4,560 figure counts `.coref` *files*, 260 of
 which are English pivot text with no `.name` at all.
+*Name distribution:* surname Zipf slope −0.925 against a US-Census reference of −0.918, so the shape
+is natural — but Spearman ρ with census frequency is 0.263. It is a newswire-celebrity distribution:
+real names, not population-representative ones.
+
 *Open:* the text is Penn Treebank tokenised throughout, Chinese segmented by spaces, Arabic 82.6 %
 diacritised and 31.1 % clitic-fragmented. That is not text a deployment sees. Whether to detokenise,
 and at what cost to the gold offsets, is undecided.
@@ -720,6 +725,14 @@ that is what the annotations were made against.
 *Defect to fix:* `custom:Sectionsentence` marks section **headings**, 4–18 characters, ~62 k of
 4.76 M characters — not sections. A section-classification task built on them scores ~1.3 % of the
 text. Sections must be derived by extending each heading to the next.
+*Dates are implausible as values*: admission years span 2019–2519, and 70 of 400 letters state ages
+of 280–459. The per-document offset is constant — admission minus birth reproduces the stated age in
+400 of 400 letters — so intervals and orderings within a letter are intact, but absolute dates and
+anything that asks a model to judge realism are not.
+
+*The heldout split carries no annotations*: `CARDIODE100_heldout` ships CAS files with no `custom:`
+layers, so it supports neither utility task. The adapter defaults to `CARDIODE400_main`.
+
 *Also unused:* the Becker extension (`extension/…/json/`) carries a token-level NER layer —
 Diagnosis, Diagnostic, Drug, Medical_Finding, Therapy — that no adapter loads.
 
@@ -1002,53 +1015,7 @@ one redistributable artefact. Ship converters, a manifest with checksums, and a 
 
 ---
 
-## 18. Results so far
-
-| finding | status |
-|---|---|
-| **H1a** — the frequency signal survives **identically across all five techniques**; Spearman ρ = 1.000 on TAB and Enron, spread across techniques 0.000–0.008 in every run | measured |
-| **H1b** — whether that signal *identifies* anyone depends on the **corpus's frequency skew**, not the function: A2 top-1 0.013 on TAB, **0.201 on Enron** | measured |
-| **Normaliser frontier** — N0 → N4 trades fragmentation 11.8 % → 1.4 % against collisions 0.00 % → 9.02 %, before any cryptography | measured |
-| **PERSON and LOC fail in opposite directions** — PERSON by fragmenting (11.8 % multi-form), LOC by colliding (0.7 %) | measured |
-| **Cross-document drift is 8× within-document fragmentation** (0.147 vs 0.018 on Enron) | measured |
-| **A1** — hashing inverts **0.758** of very common names and **0.000** of names absent from the dictionary: it protects exactly the names that do not identify people | measured |
-| **A3/A5 policy collapse** — Rank-1 0.673 → 0.014 → 0.003 across deterministic / document / fully-randomised | measured (after fixing leakage) |
-| **Learning buys most where the signal is weak** — A5/A3 ratio 1.04× deterministic, **5.1×** document-randomised, **21×** fully-randomised | measured |
-| **Full randomisation is not a complete defence** — A5 still reaches Rank-1 0.064 against a 948-entity gallery, ~60× chance | measured |
-
-**Corpus facts established 2026-09-08, from the releases themselves:**
-
-| finding | consequence |
-|---|---|
-| **CARDIO:DE marks every de-identified date in place** — `<[Pseudo] 12/03/2019>`, 18,148 occurrences in 500 letters, and the marker wraps **nothing but dates** | the corpus gains a real, narrow **DATETIME gold layer**; the adapter emits it |
-| **CARDIO:DE has almost no semantic placeholders** — 178 `<NONE>`, one `<TIME>`, one `<ORG>` in 5.9 M characters | it is **not** placeholder-masked for persons, as this repo's notes previously assumed. How names were handled is **not stated in the release README** — open item, §19 |
-| **CARDIO:DE's CAS text and `.txt` are not byte-identical** — same length, agreeing everywhere except that each newline is a space in `sofaString` (XML attribute-value normalisation) | offsets coincide; the adapter keeps the `.txt` and asserts the invariant per letter, dropping and counting any that fail |
-| **CARDIO:DE100 carries no annotations** — the CAS files exist but hold no `custom:` layers | the heldout split supports neither utility task; the adapter defaults to CARDIO:DE400 |
-| **CodEAlltag_S carries realistic surrogates** — its README: privacy-sensitive spans were annotated manually, then *"substituting them with realistic surrogates automatically"* | read from the release, not inferred; bounds where A1/A2 transfer (§11) |
-| **The CodEAlltag formality scores were Git-LFS pointers**, not data — the cluster has no `git-lfs` | fetched over `media.githubusercontent.com`; all eight document-level files now present. The adapter refuses to read a stub as "no scores" |
-
-**Provenance audit, 2026-09-09** — five corpora, each read against its own specification and then
-checked against the data, each audit adversarially challenged:
-
-| finding | consequence |
-|---|---|
-| **CARDIO:DE person tokens are the de-identifier's own IOB output**, shaped `<letter>-<CLASS>`: 22,531 tokens, 89 types, **11 distinct strings in the person slot** across 400 letters; the rarest still occurs in 386 of them, and one string fills the patient slot in 384 | **A1 and A2 are impossible here**, not weak — no dictionary to look up, no distribution to match. A naive cross-document linker links all 400 letters to each other and returns a spuriously perfect rate. Reported as impossible per §1, never substituted |
-| **62–83 % of every model's CARDIO:DE spans land inside a `<[Pseudo] …>` marker**; 95.7–98.9 % of PERSON spans land on a tag | CARDIO:DE PERSON detection measures artefact-spotting. The one supportable cell is DATETIME against the marker layer (F1 0.678–0.888), a valid within-corpus model ranking and an invalid cross-corpus F1 |
-| **CARDIO:DE dates**: admission years span 2019–2519; 70 of 400 letters state ages of 280–459; the per-document offset is constant (age reproduced in 400/400) | within-document intervals and orderings are intact and usable; absolute dates and any model-judged plausibility are not |
-| **CodEAlltag surrogates were drawn frequency-independent by construction** — measured surname Zipf slope **−0.335** against a natural ≈ −1; given names near-uniform from a closed list of 975; **0 `.de`, 0 `.com`, 0 real freemail** among all 56 pS e-mail addresses | A2 is weakened rather than void — the given-name head is at natural concentration, the surname head flattened ~7× |
-| **Enron gold is 44.3 % artefact**: `Mail`, `mail`, `info`, `eren` admitted as person entities; 26.6 % of gold spans matched mid-word (`Mail` inside `JavaMail`) because grounding uses `str.find` without a word boundary | fixable in the adapter at **zero detector cost** — gold is recomputed at scoring time. No Enron P/R/F1 may be quoted before it is |
-| **Enron surface**: 45.7 % of characters are RFC-822 headers, 51.4 % of gold PERSON mentions sit in the header block, 58.0 % of long-body character mass is duplicate, 13.0 % of documents have an empty body | the head of Enron's name distribution is mailbox owners stamped mechanically into every message |
-| **TAB**: applicants named verbatim in 1,242/1,268; court-anonymised cases excluded at selection. But the applicant's surname occurs **once** in 69.2 % of judgments while *"the applicant"* occurs a median of 17 times, and 79.6 % of PERSON mentions are agents, judges and counsel | A2 on TAB scores mostly non-protected persons unless scored against the applicant |
-| **OntoNotes was not de-identified at all** — exhaustive documentation grep and a 5,994-document pattern scan both return zero. Surname Zipf −0.925 against a US-Census −0.918 | but Spearman ρ with census frequency is 0.263: a newswire-celebrity distribution, real but not population-representative |
-| **No corpus is both identifier-real and surface-real.** OntoNotes is Penn-Treebank tokenised throughout, Chinese space-segmented, Arabic 82.6 % diacritised; Enron is real identifiers inside a processed archive dump | a limitation to state, not a reason to withdraw anything |
-| **H1b's stated mechanism is not the measured one** | see §19 |
-
-**Unresolved:** the fair A3-vs-A5 comparison on identical galleries (A5's entity-disjoint split gives
-it a smaller gallery, so the deterministic 1.04× sits inside that confound).
-
----
-
-## 19. Open items
+## 18. Open items
 
 1. **BRONCO150** — no reply from Prof. Leser since 2026-09-07.
 2. **n2c2 2014** — registration closed; ask DBMI when it reopens. Its loss removes clinical
