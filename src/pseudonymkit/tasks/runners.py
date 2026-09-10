@@ -33,7 +33,7 @@ Both are recorded here rather than silently omitted.
 from __future__ import annotations
 
 from collections import Counter
-from typing import Callable, Iterable, Mapping, Sequence
+from typing import Mapping, Sequence
 
 from ..adapters.cardiode import MEDICATION_CLASSES, SECTION_TYPES, derive_sections
 from ..detectors.base import Detector

@@ -34,7 +34,6 @@ from __future__ import annotations
 
 from typing import Iterable, Mapping, Protocol, Sequence, runtime_checkable
 
-from ..engine import OffsetMap, PseudonymisedCorpus, PseudonymisedDocument
 from ..metrics.utility import Kind, ScoreVector
 
 __all__ = [
@@ -45,7 +44,6 @@ __all__ = [
     "Regressor",
     "TaskModel",
     "scored",
-    "documents_of",
 ]
 
 
@@ -91,10 +89,6 @@ class Regressor(TaskModel, Protocol):
     def predict(self, text: str) -> float: ...
 
 
-def documents_of(result: PseudonymisedCorpus) -> tuple[PseudonymisedDocument, ...]:
-    return tuple(result.documents)
-
-
 def scored(
     task: str,
     condition: str,
@@ -128,15 +122,3 @@ def scored(
             **dict(metadata or {}),
         },
     )
-
-
-def mapped_spans(
-    document: PseudonymisedDocument, spans: Iterable[tuple[int, int, str]]
-) -> list[tuple[int, int, str]]:
-    """Carry gold spans from the original text onto the condition's text."""
-    mapping = OffsetMap.of(document)
-    out = []
-    for start, end, label in spans:
-        new_start, new_end = mapping.span(start, end)
-        out.append((new_start, new_end, label))
-    return out
