@@ -50,7 +50,6 @@ decisions were reached and is not binding.
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | the software: patterns, extension points, quickstart |
 | `src/pseudonymkit/` | the package — policies, techniques, surrogate forms, metrics, detector ensembles |
 | `tests/` | 59 tests, no network, no models, under a second |
-| [`experiments/METHODS.md`](experiments/METHODS.md) | how the pseudonymisation engine, the stability metrics and the attacks are built |
 | `experiments/` | code lands here |
 
 ## For the agent picking this up

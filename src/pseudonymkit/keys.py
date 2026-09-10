@@ -4,7 +4,7 @@ The key decides what counts as "the same entity", and therefore whether two ment
 same pseudonym.  Keying on the gold co-reference chain would make fragmentation zero by
 construction and measure nothing; keying on the surface form is what a deployed system does.
 
-The normalisers below are the levels N0-N4 measured on TAB in ``experiments/METHODS.md`` §2, where
+The normalisers below are the levels N0-N4; condition B fixes the normaliser at N2 (``experiment_plan.md`` §7), where
 they trace a monotone collision-fragmentation frontier before any cryptography is involved.  N2 is
 the default; all five are run as a reported sub-axis.
 """

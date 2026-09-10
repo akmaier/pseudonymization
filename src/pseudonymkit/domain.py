@@ -60,7 +60,7 @@ class Mention:
 
     ``gold_entity_id`` is the co-reference chain identifier where the corpus provides one.  It is
     the *ground truth* for the stability metrics and must never be used as the pseudonymisation
-    key — see ``experiments/METHODS.md`` §2.
+    key — see ``experiment_plan.md`` §8.2.
     """
 
     doc_id: str

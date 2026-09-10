@@ -1,10 +1,10 @@
-# Experiment plan — the full specification
+# Experiment plan
 
-**This is the authoritative specification for the experiments.** `experiment_plan.md` carries the thesis and the
-argument; this file carries what is to be run, on what, measured how, and with which statistics.
-Read it before designing, running or reporting anything.
+**This is the only plan.** It carries the standards the work is measured against, the argument, the
+hypotheses, what is to be run, on what, measured how, and with which statistics. No other document in
+this repository specifies anything (§1).
 
-Last updated 2026-09-08. Every decision is attributed and dated; nothing here is a default.
+Last updated 2026-09-10. Every decision is attributed and dated; nothing here is a default.
 
 ---
 
@@ -17,7 +17,7 @@ explicit decision, recorded here with a date.** This binds in both directions: i
 as much a change as dropping one.
 
 If a cell cannot be run because the data or the service does not exist — corpus unobtainable, licence
-refused, annotation absent, backend down — **stop, and record it in §18**, naming the cell and the
+refused, annotation absent, backend down — **stop, and record it in §17**, naming the cell and the
 obstacle. Do not substitute, do not silently narrow, do not run "a representative subset".
 
 Sampling is part of the design, not an exception to it: rates are fixed before a run and recorded
@@ -43,7 +43,7 @@ invented axis and a five-level tier taxonomy came to sit in the design for three
 
 ---
 
-## 2. Standards — and one was revised this year
+## 2. Standards
 
 | | |
 |---|---|
@@ -100,7 +100,9 @@ to. Under a deterministic policy the pseudonym frequency distribution mirrors th
 the attacker walks around rather than through.
 
 The claim is therefore **not that ENISA is wrong about the cryptography, but that the cryptography is
-not where the risk is**. H1 (§6) states it falsifiably.
+not where the risk is**. It follows from the construction (§5) and **no hypothesis tests it**: the
+technique is fixed at HMAC-SHA256 in condition B (§7), so the study argues this rather than measuring
+it.
 
 ## 4. What already exists
 
@@ -196,20 +198,17 @@ pseudonymisation on unstructured data.
 
 ### 4.1 The gap
 
-1. **No study crosses the policy with the technique.** The function has been varied, but always along
-   one dimension of it. No work operationalises ENISA's three policies by name, and no work compares
-   counter, RNG-table, hash, HMAC and symmetric encryption on text at all.
-2. **Every function study is one domain, usually one language.** BRATsynthetic clinical, Yermilov
+1. **Every function study is one domain, usually one language.** BRATsynthetic clinical, Yermilov
    news, Adelani dialogue, Cretu smart meters, the whole surrogate literature clinical. Nothing in it
    can separate a property of the method from a property of the corpus. This study crosses legal,
    e-mail, news and clinical text in four languages and two non-Latin scripts, which is what makes
    that separation possible.
-3. **Detection, utility and leakage meet pairwise, never as a triple.** Utility × leakage has
+2. **Detection, utility and leakage meet pairwise, never as a triple.** Utility × leakage has
    dedicated frameworks (Tau-Eval, arXiv 2506.05979; RAT-Bench, arXiv 2602.12806); detection ×
    leakage has the HIPS attack papers and the risk-metric line; detection × utility has the clinical
    downstream studies. No study reports all three from the same runs on the same corpora with the
    function as the manipulated variable.
-4. **Mapping integrity is never measured.** Cross-document consistency is implemented in production —
+3. **Mapping integrity is never measured.** Cross-document consistency is implemented in production —
    Kocaman et al. (Research Square 2025, `10.21203/rs.3.rs-6867162/v1`, *vendor preprint, not peer
    reviewed*) link two billion patient notes into a longitudinal dataset by keeping names, dates and
    identifiers consistent per patient — and within documents in research tools. No published work
@@ -247,14 +246,14 @@ as such.
 
 The claim is made for the languages and domains the corpora support: legal (en), e-mail (en, de),
 news (en, zh, ar), clinical (de) — with detection scorable on three of the five corpora and no
-scorable German detection cell at present (§12, §18).
+scorable German detection cell at present (§12, §17).
 
 ## 6. Hypotheses
 
 Each is falsifiable, and the paper is informative either way. Two earlier hypotheses were dropped
 when the axes collapsed to three conditions (§7, AM 2026-09-10): one contrasted an unkeyed hash
 against HMAC under the dictionary attack, and one concerned frequency-matched surrogates. Neither has
-an experiment any more, and both are recorded in §18.
+an experiment any more, and both are recorded in §17.
 
 **H1 — detector recall dominates total leakage.** A missed name leaks in full, whatever is done to
 the names that were found. Measured by comparing every detector and every combination rule against
@@ -305,7 +304,7 @@ they define what B and C are.
 
 | | condition | identifiers become | linkable | reversible |
 |---|---|---|---|---|
-| **A** | full data | unchanged — the original text | yes | — |
+| **A** | full data | the text as the corpus ships it | yes | — |
 | **B** | pseudonymised | a realistic, locale-appropriate surrogate; the same entity receives the same surrogate throughout the corpus | yes | with the key |
 | **C** | de-identified | a typed placeholder without an index — `[PERSON]`, `[LOCATION]` — so all persons look alike | no | no |
 
@@ -331,20 +330,22 @@ techniques × three surrogate forms. Those combinations are not run. The cost is
 hidden: the hash-versus-HMAC contrast is not measured, so **A1 has nothing to attack** (§8.4);
 frequency-matched surrogates are not measured, which was the one surrogate level no published
 generator implements (§4); and the document-randomised policy — linkable within a document, not
-across — is not run, so the middle of the linkability range is absent. All three are recorded in §18.
+across — is not run, so the middle of the linkability range is absent. All three are recorded in §17.
 
 | axis | levels | count |
 |---|---|---:|
 | **condition** | A full data · B pseudonymised · C de-identified | **3** |
-| **D** detector | Presidio · GLiNER-multi · GLiNER-PII · `obi/deid_roberta_i2b2` · `StanfordAIMI/stanford-deidentifier-base` · `Davlan/xlm-roberta-large-ner-hrl` · `privacy_tagger` · six gateway LLMs · gold spans | **14** |
+| **D** detector | Presidio · GLiNER-multi · GLiNER-PII · `obi/deid_roberta_i2b2` · `StanfordAIMI/stanford-deidentifier-base` · `Davlan/xlm-roberta-large-ner-hrl` · `privacy_tagger` · **every chat model the NHR@FAU gateway serves at run time, DeepSeek excluded** · gold spans | 7 + gateway |
 | **D′** combination rule | union · vote(k) · intersection · weighted vote · cascade · token-level BIO voting | **6** |
 | **E** corpus | TAB · OntoNotes · Enron · CodEAlltag · CARDIO:DE | **5** |
 | sampling rate | fixed per corpus before the run and recorded with every result (§13) | — |
 
 The condition and the corpus give **15 cells**. Detection is a separate stage: it produces spans,
-which B and C then consume. Its cost is corpus × detector — 65 model-backed runs, the only ones that
-cost model time — and the combination rules are a post-hoc read of the detector cache, so they cost
-nothing to compute however many are reported.
+which B and C then consume, and its cost is corpus × detector — the only runs that cost model time.
+The gateway's model list is not fixed in advance: **every chat model it serves at run time is used,
+DeepSeek excluded** (AM, 2026-09-08, the backend is down), and which models were live is recorded
+with the run because availability is part of the experimental record. The combination rules are a
+post-hoc read of the detector cache and cost nothing to compute, however many are reported.
 
 **The gold-spans level is essential, not decorative.** It separates *detector* error from
 *pseudonymisation* error, which no prior work does. Without it everything downstream is confounded by
@@ -422,10 +423,9 @@ runs. B fixes the normaliser at N2, which casefolds and strips titles and punctu
 *"Dr. Weber"* and *"Weber"* become one key deliberately while *"J. Smith"* and *"Jane Smith"* stay
 distinct.
 
-Collision and fragmentation need co-reference within a document: TAB, OntoNotes and Enron. On TAB,
-6,579 of 8,701 PERSON chains hold one mention, so fragmentation is measured on 2,122 chains. On
-OntoNotes, 9,875 of 13,230 hold one mention, leaving 3,355; 21,703 of 47,713 PERSON mentions carry a
-chain at all, across the 4,264 documents holding both layers (§12).
+Collision and fragmentation need co-reference within a document: TAB, OntoNotes and Enron. On both
+TAB and OntoNotes about three quarters of PERSON chains hold a single mention, so fragmentation is
+measured on the remainder; the counts are produced by the run and reported with it, not fixed here.
 
 Drift needs identity across documents. Enron has it through mailbox identity; TAB's and OntoNotes'
 chains are document-scoped. CodEAlltag and CARDIO:DE carry no entity identity and enter no stability
@@ -436,7 +436,9 @@ smart-meter data, which is drift in another modality. No published work reports 
 
 ### 8.3 Utility — frozen models, task-based, no single scalar
 
-**No training anywhere in the study** (AM, 2026-09-08). Not an economy: a TrustFMI audience prompts a
+**No detector is trained by us** (AM, 2026-09-08; clarified 2026-09-10 — the rule was always about
+detectors). The A5 attacker is trained, deliberately (§8.4). For the utility instrument the reason is
+separate and is not a blanket rule: a TrustFMI audience prompts a
 foundation model over a corpus rather than fine-tuning an encoder on one, so **degradation at fixed
 weights** is the measurement that matches the deployment pattern.
 
@@ -515,13 +517,14 @@ new facts about an individual — see the Enron safeguards.
 **A1 does not run.** Condition B uses HMAC-SHA256 (§7), and a dictionary attack against a keyed
 function has nothing to compute; reporting "HMAC resisted the dictionary attack" would be a category
 error rather than a finding. A1 would require an unkeyed variant of B, which is not in the design
-(§18).
+(§17).
 
 **A4 protocol (AM, 2026-09-08): ranked candidate list.** Present the pseudonymised document plus *N*
 candidate identities including the true one; score **Rank-1 / Rank-5 / mAP**. Three reasons: it is
 directly comparable with A3 and A5, the output is bounded, and the model never free-generates claims
-about real people — which is what the Enron safeguards were written to prevent. Run with and without
-auxiliary context, and **stratified by public-figure status**, which doubles as a memorisation test
+about real people — which is what the Enron safeguards were written to prevent. **The candidates and any auxiliary context come from the corpus itself** — other documents in the
+same corpus — never from external knowledge about the person, which is what §15's third safeguard
+requires. Run with and without that auxiliary context, and **stratified by public-figure status**, which doubles as a memorisation test
 against *Personal Information Parroting in Language Models* (arXiv 2602.20580).
 
 **A5 is the only trained model in the study.** The asymmetry is deliberate and belongs in the paper:
@@ -574,11 +577,18 @@ One format, one converter per source, nothing else changes downstream. Merged ve
 }
 ```
 
-**Do not invent the taxonomy.** PIIBench already normalises 80+ label variants into 48 canonical
-types across ten corpora; adopt its mapping and record every deviation. Sources to harmonise:
-MEDDOCAN 29 types · i2b2 18 PHI classes · CodEAlltag's hierarchy (ACTOR{ORG, PERSON{FAMILY,
-GIVEN{FEMALE, MALE}}, USER}, DATE, FID{PASS, UFID}, LOC{STREET, STREETNO, CITY, ZIP}, ADD{EMAIL,
-PHONE, URL}) · TAB's semantic categories · OntoNotes 18 NE types · REDACT 51 types.
+**Do not invent the taxonomy.** PIIBench normalises 80+ label variants into 48 canonical types across
+ten corpora; adopt its mapping and record every deviation.
+
+Two sets of labels have to be harmonised, and they are different problems. **Gold** comes from TAB's
+eight semantic categories with DIRECT/QUASI, OntoNotes' 18 named-entity types, Enron's
+header-derived PERSON and EMAIL, and CARDIO:DE's date markers. **Detector output** comes from
+`privacy_tagger`'s fifteen classes (FEMALE, MALE, FAMILY, ORG, USER, DATE, STREET, STREETNO, CITY,
+ZIP, PASS, UFID, EMAIL, URL, PHONE), GLiNER's open label set, `obi/deid_roberta_i2b2`'s i2b2 PHI
+classes, and whatever a gateway model emits — the cache already holds labels outside any taxonomy,
+including a typo and a marker string used as a type (§12).
+
+FEMALE and MALE both map to PERSON: nothing downstream consumes the distinction (§7).
 
 `entity_id` and `subject_id` are what make the stability metrics computable; every converter must
 either populate them or declare them null, and a corpus with both null cannot enter a stability cell.
@@ -667,17 +677,14 @@ that A2 can be scored against the protected person rather than against all PERSO
 pass; **the directory structure below the language must be preserved**, because document basenames
 collide across genres (`nw/…/ann_0001` and `bn/…/ann_0001` both exist) and flattening silently
 overwrites documents.
-*Defect fixed:* co-reference attached to **zero** of 4,560 layers. The adapter required the two
+*Defect fixed:* co-reference attached to **no** document at all. The adapter required the two
 layers to strip to identical text, and they never do — `.coref` carries the Penn Treebank null
 elements (`*pro*`, `*T*-1`, `*PRO*`, `*OP*`, the null complementiser `0`) that `.name` has no
 counterpart for, and wraps its body in `<TEXT PARTNO=…>`. Over 102 document pairs, ~27,000 tokens
 appear only in `.coref` against five that appear only in `.name`. Chains are now carried across by
 token alignment, and a span transfers only when every one of its tokens lands in a matched block.
-Result: 4,264 documents with chains, 67,529 mentions in 33,618 chains. The unmappable spans are the
-null elements themselves, which are co-reference mentions in OntoNotes but have no surface in
+The unmappable spans are the null elements themselves, which are co-reference mentions in OntoNotes but have no surface in
 `.name`; Chinese has the most, because it drops pronouns systematically.
-Co-reference is usable on **4,294** documents — the 4,560 figure counts `.coref` *files*, 260 of
-which are English pivot text with no `.name` at all.
 *Name distribution:* surname Zipf slope −0.925 against a US-Census reference of −0.918, so the shape
 is natural — but Spearman ρ with census frequency is 0.263. It is a newswire-celebrity distribution:
 real names, not population-representative ones.
@@ -687,12 +694,12 @@ diacritised and 31.1 % clitic-fragmented. That is not text a deployment sees. Wh
 and at what cost to the gold offsets, is undecided.
 
 **Enron.** The document text is **sender, recipients, names, addresses, subject and body** (AM,
-2026-09-09), with the HTML/ASCII duplication removed. Measured on the shipped sample: headers are
-31.1 % of all characters, 41.3 % of gold PERSON mentions sit in the header block, 55.4 % of body
-characters are byte-duplicates of another message's body, and `Bcc` duplicates `Cc` byte-for-byte in
-20,749 of 20,749 cases.
-*Contamination:* `X-Folder` appears verbatim in 100 % of documents and **is the folder-classification
-label**. The utility task's answer is in its own input.
+2026-09-09). The duplicated HTML and plain-text alternatives of the same message are collapsed to
+one, as are quoted replies and forwarded blocks. Every message in the drawn subset is processed —
+the subset is `subject` @ 0.10 (§13) and it is used whole.
+*The folder label must not be in the text.* `X-Folder` names the mailbox folder, which is the
+folder-classification target, so it is excluded along with the other routing headers; only the
+fields listed above are kept.
 *Defect to fix:* the gold is derived from message headers by our own adapter and is 44.3 % artefact —
 `Mail` (70,118), `mail` (72,574), `info` (26,387) and `eren` (23,798) are admitted as person
 entities, and 26.6 % of gold spans are matched mid-word (`Mail` inside `JavaMail`) because grounding
@@ -763,7 +770,7 @@ with no error at all, which an ensemble reads as "found nothing" rather than "ne
 budget is now 16,384 and `finish_reason`, token usage and a truncation count are written with every
 record.
 
-## 13. Sampling — there is no single fair sample
+## 13. Sampling
 
 The sampling unit decides which structure survives, and the measurements depend on different
 structures. Measured at rate 0.2 on a synthetic corpus:
@@ -786,7 +793,7 @@ structures. Measured at rate 0.2 on a synthetic corpus:
 
 The per-measurement assignment above was the design, and it is **superseded for Enron**. Two schemes
 are two different document sets, so detection would have to cover their **union** — and Enron is
-already 86 % of the detection budget (§15.4.1). One scheme, and it is `subject`:
+the largest corpus in the study by an order of magnitude. One scheme, and it is `subject`:
 
 - **Profile completeness cannot be recovered any other way.** 67 % retained per entity against
   `stratified`'s 20 %, measured. A3 and A5 are starved by the alternative; nothing is starved by
@@ -817,7 +824,7 @@ Prediction: A2 robust to rate, A3/A5 not.
 
 ---
 
-## 14. Models and resources — none trained except A5
+## 14. Models and resources
 
 | role | model |
 |---|---|
@@ -839,138 +846,7 @@ source of the gender attribute) · GeoNames `cities15000` (34,135, CC-BY).
 
 ---
 
-## 15. Compute and job planning
-
-### 15.1 What the first detection run got wrong — recorded, not hidden
-
-The array submitted on 2026-09-08 was **9 Slurm tasks, one per (corpus, model), each a serial HTTP
-client**: one request in flight, 2.3–25.6 s per document. It therefore held **all 8 of the
-association's `MaxJobs` slots** with allocations of 2 CPUs and 16 GB apiece that were blocked in
-`recv()` and doing no computation — and it blocked AM's own job. AM stopped it after 28 minutes
-(2026-09-08); **the cache preserved all 1,599 completed documents with 0 errors**, and the work
-resumes from there.
-
-Two planning errors, both to be fixed before anything is resubmitted:
-
-1. **Parallelism in the wrong layer.** Slurm allocations were used to obtain concurrency against a
-   *network service*. One allocation with an internal thread pool of *W* workers gives the same
-   concurrency in one eighth of the footprint, and leaves the cluster free for GPU work.
-2. **No accounting of the detection surface.** The array covered **3 of the ~10 corpora** and **one
-   of axis D's six detector levels**, with no table of what the whole of detection costs — so there
-   was no way to say whether the run was on schedule for 2026-09-25. §15.5 is that table's
-   precondition list.
-
-### 15.2 Resource classes — they are not interchangeable
-
-| work | bound by | GPU | job shape |
-|---|---|---|---|
-| gateway LLM detection (axis D, LLM levels) | network latency | no | **1–2 jobs**, internal thread pool |
-| A4 LLM re-identification | network latency | no | as above |
-| classical detection — Presidio, GLiNER, `obi/deid_roberta_i2b2`, `privacy_tagger` | GPU | **yes** | short batched jobs, **pin the card** |
-| gold spans (oracle level) | nothing | no | free; it is adapter output |
-| pseudonymisation, stability, A1–A3, A5 | CPU | no | minutes |
-
-Mixing the first class into Slurm tasks is what §15.1 got wrong. The third class has **not been
-written yet** and is the real gap in axis D.
-
-### 15.3 Measured LLM throughput — seconds per document, serial
-
-From the 1,599 cached records of the cancelled run. These are the numbers any schedule must use;
-they are not estimates.
-
-| corpus | `gpt-oss-120b` | `Qwen3.6-35B-A3B` | `gemma-4-31B` |
-|---|---:|---:|---:|
-| TAB (ECHR judgments, long) | 22.4 | 20.2 | 18.5 |
-| Enron (e-mail, short) | 25.6 | 19.7 | 13.7 † |
-| CodEAlltag (e-mail, short) | 8.2 | 15.4 | 2.3 |
-
-† one document only; not yet a rate.
-
-Document **length**, not model size, dominates: `gemma-4-31B` ran CodEAlltag at 2.3 s and TAB at
-18.5 s. Any schedule must be per (corpus, model), never a single global rate.
-
-### 15.4 The detection surface, sized — 2026-09-08
-
-Counted from the releases on the cluster. **Only the corpora AM kept** (§11): the synthetic members
-are out, so they are not in this table and cost nothing.
-
-| corpus | documents | language(s) | note |
-|---|---:|---|---|
-| TAB / ECHR | 1,268 | en | 274 model-runs already cached |
-| **OntoNotes en** | 3,637 | en | 2,384 also carry `.coref` |
-| **OntoNotes zh** | 1,911 | zh | 1,729 with `.coref` |
-| **OntoNotes ar** | 446 | ar | 447 with `.coref` |
-| **Enron @ 0.10** | **≈ 51,700** | en | the rate AM set (`data/metacorpus.md` §14) |
-| CodEAlltag_S | 800 | de | 1,156 model-runs already cached; utility only |
-| CodEAlltag_XL | ~1,469,000 across 7 topics | de | utility only, **must be sampled** |
-| CARDIO:DE 400 | 400 | de | 🔒 AM only; utility + leakage |
-| BRONCO150 | 150 | de | not yet received |
-
-**OntoNotes co-reference is not uniform and the plan must not assume it is.** English newswire has
-2,102 `.name` files but only 922 `.coref`; English `pt` (pivot text) has 260 `.coref` and **no**
-`.name` at all. Stability on OntoNotes is scored on the ~4,560 documents carrying both layers, and
-**that** number is reported, never the corpus total.
-
-### 15.4.1 What that costs — and where the cost actually sits
-
-Detection is needed on the three **full** corpora (axis D/D′ is scored there) and on CodEAlltag and
-CARDIO:DE (no gold, so detection is the *input* to pseudonymisation rather than something scored).
-Three gateway models, at the measured rates of §15.3:
-
-| corpus | documents | calls | serial hours | share |
-|---|---:|---:|---:|---:|
-| TAB | 1,268 | 3,804 | 21 | 2.8 % |
-| OntoNotes (en+zh+ar) | 5,994 | 17,982 | 75 | 10.0 % |
-| CodEAlltag_S | 800 | 2,400 | 5 | 0.7 % |
-| CARDIO:DE | 400 | 1,200 | 3 | 0.4 % |
-| **Enron @ 0.10** | **51,700** | **155,100** | **≈ 646** | **86.1 %** |
-| **total** | **60,162** | **180,486** | **≈ 750** | |
-
-**Enron is 86 % of the entire detection budget**, and everything else together is 104 serial hours.
-Two consequences:
-
-1. **Everything except Enron is affordable today.** 104 h serial is ~7 h at *W* = 16, in one
-   allocation. That is a night's work and needs no decision from anyone.
-2. **The Enron rate is the schedule.** §13 already prescribes a **size sweep** — 0.01 / 0.05 / 0.10 /
-   0.25 — with the explicit prediction that A2 is robust to rate and A3/A5 are not. Running the
-   sweep *upward* (0.01 → 0.10) is the plan's own design, not a reduction of it: at 0.01 Enron is
-   5,170 documents and 65 serial hours, and each higher rate is a further experimental point rather
-   than a repetition. **AM decides where that sweep stops**; no agent may settle it (§1).
-
-| shape | 104 h (all but Enron) | +Enron @0.01 | +Enron @0.10 |
-|---|---|---|---|
-| serial, as submitted on 2026-09-08 | impossible — past the 24 h limit | impossible | impossible |
-| one allocation, *W* = 16 | **6.5 h** | 10.6 h | 47 h (needs checkpoint + resubmit) |
-| one allocation, *W* = 32 | 3.3 h | 5.3 h | 23 h |
-
-**The runner rewrite in §15.5 is not an optimisation.** Serially, even the 104-hour remainder cannot
-finish inside a 24 h wall clock.
-
-### 15.5 Preconditions before any detection job is resubmitted
-
-1. **`DetectorCache.append` must take a lock.** It is currently correct only because there is one
-   writer per file; a thread pool breaks that assumption and would interleave JSONL records.
-2. **Load each corpus once per job**, not once per (corpus, model). Enron currently costs a full
-   1.3 GB decompression per task.
-3. **Size the whole detection surface first** — OntoNotes (en/zh/ar), CARDIO:DE 400, MEDDOCAN,
-   MedDeID, REDACT, AI4Privacy, PIIBench — and put document counts and estimated hours in a table
-   here. Submitting before that table exists is what §15.1 describes.
-4. **Write the classical-detector job.** Four of axis D's six levels have no code and no job.
-5. **Ask AM before submitting.** The cluster is shared with the group and with AM's own work.
-
-### 15.6 Standing cluster rules
-
-- **Everything resumes.** A killed job re-reads the cache and skips what is recorded; documents that
-  errored are retried rather than frozen into the results. This is what made §15.1 cost nothing.
-- **Slurm limits:** assoc `MaxJobs` = 8; QOS `miti` = 4 concurrent, `turbo` = **10 concurrent, 100
-  submitted**, 24 h wall clock. Throttle arrays with `%8` — and prefer *not* to need an array.
-- **The head node is not for jobs.** A 20,000-message load was OOM-killed there; the same load runs
-  in 100 s inside an allocation.
-- **`mkdir -p results/slurm` inside every job script.** Slurm redirects stdout *before* the script
-  runs; a missing directory fails the job with no log at all.
-- `/cluster` is at 95 %. Text corpora are small; do not write model checkpoints.
-
-## 16. Enron is in — decided, with safeguards
+## 15. Enron is in — decided, with safeguards
 
 **AM, 2026-09-07: Enron is included, and the ethics point is made explicitly in the paper.**
 
@@ -1004,7 +880,7 @@ following hold, which cost the study nothing:
 
 ---
 
-## 17. Deliverables
+## 16. Deliverables
 
 Released **code**, the **complete results over all cells**, and the **stability–leakage–utility frontier** per
 language and domain — reported **one panel per task**, since a single utility scalar was rejected.
@@ -1015,7 +891,7 @@ one redistributable artefact. Ship converters, a manifest with checksums, and a 
 
 ---
 
-## 18. Open items
+## 17. Open items
 
 1. **BRONCO150** — no reply from Prof. Leser since 2026-09-07.
 2. **n2c2 2014** — registration closed; ask DBMI when it reopens. Its loss removes clinical
@@ -1025,7 +901,7 @@ one redistributable artefact. Ship converters, a manifest with checksums, and a 
    README does not say what was done to them. Read it out of Richter-Pechanski et al., *Sci Data*
    10, 207 (2023) before making any claim about the corpus's identifiers.
 5. **Where the Enron size sweep stops** — Enron at rate 0.10 is 86 % of the whole detection budget
-   (§15.4.1). The sweep 0.01 → 0.25 is the plan's own design; its upper end is AM's to set.
+   The sweep 0.01 → 0.25 is the plan's own design; its upper end is AM's to set.
 6. **Three consequences of collapsing to three conditions** (AM, 2026-09-10, §7), recorded so they
    stay visible: the hash-versus-HMAC contrast is not measured and **A1 cannot run**;
    **frequency-matched surrogates** are not measured, and they were the one surrogate level no
@@ -1033,14 +909,14 @@ one redistributable artefact. Ship converters, a manifest with checksums, and a 
    document, not across — is not run, so the middle of the linkability range is absent. Each would
    need one further condition.
 7. **Four of axis D's levels have no code** — Presidio, GLiNER, `obi/deid_roberta_i2b2` and
-   `privacy_tagger` have software and weights on the cluster but no adapter (§15.2).
+   `privacy_tagger` have software and weights on the cluster but no adapter.
 8. Does the **2026 revision of ISO 25237** change any recommendation we would make? Somebody needs a
    copy — it is not open access.
 9. **Ask Eder / Krieg-Holz / Hahn for CodEAlltag's annotated S+d subset.** The release ships the
     800 donated e-mails without the manual span annotations that were made before substitution. If
     the authors will share them, CodEAlltag gains gold spans — and it is one of only two routes to a
     scorable German detection cell, the other being BRONCO150. Carried over from
-    `data/metacorpus.md` §15, which was rewritten as a corpus list on 2026-09-09.
+    `data/metacorpus.md`, which was rewritten as a corpus list on 2026-09-09.
 10. Ensemble composition: which LLMs, and is the combination rule fixed across languages or tuned per
    language? Tuning per language risks overfitting the benchmark.
 
