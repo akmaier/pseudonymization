@@ -66,6 +66,12 @@ class Pseudonymiser:
         replaces (§12.2) was a default of ``"en"`` that silently gave 1,911 Chinese and 446 Arabic
         OntoNotes documents English surrogates.  Non-Latin script is the reason OntoNotes is in the
         study, so a caller that does not know the language must not be able to guess one.
+
+        Note what the deterministic policy does to this.  An entity that appears in two documents of
+        different languages is *one* entity and receives *one* pseudonym — the one made when it was
+        first seen, in that document's language.  Stability beats locale, which is the policy's whole
+        point (§5): a surrogate that changed with the language would break the corpus-wide identity
+        the data's usability depends on.
         """
         key = entity_key(mention.surface, mention.type, self.normaliser)
         scope = self.policy.scope_key(key, mention)

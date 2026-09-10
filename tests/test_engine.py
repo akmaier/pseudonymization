@@ -87,3 +87,98 @@ def test_every_technique_runs_end_to_end(weber_doc, technique):
 def test_empty_document_is_unchanged():
     doc = Document("d0", "nothing here", "en", ())
     assert make().pseudonymise(doc).text == "nothing here"
+
+
+# ----------------------------------------------------------- the document's language reaches the
+# ----------------------------------------------------------- surrogate inventory (§12.2)
+
+
+class RecordingInventory:
+    """An inventory that answers per language and records what it was asked for."""
+
+    def __init__(self, by_language: dict[str, str]):
+        self._by_language = by_language
+        self.asked: list[str] = []
+
+    def size(self, entity_type, language, stratum=None):
+        return 1 if language in self._by_language else 0
+
+    def surface(self, index, entity_type, language, stratum=None):
+        self.asked.append(language)
+        if language not in self._by_language:
+            raise LookupError(f"no surrogates for language={language!r}")
+        return self._by_language[language]
+
+
+def _one_person(doc_id: str, language: str, surface: str = "Weber") -> Document:
+    text = f"{surface} called."
+    return Document(
+        doc_id, text, language,
+        (Mention(doc_id, "m0", Span(0, len(surface), surface, "PERSON")),),
+    )
+
+
+def _engine(inventory) -> Pseudonymiser:
+    return Pseudonymiser(
+        NORMALISERS.create("N2"),
+        POLICIES.create("deterministic"),
+        TECHNIQUES.create("hmac"),
+        SURROGATES.create("realistic", inventory=inventory),
+    )
+
+
+def test_the_documents_language_selects_the_surrogate_pool():
+    """§12.2: 1,911 Chinese and 446 Arabic OntoNotes documents were given English surrogates."""
+    inventory = RecordingInventory({"en": "Powers", "zh": "王", "ar": "علي"})
+    corpus = Corpus("mixed", (
+        _one_person("en1", "en", "Weber"),
+        _one_person("zh1", "zh", "张三"),
+        _one_person("ar1", "ar", "محمد"),
+    ))
+    result = _engine(inventory).pseudonymise_corpus(corpus)
+    assert inventory.asked == ["en", "zh", "ar"]
+    assert [d.text for d in result.documents] == [
+        "Powers called.", "王 called.", "علي called.",
+    ]
+
+
+def test_one_entity_in_two_languages_keeps_one_pseudonym():
+    """Stability beats locale under the deterministic policy, and that is the policy's point.
+
+    An entity written identically in two documents of different languages is *one* entity, so it
+    gets *one* pseudonym — drawn from the pool of the language it was first seen in. Giving it a
+    locale-appropriate surrogate in each language would break the corpus-wide stability §5 says the
+    data's usability depends on.
+    """
+    inventory = RecordingInventory({"en": "Powers", "zh": "王"})
+    corpus = Corpus("mixed", (_one_person("en1", "en"), _one_person("zh1", "zh")))
+    result = _engine(inventory).pseudonymise_corpus(corpus)
+    assert inventory.asked == ["en"]
+    assert [d.text for d in result.documents] == ["Powers called.", "Powers called."]
+
+
+def test_a_mention_attribute_still_overrides_the_document():
+    """A quoted foreign name inside an otherwise German letter keeps its own pool."""
+    inventory = RecordingInventory({"de": "Bauer", "en": "Powers"})
+    engine = _engine(inventory)
+    text = "Weber called."
+    doc = Document("d1", text, "de", (
+        Mention("d1", "m0", Span(0, 5, "Weber", "PERSON"), attributes={"language": "en"}),
+    ))
+    assert engine.pseudonymise(doc).text == "Powers called."
+    assert inventory.asked == ["en"]
+
+
+def test_a_language_with_no_gazetteer_is_loud_rather_than_silently_english():
+    """§1: an impossible cell is reported, never substituted."""
+    inventory = RecordingInventory({"en": "Powers"})
+    with pytest.raises(LookupError):
+        _engine(inventory).pseudonymise(_one_person("zh1", "zh", "张三"))
+
+
+def test_assign_requires_a_language():
+    """No default: the defect being fixed was exactly a default of "en"."""
+    engine = make(surrogate="realistic")
+    mention = Mention("d1", "m0", Span(0, 5, "Weber", "PERSON"))
+    with pytest.raises(TypeError):
+        engine.assign(mention)
