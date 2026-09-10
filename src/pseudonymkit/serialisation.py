@@ -13,19 +13,67 @@ object per document, gzip-friendly, and it round-trips the domain model exactly.
 Dataclasses inside ``Document.task`` — CARDIO:DE's medication and section spans, for instance — are
 encoded structurally with a ``__type__`` tag so that a reader can tell a serialised span from a plain
 dictionary, and so that a corpus that carries them does not silently lose them.
+
+## The round trip is exact, and it was not
+
+Two defects, both recorded in ``experiment_plan.md`` §12.2 and both fixed here:
+
+* ``Span.source`` and ``Span.score`` were dropped, so a round-tripped corpus could not say **which
+  detector produced a span** — which is the one thing an ensemble's records exist to record.
+* ``__type__`` was written and never read, so CARDIO:DE's :class:`MedicationSpan` and
+  :class:`SectionSpan` came back as plain dictionaries and ``span.section_type`` raised
+  ``AttributeError`` at the point of use rather than at the point of loss.
+
+The decoder therefore needs to know every dataclass a corpus can carry.  :func:`register_type` is
+that registry; an adapter registers its own types next to their definitions, and a ``__type__`` with
+no entry raises rather than degrading to a dictionary.  Being loud is the point: the silent version
+of this failure is what §12.2 is about.
+
+Tuples are tagged as well.  JSON has one sequence type, so an untagged round trip turns every tuple
+into a list, and ``Document.task["medications"]`` would come back as a different type from the one
+the adapter put there.  Untagged lists still decode as lists, so a file written before this existed
+still reads.
 """
 
 from __future__ import annotations
 
 import dataclasses
 import gzip
+import importlib
 import json
 from pathlib import Path
 from typing import Any, Iterator
 
 from .domain import Corpus, Document, Mention, Span
 
-__all__ = ["write_corpus", "read_corpus", "iter_documents"]
+__all__ = [
+    "write_corpus",
+    "read_corpus",
+    "iter_documents",
+    "register_type",
+    "TYPES",
+]
+
+TYPES: dict[str, type] = {}
+"""``__type__`` name -> the dataclass to rebuild.  Populated by :func:`register_type`."""
+
+_ADAPTERS_IMPORTED = False
+
+
+def register_type(cls: type) -> type:
+    """Make a dataclass decodable.  Usable as a decorator on the class itself.
+
+    Registration lives with the class rather than in a table here, so a corpus adapter that adds an
+    annotation layer cannot forget to make it readable back: the two edits are one edit.
+    """
+    if not dataclasses.is_dataclass(cls):
+        raise TypeError(f"{cls!r} is not a dataclass")
+    TYPES[cls.__name__] = cls
+    return cls
+
+
+for _cls in (Span, Mention):
+    register_type(_cls)
 
 
 def _encode(value: Any) -> Any:
@@ -35,8 +83,48 @@ def _encode(value: Any) -> Any:
         }}
     if isinstance(value, dict):
         return {str(k): _encode(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, tuple):
+        return {"__tuple__": [_encode(v) for v in value]}
+    if isinstance(value, list):
         return [_encode(v) for v in value]
+    return value
+
+
+def _resolve(name: str) -> type:
+    """Look up a ``__type__``, importing the adapters once before giving up.
+
+    The core must not depend on the adapters at import time — that is what keeps
+    :mod:`pseudonymkit.domain` free of corpus knowledge — so the import is deferred to the first
+    unknown type and happens at most once.
+    """
+    global _ADAPTERS_IMPORTED
+    cls = TYPES.get(name)
+    if cls is not None:
+        return cls
+    if not _ADAPTERS_IMPORTED:
+        _ADAPTERS_IMPORTED = True
+        importlib.import_module("pseudonymkit.adapters")
+        cls = TYPES.get(name)
+        if cls is not None:
+            return cls
+    raise KeyError(
+        f"no decoder for {name!r}: the dataclass must call register_type() where it is defined, "
+        "or the corpus was written by a version that knows a type this one does not"
+    )
+
+
+def _decode(value: Any) -> Any:
+    if isinstance(value, dict):
+        if "__tuple__" in value:
+            return tuple(_decode(v) for v in value["__tuple__"])
+        name = value.get("__type__")
+        if name is not None:
+            cls = _resolve(str(name))
+            fields = {f.name for f in dataclasses.fields(cls)}
+            return cls(**{k: _decode(v) for k, v in value.items() if k in fields})
+        return {k: _decode(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_decode(v) for v in value]
     return value
 
 
@@ -59,6 +147,10 @@ def _document_record(document: Document) -> dict[str, Any]:
                 "text": m.span.text,
                 "type": m.span.type,
                 "type_src": m.span.type_src,
+                # Which detector produced the span, and how sure it was. Dropping these made a
+                # round-tripped corpus unable to say where its spans came from (§12.2).
+                "source": m.span.source,
+                "score": m.span.score,
                 "gold_entity_id": m.gold_entity_id,
                 "attributes": dict(m.attributes),
             }
@@ -127,7 +219,15 @@ def _document(record: dict[str, Any]) -> Document:
         Mention(
             doc_id=doc_id,
             mention_id=m["mention_id"],
-            span=Span(m["start"], m["end"], m["text"], m["type"], type_src=m.get("type_src")),
+            span=Span(
+                m["start"],
+                m["end"],
+                m["text"],
+                m["type"],
+                type_src=m.get("type_src"),
+                source=m.get("source"),
+                score=m.get("score"),
+            ),
             gold_entity_id=m.get("gold_entity_id"),
             attributes=m.get("attributes") or {},
         )
@@ -142,6 +242,6 @@ def _document(record: dict[str, Any]) -> Document:
         domain=record.get("domain"),
         provenance=record.get("provenance"),
         subject_id=record.get("subject_id"),
-        task=record.get("task") or {},
-        metadata=record.get("metadata") or {},
+        task=_decode(record.get("task") or {}),
+        metadata=_decode(record.get("metadata") or {}),
     )

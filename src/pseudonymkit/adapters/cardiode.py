@@ -63,6 +63,7 @@ from pathlib import Path
 from typing import Callable, Iterator, Sequence
 
 from ..domain import Corpus, Document, Mention, Span
+from ..serialisation import register_type
 
 __all__ = [
     "MEDICATION_CLASSES",
@@ -118,6 +119,11 @@ _PSEUDO = re.compile(r"<\[Pseudo\][^>]*>")
 """The in-place marker left where a date was replaced.  It never wraps anything but a date."""
 
 
+# The four layers below ride in ``Document.task`` and must survive a JSONL round trip: without a
+# decoder they came back as plain dictionaries and ``span.section_type`` raised at the point of use
+# rather than at the point of loss (experiment_plan.md §12.2).  Registration lives here so adding a
+# layer and making it readable back are one edit.
+@register_type
 @dataclass(frozen=True, slots=True)
 class MedicationSpan:
     start: int
@@ -129,6 +135,7 @@ class MedicationSpan:
     xmi_id: str
 
 
+@register_type
 @dataclass(frozen=True, slots=True)
 class SectionSpan:
     start: int
@@ -137,6 +144,7 @@ class SectionSpan:
     xmi_id: str
 
 
+@register_type
 @dataclass(frozen=True, slots=True)
 class MedicationRelation:
     start: int
@@ -147,6 +155,7 @@ class MedicationRelation:
     """``xmi:id`` of the governing :class:`MedicationSpan`."""
 
 
+@register_type
 @dataclass(frozen=True, slots=True)
 class CasAnnotations:
     """One letter's annotation layers, with the text the offsets were recorded against."""
