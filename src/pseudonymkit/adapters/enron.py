@@ -278,6 +278,7 @@ def load(
     identity_table: IdentityTable | None = None,
     min_name_count: int = 2,
     stride: int = 1,
+    require_body: bool = True,
     progress: Callable[[str], None] | None = None,
 ) -> Corpus:
     """Build a corpus from the tarball or an extracted maildir.
@@ -285,6 +286,12 @@ def load(
     Two passes over the messages: the first learns the identity table from sender pairs, the second
     emits documents.  ``min_name_count`` drops display names seen only once, which are usually
     parsing debris rather than people.
+
+    ``require_body`` drops messages that carry no prose once quoting is stripped (AM, 2026-09-10).
+    They are a real part of an e-mail archive — a forward with nothing added — but they cannot be
+    scored on any utility task, and they would enter every condition as an empty document.  The
+    identity table is built **before** the filter, so a name that appears only in such a message
+    still counts towards the corpus's identities.
     """
     # One decompression pass, held in memory.  An earlier version made two passes to halve peak
     # memory after being OOM-killed -- but the kill happened on the *login node*, whose per-user
@@ -300,10 +307,18 @@ def load(
         progress(f"identity table: {len(table.by_name)} names, {len(known)} above threshold")
 
     documents: list[Document] = []
+    bodyless = 0
     for path, mailbox, raw in raws:
         message = email.message_from_string(raw)
         folder = (message.get("X-Folder") or "").replace("\\", "/").rstrip("/").split("/")[-1]
         text = build_text(message)
+        if require_body and not text.split("\n\n", 1)[-1].strip() or (
+                require_body and "\n\n" not in text):
+            # A message that quoted a thread and added nothing carries sender, recipients and
+            # subject but no prose (AM, 2026-09-10). It is excluded: a utility task cannot be
+            # scored on it, and keeping it would put empty documents in every condition.
+            bodyless += 1
+            continue
         documents.append(
             Document(
                 doc_id=path,

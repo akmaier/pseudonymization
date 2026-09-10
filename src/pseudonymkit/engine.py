@@ -59,8 +59,14 @@ class Pseudonymiser:
         self.surrogate = surrogate
         self.mapping = PseudonymMapping()
 
-    def assign(self, mention: Mention) -> Assignment:
-        """Resolve the assignment for one mention, creating it on first sight."""
+    def assign(self, mention: Mention, language: str) -> Assignment:
+        """Resolve the assignment for one mention, creating it on first sight.
+
+        ``language`` selects the surrogate pool and is **required**, not defaulted: the defect it
+        replaces (§12.2) was a default of ``"en"`` that silently gave 1,911 Chinese and 446 Arabic
+        OntoNotes documents English surrogates.  Non-Latin script is the reason OntoNotes is in the
+        study, so a caller that does not know the language must not be able to guess one.
+        """
         key = entity_key(mention.surface, mention.type, self.normaliser)
         scope = self.policy.scope_key(key, mention)
         existing = self.mapping.get(scope)
@@ -73,7 +79,7 @@ class Pseudonymiser:
                 entity_key=key,
                 entity_type=mention.type,
                 index=index,
-                surface=self.surrogate.render(index, mention, mention_language(mention, "en")),
+                surface=self.surrogate.render(index, mention, mention_language(mention, language)),
             )
         )
 
@@ -93,7 +99,7 @@ class Pseudonymiser:
             if mention.span.start < cursor:
                 skipped.append(mention)
                 continue
-            assignment = self.assign(mention)
+            assignment = self.assign(mention, document.language)
             pieces.append(document.text[cursor : mention.span.start])
             pieces.append(assignment.surface)
             assignments.append(assignment)
@@ -115,5 +121,15 @@ class Pseudonymiser:
 
 
 def mention_language(mention: Mention, default: str) -> str:
-    """Language for surrogate selection; carried on the mention when a corpus is multilingual."""
+    """Language for surrogate selection.
+
+    The **document's** language is the default, passed in by :meth:`Pseudonymiser.pseudonymise`.  A
+    mention may override it — a quoted foreign name inside an otherwise German letter — but no
+    adapter sets that attribute today, so in practice the document decides.
+
+    That is the fix for the defect ``experiment_plan.md`` §12.2 records: this function used to be
+    called with a hard-coded ``"en"`` and the attribute nobody sets, so *every* mention in every
+    corpus resolved to English.  The corpora affected are the ones the study is multilingual for —
+    1,911 Chinese and 446 Arabic OntoNotes documents were pseudonymised with English surrogates.
+    """
     return mention.attributes.get("language", default)

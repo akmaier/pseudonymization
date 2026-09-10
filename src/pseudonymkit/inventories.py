@@ -109,7 +109,14 @@ class ListInventory:
     ) -> str:
         pool = self._pool(entity_type, language, stratum)
         if not pool:
-            raise LookupError(f"no surrogates for type={entity_type!r} language={language!r}")
+            # Loud on purpose. The engine now passes the *document's* language (experiment_plan.md
+            # §12.2), so a corpus in a language the gazetteers do not cover stops here instead of
+            # quietly receiving surrogates from another language. §1 says an impossible cell is
+            # reported, not substituted, and silently falling back to English is a substitution.
+            raise LookupError(
+                f"no surrogates for type={entity_type!r} language={language!r}: this inventory "
+                f"covers {sorted({lang for _, lang in self._entries})}"
+            )
         if not self._frequency_matched:
             return pool[index % len(pool)].surface
         cum = self._cum[(entity_type, language, _stratum_key(stratum))]

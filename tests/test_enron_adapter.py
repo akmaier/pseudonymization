@@ -202,3 +202,26 @@ def test_a_message_with_no_body_still_yields_its_header_fields():
     text = enron.build_text(email.message_from_string(raw))
     assert "Subject: only headers" in text
     assert "From: a@x.com" in text
+
+
+def test_messages_with_no_body_are_excluded(tmp_path):
+    # AM, 2026-09-10: a forward that added nothing carries names but no prose. It cannot be scored
+    # on a utility task and would enter every condition as an empty document.
+    quoted_only = (
+        "From: a@x.com\nX-From: Ann Aardvark\nTo: b@x.com\nSubject: fwd\n\n"
+        "-----Original Message-----\nFrom: c@x.com\n\nthe original text\n"
+    )
+    with_body = (
+        "From: a@x.com\nX-From: Ann Aardvark\nTo: b@x.com\nSubject: real\n\n"
+        "This message says something.\n"
+    )
+    root = tmp_path / "maildir" / "aardvark-a" / "sent"
+    root.mkdir(parents=True)
+    (root / "1.").write_text(quoted_only, "utf-8")
+    (root / "2.").write_text(with_body, "utf-8")
+
+    kept = enron.load(tmp_path / "maildir")
+    assert [d.doc_id.rsplit("/", 1)[-1] for d in kept.documents] == ["2."]
+
+    both = enron.load(tmp_path / "maildir", require_body=False)
+    assert len(both) == 2

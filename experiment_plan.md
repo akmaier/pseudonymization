@@ -726,6 +726,12 @@ and at what cost to the gold offsets, is undecided.
 2026-09-09). The duplicated HTML and plain-text alternatives of the same message are collapsed to
 one, as are quoted replies and forwarded blocks. Every message in the drawn subset is processed —
 the subset is `subject` @ 0.10 (§13) and it is used whole.
+*Messages with no body are excluded* (AM, 2026-09-10). Once quoting is stripped, some messages
+carry sender, recipients and subject but no prose — a forward with nothing added. They cannot be
+scored on any utility task and would enter every condition as an empty document, so they are dropped.
+The identity table is built **before** the filter, so a name appearing only in such a message still
+counts towards the corpus's identities.
+
 *The folder label must not be in the text.* `X-Folder` names the mailbox folder, which is the
 folder-classification target, so it is excluded along with the other routing headers; only the
 fields listed above are kept.
