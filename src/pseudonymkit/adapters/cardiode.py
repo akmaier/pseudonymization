@@ -41,7 +41,7 @@ the failure would be invisible, so :func:`_offset_map` converts wherever it must
 
 ## Identifier provenance — dates are marked, names are not
 
-Every de-identified **date** is marked in place: ``<[Pseudo] 12/03/2019>``, 18,148 occurrences across
+Every de-identified **date** is marked in place: ``<[Pseudo] 12/03/2019>``, 14,854 occurrences in the 400 annotated letters, 18,148 across
 the 500 letters, and the marker never wraps anything else.  Those give CARDIO:DE a real, if narrow,
 DATETIME gold layer, exposed here as ``DATETIME`` mentions with ``type_src="Pseudo"``.
 

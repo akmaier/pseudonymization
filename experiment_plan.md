@@ -372,12 +372,12 @@ Scored with the Text Anonymization Benchmark's own scheme (Pilán et al., Comput
 it is the only published scheme designed for **concealing an identity** rather than hitting a
 category:
 
-- **Entity-level recall** is the privacy metric. An entity counts as protected only if every one of
+- **Entity-level recall** is the detection-side privacy metric. An entity counts as protected only if every one of
   its mentions is masked; one unmasked mention leaks the person. This is the risk-weighted measure
   Scaiano et al. (JBI 2016) argue plain recall is not.
 - **Token-level recall** is reported alongside it for comparability with the i2b2/n2c2 and MEDDOCAN
   literature, which scores strict and merged spans.
-- **Information-weighted precision** is the utility metric: each masked token is weighted by how
+- **Information-weighted precision** is the over-masking metric: each masked token is weighted by how
   predictable it is from the remaining context, so masking a token that carried no information is not
   punished like masking one that did.
 - **DIRECT and QUASI identifiers are reported separately**, as TAB annotates them, and **PERSON and
@@ -490,15 +490,15 @@ by definition and belongs in future work.
 from memory rather than from the text. Control with the same public-figure stratification A4 uses,
 plus a no-context condition.
 
-### 8.4 Leakage — five attacks
+### 8.4 Leakage
 
 | | attack | applies to | scored as |
 |---|---|---|---|
-| **A1** | dictionary / brute force | **unkeyed techniques only** | inversion rate vs **name frequency** and **name length** |
-| **A2** | frequency analysis | **all five techniques** | top-1 / top-5, Spearman ρ; rank alignment is the optimal 1-D assignment, so no Hungarian solver is needed |
-| **A3** | structural linkage (fixed cosine over entity profiles); on Enron the **~184-employee org chart** is the public auxiliary record to link against | all | Rank-1 / Rank-5 / mAP |
-| **A4** | LLM re-identification | all | **ranked candidate list** — see below |
-| **A5** | learned relational re-identification | all | Rank-1 / Rank-5 / mAP |
+| **A1** | dictionary / brute force | **not run** — no unkeyed condition in the design (§7, §17) | — |
+| **A2** | frequency analysis | **B only** — on C every identifier of a type is one string, so there is no distribution to align | top-1 / top-5, Spearman ρ; rank alignment is the optimal 1-D assignment, so no Hungarian solver is needed |
+| **A3** | structural linkage (fixed cosine over entity profiles); on Enron the **~184-employee org chart** is the public auxiliary record to link against | A, B and C | Rank-1 / Rank-5 / mAP |
+| **A4** | LLM re-identification | A, B and C | **ranked candidate list** — see below |
+| **A5** | learned relational re-identification | A, B and C | Rank-1 / Rank-5 / mAP |
 
 **Stated predictions, so the hypotheses can fail.** A2 succeeds on B and has nothing to work with on
 C, since every identifier of a type is the same string there. A3 and A5 are strong on B and weak on
@@ -513,6 +513,11 @@ not. It attacks what pseudonymisation cannot remove: the name is replaced, the p
 
 **A4 is scored as recovery of the surface form already present in the corpus**, never as inference of
 new facts about an individual — see the Enron safeguards.
+
+**A3, A4 and A5 are run on condition A as well**, where nothing has been replaced. That is the
+ceiling — what the adversary recovers with no protection at all — and without it a leakage rate on B
+or C has no scale. It is the same requirement §8.3 places on utility, where the original-text score
+is reported beside every condition.
 
 **A1 does not run.** Condition B uses HMAC-SHA256 (§7), and a dictionary attack against a keyed
 function has nothing to compute; reporting "HMAC resisted the dictionary attack" would be a category
@@ -613,7 +618,7 @@ the same documents — which is the gap §4.1 claims nobody has closed.
 | **TAB / ECHR** (en, legal) | ✅ 8 types, DIRECT/QUASI | ✅ co-reference | ✅ 30-label articles | **full** |
 | **OntoNotes** (en, zh, ar; 5 genres) | ✅ 18 NE types | ✅ co-reference | ✅ co-reference + NER | **full** |
 | **Enron** (en, e-mail) | ⚠ structural, header-derived | ✅ cross-document identity | ✅ folder · intent · formality | **full** |
-| **CARDIO:DE** (de, clinical) | ⚠ DATETIME only — 18,148 `<[Pseudo] …>` date markers, no name layer | ❌ | ✅ medication IE · section classes | utility **+ leakage** (AM, 2026-09-08) |
+| **CARDIO:DE** (de, clinical) | ⚠ DATETIME only — 14,854 `<[Pseudo] …>` date markers in the 400 annotated letters, no name layer | ❌ | ✅ medication IE · section classes | utility **+ leakage** (AM, 2026-09-08) |
 | **CodEAlltag** (de, e-mail) | ❌ none released | ❌ | ✅ formality · 7-way topic (the pXL partition *is* the label) | utility only |
 | **BRONCO150** (de, clinical) | ✅ ICD/OPS/ATC | ❌ sentence-scrambled | ✅ coding | utility only — **not yet received** |
 | MEDDOCAN · MedDeID · REDACT · AI4Privacy | ✅ | ❌ | ❌ | **OUT** (AM, 2026-09-08) — no utility task, so no cell where a method's effect is attributable |
@@ -772,57 +777,35 @@ record.
 
 ## 13. Sampling
 
-The sampling unit decides which structure survives, and the measurements depend on different
-structures. Measured at rate 0.2 on a synthetic corpus:
+Four of the five corpora are small enough to use whole, so no scheme is needed and none is chosen.
 
-| scheme | documents | entities kept | profile retained per entity |
-|---|---:|---:|---:|
-| `document` | 80 | 20 | 20 % |
-| `stratified` | 80 | 20 | 20 % |
-| **`subject`** | 80 | **6** | **67 %** |
-| `time` | 80 | 20 | 20 % |
-
-**No scheme keeps a profile whole except taking everything.** They rank; they do not solve.
-
-| measurement | scheme | why |
+| corpus | drawn | scheme |
 |---|---|---|
-| detection · utility · within-document stability · **A2** | ~~`stratified`~~ | every subject represented in proportion; frequency *ranks* survive thinning |
-| **A3 · A5 · drift** | **`subject`** or `time` | profile completeness is the signal; document sampling starves it |
+| TAB | all 1,268 | — |
+| OntoNotes | all | — |
+| CodEAlltag_S | all 800 | — |
+| CARDIO:DE | all 400 annotated letters | — |
+| **Enron** | **`subject` @ 0.10, seed recorded** — whole mailboxes, all their messages | `subject` |
+| CodEAlltag_XL | **equal n per topic** | stratified by topic |
 
-### Enron uses one scheme: `subject` @ 0.10 (AM, 2026-09-08)
+**Enron uses `subject` and only `subject`** (AM, 2026-09-08). Two schemes are two different document
+sets, so detection would have to cover their union, and Enron is the largest corpus in the study by
+an order of magnitude. `subject` draws whole mailboxes and keeps every message in them, so an
+entity's profile stays complete — which A3 and A5 need and which no thinning scheme can restore.
+Inside a kept mailbox the frequency distribution is also complete, so A2 loses statistical power
+rather than the effect it measures. What `subject` costs is a smaller and shifted entity population:
+prolific correspondents are kept or dropped whole, and links to dropped mailboxes disappear. That is
+stated with the result.
 
-The per-measurement assignment above was the design, and it is **superseded for Enron**. Two schemes
-are two different document sets, so detection would have to cover their **union** — and Enron is
-the largest corpus in the study by an order of magnitude. One scheme, and it is `subject`:
+The identity table is built from **all** ~517,000 messages before the draw, so cross-document
+identity is complete even for mailboxes outside the sample (§12).
 
-- **Profile completeness cannot be recovered any other way.** 67 % retained per entity against
-  `stratified`'s 20 %, measured. A3 and A5 are starved by the alternative; nothing is starved by
-  this one.
-- **A2 tolerates it.** Inside a kept mailbox the frequency distribution is *complete*, so pseudonym
-  frequency still mirrors real-name frequency. What is lost is statistical power — fewer entities —
-  not the effect, and §13 predicts A2 is robust to rate anyway.
-- **Detection and utility do not care which documents**, only how many.
-- With one scheme, detection, stability, utility and leakage land on **the same documents**, which is
-  the property §11 claims for Enron in the first place.
+**CodEAlltag_XL is drawn equal-n per topic**, not proportionally: the partition *is* the label for
+the seven-way topic task, and proportional sampling would carry the partitions' size imbalance into
+the class balance.
 
-**How it is built** (`experiments/build_enron.py`): Enron cannot be materialised in full anywhere —
-the head node has too little memory, and a full pass on an 18 GB laptop was **killed by memory
-pressure** while constructing the 517,401 documents. So the sample is a **stream filter** applied
-before documents are built: one pass over every message builds the identity table (names only —
-11,124 of them in 30 s), whole mailboxes are drawn with `sampling.by_subject`'s rule and seed, and a
-second pass builds documents for those mailboxes using the **full** table. Cross-document identity is
-therefore complete even for mailboxes outside the sample.
-
-The result is written as JSONL (`pseudonymkit.serialisation`) and shipped to the cluster. That
-serialisation exists **only** for Enron; every other corpus is read from its release by its adapter.
-
-Scheme, rate and seed are stamped into `Corpus.name` and every document's metadata. **No result may
-be quoted without its sampling provenance.**
-
-**Size sweep.** Run identical cells at 0.01/0.05/0.10/0.25 and report which measurements are stable.
-Prediction: A2 robust to rate, A3/A5 not.
-
----
+Scheme, rate and seed are stamped into `Corpus.name` and into every document's metadata. **No result
+may be quoted without its sampling provenance** (§9).
 
 ## 14. Models and resources
 
@@ -882,12 +865,24 @@ following hold, which cost the study nothing:
 
 ## 16. Deliverables
 
-Released **code**, the **complete results over all cells**, and the **stability–leakage–utility frontier** per
-language and domain — reported **one panel per task**, since a single utility scalar was rejected.
+**Released.** The code; the per-document score vectors and the aggregate rates for every cell; and
+the comparison of A, B and C on detection, stability, utility and leakage, reported **one panel per
+task**, since a single utility scalar was rejected (§8.3).
 
-**Distribution is a build recipe, not a dataset.** Members span MIT, CC-BY, CC-BY-SA (copyleft), a
-custom academic licence, three DUAs and the LDC licence; ShareAlike plus three DUAs cannot coexist in
-one redistributable artefact. Ship converters, a manifest with checksums, and a local builder.
+Scores and rates are numbers and expose nothing. **The detector cache is not released**: it stores
+every detected span's verbatim text, which for the restricted corpus is a substantial fraction of the
+corpus itself, and for Enron is live personal data. `results/` is gitignored wholesale for that
+reason. No mapping table, no worked inversion and no example document is released either (§15).
+
+**What is delivered for which language.** Detection and utility are delivered for every corpus that
+supports them (§11). **Stability is delivered for English only**: it needs entity identity, and
+neither German corpus has any. Nothing here is delivered "per language and domain" without that
+qualification.
+
+**Distribution is a build recipe, not a dataset.** Members span MIT, CC-BY-SA (copyleft), a custom
+academic licence, the LDC licence, a per-user DUA and one public release; ShareAlike and a DUA cannot
+coexist in one redistributable artefact. Ship converters, a manifest with checksums, and a local
+builder.
 
 ---
 
@@ -895,7 +890,8 @@ one redistributable artefact. Ship converters, a manifest with checksums, and a 
 
 1. **BRONCO150** — no reply from Prof. Leser since 2026-09-07.
 2. **n2c2 2014** — registration closed; ask DBMI when it reopens. Its loss removes clinical
-   cross-document stability and the only cell where detection and utility shared documents.
+   cross-document stability and the only *clinical* corpus where detection and utility would have
+   shared documents (§11).
 3. **The fair A3/A5 comparison** — A3 restricted to A5's held-out entities and gallery.
 4. **CARDIO:DE person-name handling** — dates are marked in place, names are not, and the release
    README does not say what was done to them. Read it out of Richter-Pechanski et al., *Sci Data*
