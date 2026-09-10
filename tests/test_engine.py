@@ -182,3 +182,70 @@ def test_assign_requires_a_language():
     mention = Mention("d1", "m0", Span(0, 5, "Weber", "PERSON"))
     with pytest.raises(TypeError):
         engine.assign(mention)
+
+
+# ------------------------------------------------ mapping gold offsets onto pseudonymised text
+
+
+def _replaced() -> tuple[Document, "PseudonymisedDocument"]:
+    from pseudonymkit.conditions import build as build_condition
+
+    text = "Dr. Weber met Meyer in Berlin."
+    doc = Document("d1", text, "en", (
+        Mention("d1", "m0", Span(0, 9, "Dr. Weber", "PERSON")),
+        Mention("d1", "m1", Span(14, 19, "Meyer", "PERSON")),
+        Mention("d1", "m2", Span(23, 29, "Berlin", "LOC")),
+    ))
+    return doc, build_condition("C").pseudonymise(doc)
+
+
+def test_replacements_report_where_each_surrogate_landed():
+    from pseudonymkit.engine import replacements
+
+    doc, out = _replaced()
+    assert out.text == "[PERSON] met [PERSON] in [LOCATION]."
+    for r in replacements(out):
+        assert out.text[r.new_start : r.new_end] == r.assignment.surface
+
+
+def test_offset_map_moves_an_untouched_span_by_the_accumulated_shift():
+    from pseudonymkit.engine import offset_map
+
+    doc, out = _replaced()
+    mapping = offset_map(out)
+    start, end = mapping.span(doc.text.index("met"), doc.text.index("met") + 3)
+    assert out.text[start:end] == "met"
+    start, end = mapping.span(doc.text.index(" in "), doc.text.index(" in ") + 4)
+    assert out.text[start:end] == " in "
+
+
+def test_offset_map_carries_a_replaced_span_onto_its_surrogate():
+    from pseudonymkit.engine import offset_map
+
+    doc, out = _replaced()
+    mapping = offset_map(out)
+    start, end = mapping.span(0, 9)
+    assert out.text[start:end] == "[PERSON]"
+    start, end = mapping.span(23, 29)
+    assert out.text[start:end] == "[LOCATION]"
+
+
+def test_offset_map_extends_a_span_that_overlaps_a_replacement():
+    """A gold span covering part of a replaced entity keeps the entity, not the characters."""
+    from pseudonymkit.engine import offset_map
+
+    doc, out = _replaced()
+    mapping = offset_map(out)
+    # "Weber met Meyer" starts inside the first replacement and ends inside the second.
+    start, end = mapping.span(4, 19)
+    assert out.text[start:end] == "[PERSON] met [PERSON]"
+
+
+def test_offset_map_of_the_unmodified_condition_is_the_identity():
+    from pseudonymkit.conditions import build as build_condition
+    from pseudonymkit.engine import offset_map
+
+    doc, _ = _replaced()
+    out = build_condition("A").pseudonymise(doc)
+    mapping = offset_map(out)
+    assert all(mapping.span(i, i + 1) == (i, i + 1) for i in range(len(doc.text)))

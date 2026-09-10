@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from typing import Container, Iterable, Mapping, Sequence
 
 from ..domain import Corpus, Document
-from ..engine import PseudonymisedCorpus
+from ..engine import PseudonymisedCorpus, replacements
 
 __all__ = ["EntityProfile", "build_gallery", "build_queries", "truth_map",
            "disjoint_document_split"]
@@ -139,20 +139,11 @@ def build_queries(
     for pdoc in result.documents:
         if documents is not None and pdoc.document.doc_id not in documents:
             continue
-        skipped = {(m.doc_id, m.mention_id) for m in pdoc.skipped}
-        replaced = [
-            m
-            for m in sorted(pdoc.document.mentions, key=lambda m: (m.span.start, -m.span.length))
-            if (m.doc_id, m.mention_id) not in skipped
+        items = [
+            (r.assignment.surface, r.new_start, r.new_end)
+            for r in replacements(pdoc)
+            if r.mention.type == entity_type
         ]
-        items: list[tuple[str, int, int]] = []
-        offset = 0
-        for mention, assignment in zip(replaced, pdoc.assignments):
-            start = mention.span.start + offset
-            end = start + len(assignment.surface)
-            offset += len(assignment.surface) - mention.span.length
-            if mention.type == entity_type:
-                items.append((assignment.surface, start, end))
         if items:
             per_doc.append((pdoc.document.doc_id, pdoc.text, items))
     return _profiles(per_doc, window)
@@ -168,15 +159,9 @@ def truth_map(
     """
     seen: dict[str, set[str]] = defaultdict(set)
     for pdoc in result.documents:
-        skipped = {(m.doc_id, m.mention_id) for m in pdoc.skipped}
-        replaced = [
-            m
-            for m in sorted(pdoc.document.mentions, key=lambda m: (m.span.start, -m.span.length))
-            if (m.doc_id, m.mention_id) not in skipped
-        ]
-        for mention, assignment in zip(replaced, pdoc.assignments):
-            if mention.type == entity_type and mention.gold_entity_id:
-                seen[assignment.surface].add(mention.gold_entity_id)
+        for r in replacements(pdoc):
+            if r.mention.type == entity_type and r.mention.gold_entity_id:
+                seen[r.assignment.surface].add(r.mention.gold_entity_id)
     return {p: next(iter(g)) for p, g in seen.items() if len(g) == 1}
 
 
