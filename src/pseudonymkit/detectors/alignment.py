@@ -31,7 +31,14 @@ from typing import Mapping, Sequence
 
 from ..domain import Span
 
-__all__ = ["tokenise", "spans_to_bio", "bio_to_spans", "ground_snippets"]
+__all__ = [
+    "tokenise",
+    "spans_to_bio",
+    "bio_to_spans",
+    "ground_snippets",
+    "text_windows",
+    "dedupe_spans",
+]
 
 _TOKEN_RE = re.compile(r"\w+|[^\w\s]", re.UNICODE)
 
@@ -189,6 +196,55 @@ def ground_snippets(
         cursors[key] = end
         spans.append(Span(start, end, text[start:end], type_, source="llm"))
     return spans
+
+
+def text_windows(text: str, size: int, overlap: int = 0) -> list[tuple[int, int]]:
+    """Character windows over a document as ``(start, end)`` pairs.
+
+    Every classical detector in axis D has a hard input limit — 512 word pieces for the fine-tuned
+    de-ID models, roughly 384 for GLiNER v2.1 — while a TAB judgment runs to tens of thousands of
+    characters.  Windowing is therefore not an optimisation but a correctness requirement: without
+    it a model silently sees the first *n* tokens of a document and the rest of the text is scored
+    as if the detector had found nothing there.
+
+    ``overlap`` exists because a fixed cut lands inside an entity roughly as often as anywhere else,
+    and an entity split across two windows is found by neither.  Overlapping windows see it whole in
+    at least one of them, at the price of duplicate spans — which :func:`dedupe_spans` removes.
+
+    Offsets are absolute in ``text``, so a span found in a window needs only ``start`` added to it.
+    """
+    if size <= 0:
+        raise ValueError("window size must be positive")
+    if not 0 <= overlap < size:
+        raise ValueError(f"overlap must be in [0, {size}), got {overlap}")
+    if not text:
+        return []
+    step = size - overlap
+    out: list[tuple[int, int]] = []
+    start = 0
+    while start < len(text):
+        out.append((start, min(start + size, len(text))))
+        if start + size >= len(text):
+            break
+        start += step
+    return out
+
+
+def dedupe_spans(spans: Sequence[Span]) -> list[Span]:
+    """Collapse spans that overlapping windows found twice, keeping the better-scored copy.
+
+    Identity is ``(start, end, type)``: two windows that both saw the same entity produce the same
+    offsets, because window offsets are absolute.  Anything genuinely different — a boundary
+    disagreement between two *detectors* — is left alone; resolving that is the combination rule's
+    job (:mod:`pseudonymkit.detectors.combinators`), not this function's.
+    """
+    best: dict[tuple[int, int, str], Span] = {}
+    for span in spans:
+        key = (span.start, span.end, span.type)
+        current = best.get(key)
+        if current is None or (span.score or 0.0) > (current.score or 0.0):
+            best[key] = span
+    return sorted(best.values(), key=lambda s: (s.start, -s.length, s.type))
 
 
 def _fold(s: str) -> str:

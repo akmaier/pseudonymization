@@ -1,0 +1,155 @@
+"""Running one detector over a corpus and writing through the cache.
+
+Every detector in axis D — the four classical ones and both LLM backends — has the same operational
+requirements, and they were previously re-implemented in each experiment script:
+
+* **Resume.** Detection is the only step that costs model time (§7).  A job killed by the 24 h wall
+  clock must restart by skipping what is already recorded, not by starting over.
+* **Record failures rather than swallowing them.**  A document that errored is written with its
+  error and is *not* counted as done, so the next run retries it instead of freezing an empty span
+  list into the results.  A silently empty result is the worst failure a detector pool can have: the
+  ensemble reads it as "found nothing" rather than "never answered" (§12.2).
+* **Stamp the record.**  Model id and prompt version go into every record, because which model was
+  live is part of the experimental record (§7).
+
+The one thing this function deliberately does **not** do is decide whether a cached record is still
+valid.  The cache is keyed ``(corpus, detector, doc_id)`` and records no text version, so a document
+whose text changed keeps stale spans at wrong offsets (§12.2).  Records affected by a text change
+must be **deleted** by whoever changed the text; skipping them here would hide the problem.
+"""
+
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass
+from typing import Callable, Iterable, Protocol, Sequence, runtime_checkable
+
+from ..domain import Document
+from .base import Detector, DetectorOutput
+from .cache import DetectorCache
+
+__all__ = ["RunReport", "BatchDetector", "run_detector"]
+
+
+@runtime_checkable
+class BatchDetector(Protocol):
+    """A detector that is materially faster when handed many documents at once.
+
+    vLLM's continuous batching and a transformers pipeline both are; Presidio is not.  The runner
+    uses this path when it exists and falls back to :meth:`Detector.detect` otherwise, so a detector
+    never has to implement batching it cannot exploit.
+    """
+
+    def detect_many(self, documents: Iterable[Document]) -> Sequence[DetectorOutput]: ...
+
+
+@dataclass(frozen=True, slots=True)
+class RunReport:
+    """What one detector did on one corpus — printed by the job and kept with the results."""
+
+    detector: str
+    corpus: str
+    documents: int
+    """Documents in the requested set."""
+    skipped: int
+    """Already in the cache from an earlier run."""
+    written: int
+    failed: int
+    spans: int
+    elapsed: float
+
+    def __str__(self) -> str:
+        return (
+            f"{self.corpus} / {self.detector}: {self.written} written, {self.skipped} cached, "
+            f"{self.failed} failed, {self.spans} spans in {self.elapsed:.1f}s"
+        )
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "detector": self.detector, "corpus": self.corpus, "documents": self.documents,
+            "skipped": self.skipped, "written": self.written, "failed": self.failed,
+            "spans": self.spans, "elapsed": self.elapsed,
+        }
+
+
+def run_detector(
+    detector: Detector,
+    documents: Iterable[Document],
+    cache: DetectorCache,
+    *,
+    model: str | None = None,
+    prompt_version: str | None = None,
+    batch_size: int | None = None,
+    resume: bool = True,
+    progress: Callable[[str], None] | None = None,
+) -> RunReport:
+    """Detect over ``documents``, appending each result to ``cache``.
+
+    ``batch_size`` engages :meth:`BatchDetector.detect_many` when the detector offers it.  A batch
+    that raises records the error against **every** document in it and moves on: one document with
+    pathological text must not take a whole corpus down with it, and the failed ones are retried on
+    the next run because a record carrying an error does not count as done.
+    """
+    docs = list(documents)
+    started = time.time()
+    done = cache.done(detector.name) if resume else set()
+    todo = [d for d in docs if d.doc_id not in done]
+    if progress:
+        progress(f"{cache.corpus} / {detector.name}: {len(done)} cached, {len(todo)} to do")
+
+    written = failed = spans = 0
+
+    def record(doc_id: str, output: DetectorOutput | None, error: str | None, elapsed: float) -> None:
+        nonlocal written, failed, spans
+        cache.append(
+            detector.name,
+            doc_id,
+            output.spans if output is not None else (),
+            model=model or getattr(detector, "model", None) or detector.name,
+            prompt_version=prompt_version,
+            error=error,
+            elapsed=elapsed,
+            meta={"family": detector.family},
+        )
+        if error is None:
+            written += 1
+            spans += len(output.spans) if output is not None else 0
+        else:
+            failed += 1
+
+    batched = batch_size and isinstance(detector, BatchDetector)
+    step = batch_size or 1
+    for offset in range(0, len(todo), step):
+        chunk = todo[offset : offset + step]
+        t0 = time.time()
+        if batched:
+            try:
+                outputs = detector.detect_many(chunk)  # type: ignore[attr-defined]
+            except Exception as exc:                                   # noqa: BLE001 - recorded
+                elapsed = (time.time() - t0) / max(len(chunk), 1)
+                for document in chunk:
+                    record(document.doc_id, None, f"{type(exc).__name__}: {exc}", elapsed)
+            else:
+                elapsed = (time.time() - t0) / max(len(chunk), 1)
+                for document, output in zip(chunk, outputs):
+                    record(document.doc_id, output, None, elapsed)
+        else:
+            for document in chunk:
+                t0 = time.time()
+                try:
+                    output = detector.detect(document)
+                except Exception as exc:                               # noqa: BLE001 - recorded
+                    record(document.doc_id, None, f"{type(exc).__name__}: {exc}",
+                           time.time() - t0)
+                else:
+                    record(document.doc_id, output, None, time.time() - t0)
+        if progress and (offset // step) % 25 == 24:
+            progress(f"  {cache.corpus} / {detector.name}: {written + failed}/{len(todo)}")
+
+    report = RunReport(
+        detector=detector.name, corpus=cache.corpus, documents=len(docs), skipped=len(done),
+        written=written, failed=failed, spans=spans, elapsed=time.time() - started,
+    )
+    if progress:
+        progress(str(report))
+    return report
