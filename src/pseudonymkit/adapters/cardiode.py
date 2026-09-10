@@ -341,7 +341,7 @@ def load(
                     domain="clinical",
                     # Dates carry an explicit in-place marker; how names were handled is not stated
                     # in the release and is an open item, so the tier is asserted for the date layer
-                    # only (experiment_plan.md §19).
+                    # only (experiment_plan.md §18).
                     provenance="placeholder",
                     subject_id=None,  # one letter per patient; the release publishes no patient id
                     task={
