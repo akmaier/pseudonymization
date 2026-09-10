@@ -235,9 +235,10 @@ All claims below concern an attacker who does not hold the mapping. Every policy
 is fully invertible to whoever does (§3), so the policy axis governs only what is recoverable without
 it.
 
-The claim has two parts. **Empirically**, the policy — deterministic, document-randomised,
-fully-randomised — dominates both residual re-identification risk and utility loss; A2, A3 and A5
-measure the first (§8.4) and the task scores measure the second (§8.3). **Structurally**, the
+The claim has two parts. **Empirically**, the choice between pseudonymisation and de-identification —
+whether the same entity stays recognisable as itself — dominates both residual re-identification risk
+and utility loss; A2, A3 and A5 measure the first (§8.4) and the task scores measure the second
+(§8.3). **Structurally**, the
 cryptographic technique cannot affect a distributional attacker under a deterministic policy, because
 that policy makes the entity-to-pseudonym mapping injective and frequency is invariant under any
 injection: counter, hash, HMAC and AES-SIV are indistinguishable to an attacker who counts
@@ -250,79 +251,99 @@ scorable German detection cell at present (§12, §19).
 
 ## 6. Hypotheses
 
-Each is falsifiable, and the paper is informative either way.
+Each is falsifiable, and the paper is informative either way. Two earlier hypotheses were dropped
+when the axes collapsed to three conditions (§7, AM 2026-09-10): one contrasted an unkeyed hash
+against HMAC under the dictionary attack, and one concerned frequency-matched surrogates. Neither has
+an experiment any more, and both are recorded in §19.
 
-**H1 — the technique matters only against an enumerating attacker.** Under a deterministic policy the
-cryptographic technique determines whether an attacker who can enumerate candidate names succeeds,
-and nothing else. A1 inverts an unkeyed hash and fails against HMAC and AES-SIV; A2, which counts
-occurrences rather than inverting, is unaffected by the choice. Measured by A1 inversion rate banded
-by name frequency and length, and by A2 top-1 / top-5 across all five techniques (§8.4). *If A2
-varies by technique, the injectivity argument in §5 is wrong and the framing needs revisiting.*
+**H1 — detector recall dominates total leakage.** A missed name leaks in full, whatever is done to
+the names that were found. Measured by comparing every detector and every combination rule against
+the gold-span oracle (§7, axes D and D′), with leakage recomputed at each recall level. **This
+hypothesis can undercut the thesis**: if the ensemble closes most of the gap to the oracle, detection
+stops being the bottleneck and the condition axis carries the paper; if it does not, detection recall
+is the headline. Both are worth reporting, and the paper should say which it found.
 
-**H2 — detector recall dominates total leakage.** A missed name leaks in full, whatever the function
-does to the names that were found. Measured by comparing every detector and every combination rule
-against the gold-span oracle (§7, axes D and D′), with leakage recomputed at each recall level.
-**This hypothesis can undercut the thesis**: if the ensemble closes most of the gap to the oracle,
-detection stops being the bottleneck and the policy axis carries the paper; if it does not, detection
-recall is the headline and the policy axis is second-order. Both are worth reporting, and the paper
-should say which it found.
+**H2 — de-identification costs the cross-document utility that pseudonymisation preserves, and buys
+leakage reduction in return.** B keeps one entity as one surrogate throughout, so anything that
+depends on recognising the same person twice survives; C makes every person the same string, so it
+cannot. Co-reference — CoNLL F1 per document on TAB and OntoNotes (§8.3) — should be near-unaffected
+by B and collapse under C, and the Enron tasks that depend on a person recurring across messages
+should degrade under C alone. Leakage moves the opposite way, measured by A2, A3 and A5 (§8.4). *The
+size of that exchange is the number the paper exists to report.*
 
-**H3 — the policy trades cross-document utility against linkage, and the exchange rate depends on the
-scope the task needs.** Document-randomisation preserves within-document consistency and destroys
-cross-document identity; full randomisation destroys both. Co-reference — CoNLL F1 per document on
-TAB and OntoNotes (§8.3) — should therefore be near-unaffected by document-randomisation and collapse
-under full randomisation, while the Enron tasks that depend on the same person recurring across
-messages degrade under both. Leakage moves the opposite way, measured by A2, A3 and A5 across the
-three policies.
+**H3 — pseudonym stability is measurable, and its failures are systematic rather than random.**
+Collision, fragmentation and drift (§8.2) are functions of the mapping and the key normaliser.
+Applies to B only: under C every identifier of a type is the same string, so there is no mapping to
+be stable. The prediction is that the failures are governed by the entity type — person names
+fragment because one person appears in many surface forms, locations collide because many distinct
+places share a name. No published work reports any of the three (§4.1), so any value is new; the
+falsifiable part is that the failures are predictable from the type rather than spread evenly.
 
-**H4 — matching a surrogate to the frequency of the name it replaces buys utility and costs
-privacy.** A realistic surrogate keeps the text plausible for a downstream model; a frequency-matched
-one additionally preserves the distribution a distributional attack consumes. No published surrogate
-generator matches frequency (§4), so that level is new and its cost is unmeasured. Measured by the
-task scores against the opaque-tag and realistic levels (§8.3) and by A2 and A4 (§8.4). *Prediction:
-realistic surrogates raise task scores over opaque tags, and frequency matching raises A2 top-1
-further while adding little or no further utility — that is, it costs privacy for nothing.*
-
-**H5 — pseudonym stability is measurable, and its failures are systematic rather than random.**
-Collision, fragmentation and drift (§8.2) are functions of the mapping and the key normaliser, not of
-the cryptography. The prediction is that they are governed by the normaliser and by the entity type —
-person names fragment because one person appears in many surface forms, locations collide because
-many distinct places share a name. No published work reports any of the three (§4.1), so any value is
-new; the falsifiable part is that the failures are predictable from the normaliser and the type
-rather than spread evenly across both.
-
-**H6 — the policy effect is a property of the method; the detection effect is a property of the
+**H4 — the condition effect is a property of the method; the detection effect is a property of the
 language.** The study spans legal, e-mail, news and clinical text in four languages and two non-Latin
 scripts, which is what allows the two to be told apart (§4.1). The prediction is that the **ordering**
-of the three policies on leakage and on utility is the same in every corpus, while the **magnitude**
-is governed by measurable corpus structure — how often an entity recurs, how many distinct people
-share a document, how skewed the name distribution is — rather than by domain or language as such.
-Detection runs the other way: PERSON recall is strongly script-dependent (§4), so the same policy
+of A, B and C on leakage and on utility is the same in every corpus, while the **magnitude** is
+governed by measurable corpus structure — how often an entity recurs, how many distinct people share
+a document, how skewed the name distribution is — rather than by domain or language as such.
+Detection runs the other way: PERSON recall is strongly script-dependent (§4), so the same condition
 applied after the same detector leaks differently in Arabic than in English, for reasons that have
-nothing to do with the policy. Measured by running identical cells on every corpus and relating the
-leakage and utility outcomes to those structural covariates. *If the policy ordering flips between
-corpora, the method is not corpus-independent and the paper's headline claim narrows to the corpora
-it was measured on.*
+nothing to do with the condition. *If the ordering flips between corpora, the method is not
+corpus-independent and the paper's claim narrows to the corpora it was measured on.*
 
-**H7 — classical detectors add most where LLMs are weakest, and that is on structured identifiers.**
+**H5 — classical detectors add most where LLMs are weakest, and that is on structured identifiers.**
 A high-precision rule-based recogniser for IBANs, phone numbers, e-mail addresses and record numbers
 should add recall to an LLM ensemble; a fine-tuned NER should add least, because it fails where the
 LLMs already agree. Measured by comparing every LLMs-only subset against the same subset plus one
 classical detector (§7, axis D′). *If the hybrid never beats LLMs-only, that is a clean negative
 result about where the field should spend its effort.*
 
-## 7. Factors
+## 7. Axes
 
-| axis | levels | notes |
-|---|---|---|
-| **key normaliser** | N0 raw · N1 casefold · **N2 + strip titles/punctuation (default)** · N3 + drop initials · N4 last token only | Chosen from data: on TAB these trace a monotone collision–fragmentation frontier *before any cryptography*. Run as a reported sub-axis |
-| **A. policy** | deterministic · document-randomised · fully-randomised | ENISA's three. Implemented purely as a **scoping rule** on the entity key |
-| **B. technique** | counter · RNG+mapping table (**both** with- and without-replacement) · SHA-256 hash · HMAC-SHA256 · **AES-SIV** | AES-SIV is the deterministic encryption level; FF1 is **cited, not run** — its format preservation is a surrogate-form property and would confound B with C |
-| **C. surrogate form** | opaque tag · realistic · **frequency-matched** | Realistic draws a locale-appropriate name from the gazetteers (§14) — locale is a correctness requirement, not a variable, since a Chinese document cannot receive an English name. Frequency-matched additionally draws from the frequency-weighted inventory, and is its own level because no published generator does it (§4) |
-| **D. detector pool** | Presidio (rule, spaCy backbone) · GLiNER (`gliner_multi-v2.1`, `gliner_multi_pii-v1`) · `obi/deid_roberta_i2b2` and `StanfordAIMI/stanford-deidentifier-base` (public fine-tuned de-ID) · `Davlan/xlm-roberta-large-ner-hrl` (multilingual NER) · CodEAlltag `privacy_tagger` (domain, German e-mail) · gateway LLMs · **gold spans (oracle)** | **No detector is trained by us.** Software and weights are on the cluster (§14) |
-| **D′. combination rule** | *span-level:* union · vote(k) · intersection · weighted vote · cascade — *token-level:* per-token BIO voting (ROVER analogue) | Which detectors and how they are merged are independent choices, so they are separate axes. Swept over **subsets** of the pool with `require=` pinning, so **LLMs-only** and **LLMs + ≥1 classical** are compared on equal footing. That comparison is the point: the group's own ensemble beat every single detector but **combined LLMs only** (AM, 2026-09-07), and whether classical detectors still add anything is to be answered, not assumed. Seven pool members give 127 non-empty subsets × 6 rules — no model calls, since the cache makes every ensemble a post-hoc read, but a large number of result rows; §9 must say what the correction family is |
-| **E. corpus** | see §11 | Roles differ: full vs utility-only |
-| **sampling rate** | fixed per corpus before the run and recorded with every result (§13) | Enron is `subject` @ 0.10 as a single scheme (AM, 2026-09-08). Where a corpus is run at more than one rate the sweep is 0.01 · 0.05 · 0.10 · 0.25 · 1.0; §13 says which corpora carry it. **Size is a reported parameter**, not something to balance away |
+Three conditions (AM, 2026-09-10). The key normaliser, the cryptographic technique and the surrogate
+form are **not varied**: they are fixed at one setting each, chosen from the literature, and together
+they define what B and C are.
+
+| | condition | identifiers become | linkable | reversible |
+|---|---|---|---|---|
+| **A** | full data | unchanged — the original text | yes | — |
+| **B** | pseudonymised | a realistic, locale-appropriate surrogate; the same entity receives the same surrogate throughout the corpus | yes | with the key |
+| **C** | de-identified | a typed placeholder without an index — `[PERSON]`, `[LOCATION]` — so all persons look alike | no | no |
+
+**How B is configured, and why.** Deterministic policy, **HMAC-SHA256**, **N2** normaliser (casefold,
+strip titles and punctuation), realistic surrogate drawn locale-appropriately from the gazetteers
+(§14). B is "hiding in plain sight", the field's standard since Carrell et al. (JAMIA 2012,
+`10.1136/amiajnl-2012-001034`), and it is what this study's own German baseline does — Eder et al.
+(RANLP 2019) replace *"a person originally named 'John Doe'… as 'Bill Powers'"*. It is also what runs
+in production: Kocaman et al. (2025) keep names consistent across a patient's documents to hold a
+longitudinal dataset together. HMAC because ENISA calls it *"generally considered a robust
+pseudonymisation technique from a data protection point of view"* (§3) and, being keyed, it resists
+the dictionary attack. N2 because §18 measured the collision–fragmentation frontier and N2 is the
+point on it this study takes.
+
+**How C is configured, and why.** Presidio's default replacement operator: a typed placeholder with
+no index, which is also the shape HIPAA Safe Harbor implies. Tau-Eval (arXiv 2506.05979) measured
+exactly this — Presidio placeholder against a frozen model — as near-lossless across eight tasks, so
+it is the right comparison point rather than a straw man.
+
+**What was collapsed, and what that costs.** Earlier versions crossed five normalisers × six
+techniques × three surrogate forms. Those combinations are not run. The cost is stated rather than
+hidden: the hash-versus-HMAC contrast is not measured, so **A1 has nothing to attack** (§8.4);
+frequency-matched surrogates are not measured, which was the one surrogate level no published
+generator implements (§4); and the document-randomised policy — linkable within a document, not
+across — is not run, so the middle of the linkability range is absent. All three are recorded in §19.
+
+| axis | levels | count |
+|---|---|---:|
+| **condition** | A full data · B pseudonymised · C de-identified | **3** |
+| **D** detector | Presidio · GLiNER-multi · GLiNER-PII · `obi/deid_roberta_i2b2` · `StanfordAIMI/stanford-deidentifier-base` · `Davlan/xlm-roberta-large-ner-hrl` · `privacy_tagger` · six gateway LLMs · gold spans | **14** |
+| **D′** combination rule | union · vote(k) · intersection · weighted vote · cascade · token-level BIO voting | **6** |
+| **E** corpus | TAB · OntoNotes · Enron · CodEAlltag · CARDIO:DE | **5** |
+| sampling rate | fixed per corpus before the run and recorded with every result (§13) | — |
+
+The condition and the corpus give **15 cells**. Detection is a separate stage: it produces spans,
+which B and C then consume. Its cost is corpus × detector — 65 model-backed runs, the only ones that
+cost model time — and the combination rules are a post-hoc read of the detector cache, so they cost
+nothing to compute however many are reported.
 
 **The gold-spans level is essential, not decorative.** It separates *detector* error from
 *pseudonymisation* error, which no prior work does. Without it everything downstream is confounded by
@@ -335,9 +356,8 @@ much a corpus-trained detector inflates its own recall — a number the field as
 reports. Its README concedes the mechanism from the other side: *"ORG, CITY, URL and EMAIL currently
 do not get recognized well due to their replacements in the pseudonymized texts."*
 
-**Why the factorial is affordable.** A, B and C compose rather than multiply: the policy is a scoping
-rule, the technique a keyed map to an integer, the surrogate form a rendering of that integer. Three
-small interfaces, not forty-five pipelines.
+**`privacy_tagger`, GLiNER and the fine-tuned de-ID models emit taxonomies that differ from each
+other and from the gold.** §10 carries the mapping.
 
 ---
 
@@ -384,20 +404,22 @@ Three metrics, computed from the mapping and the co-reference gold.
 | fragmentation | (document, gold entity) pairs carrying more than one pseudonym | distinct (document, gold entity) pairs |
 | drift | gold entities whose pseudonym differs between documents | distinct gold entities |
 
-The denominators differ, so the three rates are not comparable with each other. Each is reported with
-its policy, because a policy changes what the number means:
+The denominators differ, so the three rates are not comparable with each other. All three apply to
+**condition B only**: C replaces every identifier of a type with one string, so there is no mapping
+whose integrity could be measured.
 
-| | deterministic | document-randomised | fully-randomised |
-|---|---|---|---|
-| collision | defect | defect | not meaningful |
-| fragmentation | defect | defect | intended |
-| drift | defect | intended | intended |
+| | B pseudonymised | C de-identified |
+|---|---|---|
+| collision | defect | not meaningful — every identifier of a type is the same string by construction |
+| fragmentation | defect | not meaningful |
+| drift | defect | not meaningful |
 
 Collision has two causes, and they need separate counts. The **technique** collides when two entity
 keys map to one integer — ENISA flags this for RNG mapping tables; HMAC and AES-SIV make it
 negligible. The **normaliser** collides when it maps two entities to one key before any cryptography
-runs, as *"J. Smith"* and *"Jane Smith"* do under N4. The normaliser frontier in §18 measures the
-second.
+runs. B fixes the normaliser at N2, which casefolds and strips titles and punctuation, so
+*"Dr. Weber"* and *"Weber"* become one key deliberately while *"J. Smith"* and *"Jane Smith"* stay
+distinct. The normaliser frontier in §18 measures what other settings would have cost.
 
 Collision and fragmentation need co-reference within a document: TAB, OntoNotes and Enron. On TAB,
 6,579 of 8,701 PERSON chains hold one mention, so fragmentation is measured on 2,122 chains. On
@@ -475,11 +497,12 @@ plus a no-context condition.
 | **A4** | LLM re-identification | all | **ranked candidate list** — see below |
 | **A5** | learned relational re-identification | all | Rank-1 / Rank-5 / mAP |
 
-**Stated predictions, so the hypotheses can fail.** A1: hash inverts almost completely for short
-frequent names, HMAC resists. A2: **indifferent to the cryptographic technique** — if it succeeds it
-shows the crypto axis is the wrong thing to optimise. A5: strong under deterministic, weaker under
-document-randomised, failing under fully-randomised, and flat across all five techniques; if that
-holds, **the stability requirement is itself the vulnerability**.
+**Stated predictions, so the hypotheses can fail.** A2 succeeds on B and has nothing to work with on
+C, since every identifier of a type is the same string there. A3 and A5 are strong on B and weak on
+C. If that holds, **the stability requirement is itself the vulnerability**: what makes B usable is
+what makes it attackable. The residual on C is the more interesting number — an earlier run at full
+randomisation still reached Rank-1 0.064 against a 948-entity gallery (§18), so removing identity
+from the identifiers does not remove it from the text.
 
 **A5 is the text analogue of Packhäuser et al.**, *Deep learning-based patient re-identification …*
 (Sci Rep 2022, `10.1038/s41598-022-19045-3`), which showed that images believed de-identified are
@@ -488,9 +511,10 @@ not. It attacks what pseudonymisation cannot remove: the name is replaced, the p
 **A4 is scored as recovery of the surface form already present in the corpus**, never as inference of
 new facts about an individual — see the Enron safeguards.
 
-**A1 refuses to score keyed techniques and non-deterministic policies, and says why.** Without the
-key there is nothing for the attacker to compute; reporting "HMAC resisted the dictionary attack"
-would be a category error rather than a finding.
+**A1 does not run.** Condition B uses HMAC-SHA256 (§7), and a dictionary attack against a keyed
+function has nothing to compute; reporting "HMAC resisted the dictionary attack" would be a category
+error rather than a finding. A1 would require an unkeyed variant of B, which is not in the design
+(§19).
 
 **A4 protocol (AM, 2026-09-08): ranked candidate list.** Present the pseudonymised document plus *N*
 candidate identities including the true one; score **Rank-1 / Rank-5 / mAP**. Three reasons: it is
@@ -969,7 +993,7 @@ following hold, which cost the study nothing:
 
 ## 17. Deliverables
 
-Released **code**, the **full factorial results**, and the **stability–leakage–utility frontier** per
+Released **code**, the **complete results over all cells**, and the **stability–leakage–utility frontier** per
 language and domain — reported **one panel per task**, since a single utility scalar was rejected.
 
 **Distribution is a build recipe, not a dataset.** Members span MIT, CC-BY, CC-BY-SA (copyleft), a
@@ -1035,18 +1059,22 @@ it a smaller gallery, so the deterministic 1.04× sits inside that confound).
    10, 207 (2023) before making any claim about the corpus's identifiers.
 5. **Where the Enron size sweep stops** — Enron at rate 0.10 is 86 % of the whole detection budget
    (§15.4.1). The sweep 0.01 → 0.25 is the plan's own design; its upper end is AM's to set.
-6. **Four of axis D's six detector levels have no code** — Presidio, GLiNER, `obi/deid_roberta_i2b2`
-   and `privacy_tagger` are GPU work and are unwritten (§15.2).
-7. **Paper scoping** — which panels fit eight pages.
-8. Is the full A×B×C×D×D′×E×F factorial affordable, or do we fix a sensible default per axis and vary one
-   at a time around it? Compute is available; annotation-limited corpora may not support every cell.
-9. Which E3C languages carry enough PII density to be worth including?
-10. Does the **2026 revision of ISO 25237** change any recommendation we would make? Somebody needs a
+6. **Three consequences of collapsing to three conditions** (AM, 2026-09-10, §7), recorded so they
+   stay visible: the hash-versus-HMAC contrast is not measured and **A1 cannot run**;
+   **frequency-matched surrogates** are not measured, and they were the one surrogate level no
+   published generator implements (§4); and the **document-randomised** policy — linkable within a
+   document, not across — is not run, so the middle of the linkability range is absent. Each would
+   need one further condition.
+7. **Four of axis D's levels have no code** — Presidio, GLiNER, `obi/deid_roberta_i2b2` and
+   `privacy_tagger` have software and weights on the cluster but no adapter (§15.2).
+8. Does the **2026 revision of ISO 25237** change any recommendation we would make? Somebody needs a
    copy — it is not open access.
-11. **Ask Eder / Krieg-Holz / Hahn for CodEAlltag's annotated S+d subset.** The release ships the
+9. **Ask Eder / Krieg-Holz / Hahn for CodEAlltag's annotated S+d subset.** The release ships the
     800 donated e-mails without the manual span annotations that were made before substitution. If
     the authors will share them, CodEAlltag gains gold spans — and it is one of only two routes to a
     scorable German detection cell, the other being BRONCO150. Carried over from
     `data/metacorpus.md` §15, which was rewritten as a corpus list on 2026-09-09.
-12. Ensemble composition: which LLMs, and is the combination rule fixed across languages or tuned per
+10. Ensemble composition: which LLMs, and is the combination rule fixed across languages or tuned per
    language? Tuning per language risks overfitting the benchmark.
+
+11. **Paper scoping** — which panels fit eight pages.
