@@ -16,13 +16,14 @@ import argparse
 import time
 from pathlib import Path
 
+from pseudonymkit.paths import shared_corpora, cardiode_corpus, ontonotes_extract
 from pseudonymkit.adapters import cardiode, codealltag, enron, ontonotes, tab
 from pseudonymkit.detectors.cache import DetectorCache
 from pseudonymkit.detectors.llm import PROMPT_VERSION, LlmDetector
 from pseudonymkit.domain import Corpus, Document
 from pseudonymkit.sampling import sample
 
-CORPORA = "/cluster/shared_dataset/pseudonymization-corpora"
+CORPORA = str(shared_corpora())
 
 # DeepSeek is excluded: the gateway backend is down (AM, 2026-09-08), and both DeepSeek ids
 # returned HTTP 500 "cannot connect to host" on the 2026-09-06 capability probe.
@@ -33,8 +34,8 @@ DEFAULT_MODELS = (
 )
 
 
-ONTONOTES_EXTRACT = "/cluster/maier/pseudonymization/data/ontonotes"
-CARDIODE_ROOT = "/cluster/maier/dua-restricted/cardiode/corpus"
+ONTONOTES_EXTRACT = str(ontonotes_extract())
+CARDIODE_ROOT = str(cardiode_corpus())
 
 
 def main() -> None:

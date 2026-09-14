@@ -11,7 +11,7 @@ The derivation is sound because of how the corpus is shaped:
   pairs give an unambiguous name-to-address mapping.  Accumulated over the corpus that becomes a
   reliable identity table, which is then used to link names appearing anywhere — in recipient
   headers or in the body — to an address.
-* **The address is a cross-document identity.**  ``jeff.skilling@enron.com`` is the same person in
+* **The address is a cross-document identity.**  ``ann.aardvark@enron.com`` is the same person in
   every mailbox that mentions him.  Enron is one of only two corpora in the meta corpus that supply
   that, and after n2c2 became unavailable it is the only one left, so it carries the cross-document
   stability metric alone.
@@ -60,7 +60,7 @@ class IdentityTable:
         return self.by_name.get(display_name.strip().casefold())
 
     def names(self) -> list[str]:
-        """Known display names, longest first so 'Blair, Lynn' is matched before 'Blair'."""
+        """Known display names, longest first so 'Bramble, Bo' is matched before 'Bramble'."""
         return sorted(self.by_name, key=len, reverse=True)
 
 
@@ -261,10 +261,10 @@ _X500 = re.compile(r"\s*</?O=[^>\n]{0,200}>")
 """Exchange distinguished names, as a mail client would never show them.
 
 Every recipient appears three times in these headers: display name, X.500 DN, and address —
-``Lamadrid, Victor </O=ENRON/OU=NA/CN=RECIPIENTS/CN=VLAMADR>, victor.lamadrid@enron.com``.  Measured
+``Fairbairn, Finn </O=ENRON/OU=NA/CN=RECIPIENTS/CN=FFAIRBA>, finn.fairbairn@enron.com``.  Measured
 over 4,000 documents: **3,883 DNs in the header block and 0 in the body**, 49,463 across the corpus.
 
-The DN goes (AM, 2026-09-13).  It carries nothing the other two forms do not — ``CN=VLAMADR`` is a
+The DN goes (AM, 2026-09-13).  It carries nothing the other two forms do not — ``CN=FFAIRBA`` is a
 truncation of the same name — while contributing 49,463 highly regular strings that a detector will
 learn instead of the task, and inflating the corpus's ``CODE`` count.  Display names stay in their
 ``Last, First`` form because that is the real surface a client shows and detecting a person in it is

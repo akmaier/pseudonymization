@@ -12,6 +12,9 @@ config/*.local.*
 # only the *.example.toml templates are committed.
 config/*.toml
 !config/*.example.toml
+config/*.sh
+!config/*.example.sh
+applications/
 llm_api.toml
 cluster.toml
 

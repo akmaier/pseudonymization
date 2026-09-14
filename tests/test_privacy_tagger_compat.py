@@ -178,7 +178,7 @@ def test_the_lookup_table_is_the_old_vectors_plus_one_zero_row():
 
 def test_a_vocab_that_does_not_match_the_vectors_is_reported_not_absorbed():
     """An off-by-one between the sentencepiece vocabulary and the vector matrix would give every
-    token a wrong embedding while the tagger kept running.  Fail loudly instead (CLAUDE.md §1)."""
+    token a wrong embedding while the tagger kept running.  Fail loudly instead."""
     with pytest.raises(RuntimeError, match="indexes the matrix by piece id"):
         _migrated(vectors=np.zeros((VOCAB - 1, DIM), dtype=np.float32))
 

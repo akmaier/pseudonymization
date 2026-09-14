@@ -36,6 +36,7 @@ import sys
 import time
 from pathlib import Path
 
+from pseudonymkit.paths import shared_corpora, cardiode_a, cardiode_conditions
 from pseudonymkit.conditions import POOLED
 from pseudonymkit.construction import construct, detected_documents, write_patchset
 from pseudonymkit.detectors.cache import DetectorCache
@@ -55,8 +56,8 @@ from pseudonymkit.gazetteers_intl import (
 from pseudonymkit.serialisation import iter_documents
 
 CONDITION_A = Path("data/conditionA")
-CARDIODE_A = Path("/cluster/maier/dua-restricted/cardiode/A/cardiode_A.jsonl.gz")
-GAZETTEERS = Path("/cluster/shared_dataset/pseudonymization-corpora/gazetteers")
+CARDIODE_A = cardiode_a()
+GAZETTEERS = shared_corpora() / "gazetteers"
 SUBLISTS = Path("data/codealltag_sublists")
 CHINESE = Path("data/gazetteers/chinese_names")
 
@@ -256,10 +257,10 @@ def main() -> int:
         },
     )
 
-    # CARDIO:DE's derived artefacts never leave the restricted tree (CLAUDE.md §3).
+    # CARDIO:DE's derived artefacts never leave the restricted tree: the DUA is single-user.
     out = args.out
     if args.corpus == "cardiode":
-        out = Path("/cluster/maier/dua-restricted/cardiode/conditions")
+        out = cardiode_conditions()
         if "shared" in str(args.out):
             log(f"  redirecting CARDIO:DE output away from {args.out} to {out}")
     out.mkdir(parents=True, exist_ok=True)

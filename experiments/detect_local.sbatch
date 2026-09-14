@@ -9,7 +9,7 @@
 # One job per corpus, submitted smallest first so that Enron — 58,636 of the 66,298 documents —
 # never parks the three small corpora behind a multi-day allocation:
 #
-#     cd /cluster/maier/pseudonymization
+#     cd "$PSEUDONYMKIT_WORK"
 #     mkdir -p logs                          # Slurm redirects BEFORE the script runs (see below)
 #     for c in cardiode tab ontonotes enron; do
 #         sbatch --export=ALL,CORPUS=$c experiments/detect_local.sbatch
@@ -36,22 +36,23 @@
 # **every** node, including those where CUDA works perfectly. `nvidia-smi` is broken cluster-wide.
 # The only thing that discriminates is `torch.cuda.is_available()`.
 #
+# Partition and account are NOT set here: Slurm reads SBATCH_PARTITION and SBATCH_ACCOUNT
+# from the environment, and naming a group's account in a repository that ships with the
+# paper is exactly what config/env.example.sh exists to avoid. Source config/env.sh first.
 #SBATCH --job-name=detect_local
-#SBATCH --partition=main
-#SBATCH --account=miti
 #SBATCH --gres=gpu:q8000:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 #SBATCH --time=24:00:00
-#SBATCH --output=/cluster/maier/pseudonymization/logs/detect_local_%x_%j.out
-#SBATCH --error=/cluster/maier/pseudonymization/logs/detect_local_%x_%j.err
+#SBATCH --output=logs/detect_local_%x_%j.out
+#SBATCH --error=logs/detect_local_%x_%j.err
 #
 # Slurm redirects stdout/stderr *before* this script runs. If logs/ does not exist at submit time the
 # job dies instantly with RunTime=00:00:00 and **no log at all** — the failure mode that costs a
 # whole run. It is created at submit time above and again here, because both are cheap.
 
 set -euo pipefail
-R=/cluster/maier/pseudonymization
+R="${PSEUDONYMKIT_WORK:-$PWD}"
 mkdir -p "$R/logs"
 cd "$R"
 

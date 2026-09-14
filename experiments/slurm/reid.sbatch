@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=pseudo-reid
-#SBATCH --partition=main
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=48G
@@ -12,7 +11,7 @@
 set -euo pipefail
 cd "${SLURM_SUBMIT_DIR:-$PWD}"
 mkdir -p results/slurm          # Slurm redirects before the script runs; see METHODS on this trap
-CORPORA=/cluster/shared_dataset/pseudonymization-corpora
+CORPORA="${PSEUDONYMKIT_WORK:?set it, see config/env.example.sh}/data/corpora"
 echo "host=$(hostname) started=$(date -Is)"
 ./.venv/bin/python experiments/run_reid.py \
     --enron "$CORPORA/enron/enron_mail_20150507.tar.gz" \

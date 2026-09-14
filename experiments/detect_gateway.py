@@ -22,7 +22,7 @@ process costs at most one document per model.
 
 Run it detached, so an SSH disconnect does not take it with it::
 
-    cd /cluster/maier/pseudonymization
+    cd "$PSEUDONYMKIT_WORK"
     PYTHONPATH=src nohup .venv/bin/python experiments/detect_gateway.py \\
         > results/detect_gateway.log 2>&1 &
 
@@ -46,6 +46,7 @@ from typing import Callable, Iterator
 
 from dataclasses import replace as _replace
 
+from pseudonymkit.paths import cardiode_a_optional
 from pseudonymkit.detectors.cache import DetectorCache, text_digest
 from pseudonymkit.detectors.llm import LlmDetector
 from pseudonymkit.detectors.prompting import PROMPT_VERSION
@@ -58,7 +59,7 @@ from pseudonymkit.serialisation import iter_documents
 # the 58,636 that survive the empty-body exclusion.  The text hash in every cache record now makes
 # that class of mistake loud, but the paths have to be right as well.
 CONDITION_A = Path("data/conditionA")
-CARDIODE_A = Path("/cluster/maier/dua-restricted/cardiode/A/cardiode_A.jsonl.gz")
+CARDIODE_A = cardiode_a_optional()
 
 DEFAULT_MODELS = (
     "gpt-oss-120b",
@@ -95,13 +96,15 @@ the truncation figures measured on 2026-09-12 were still the old cap's, not the 
 
 # Smallest first.  Paths, not loaders: nothing is read until a model thread walks it, and then it is
 # **streamed** rather than materialised.  CodEAlltag is absent: it is out of the study (§11).
-CORPORA: tuple[tuple[str, int, Path], ...] = (
+# CARDIO:DE is present only when PSEUDONYMKIT_DUA is configured. Absent, it is dropped from
+# the table and reported at startup — the other three corpora still run (§1: report, do not
+# substitute), and a reproducer without the DUA is not blocked from the whole study.
+CORPORA: tuple[tuple[str, int, Path], ...] = tuple(e for e in (
     ("cardiode", 400, CARDIODE_A),
     ("tab", 1268, CONDITION_A / "tab_A.jsonl.gz"),
     ("ontonotes", 5994, CONDITION_A / "ontonotes_A.jsonl.gz"),
     ("enron", 58636, CONDITION_A / "enron_A.jsonl.gz"),
-)
-
+) if e[2] is not None)
 
 def _stream_a(path: Path) -> Iterator[Document]:
     """Stream a condition-A corpus, gold mentions dropped, **one document at a time**.

@@ -7,35 +7,35 @@ from pseudonymkit.adapters import enron
 
 MSG1 = """Message-ID: <1.JavaMail.evans@thyme>
 Date: Mon, 10 Sep 2001 10:33:15 -0700 (PDT)
-From: maggie.matheson@enron.com
-To: lynn.blair@enron.com
+From: ann.aardvark@enron.com
+To: bo.bramble@enron.com
 Subject: Customer Training
-X-From: Matheson, Maggie </O=ENRON/OU=NA/CN=RECIPIENTS/CN=MMATHES>
-X-To: Blair, Lynn </O=ENRON/OU=NA/CN=RECIPIENTS/CN=Lblair>
-X-Folder: \\LBLAIR (Non-Privileged)\\Blair, Lynn\\Meetings - NNG Customer Mtg
-X-Origin: Blair-L
+X-From: Aardvark, Ann </O=ENRON/OU=NA/CN=RECIPIENTS/CN=AAARDVA>
+X-To: Bramble, Bo </O=ENRON/OU=NA/CN=RECIPIENTS/CN=Bbrambl>
+X-Folder: \\BBRAMBL (Non-Privileged)\\Bramble, Bo\\Meetings - NNG Customer Mtg
+X-Origin: Bramble-B
 
-Thanks for the help. I will ask Blair, Lynn to review it.
+Thanks for the help. I will ask Bramble, Bo to review it.
 """
 
 MSG2 = """Message-ID: <2.JavaMail.evans@thyme>
 Date: Tue, 11 Sep 2001 09:00:00 -0700 (PDT)
-From: lynn.blair@enron.com
-To: maggie.matheson@enron.com
+From: bo.bramble@enron.com
+To: ann.aardvark@enron.com
 Subject: Re: Customer Training
-X-From: Blair, Lynn </O=ENRON/OU=NA/CN=RECIPIENTS/CN=Lblair>
-X-To: Matheson, Maggie </O=ENRON/OU=NA/CN=RECIPIENTS/CN=MMATHES>
-X-Folder: \\LBLAIR (Non-Privileged)\\Blair, Lynn\\Sent
-X-Origin: Blair-L
+X-From: Bramble, Bo </O=ENRON/OU=NA/CN=RECIPIENTS/CN=Bbrambl>
+X-To: Aardvark, Ann </O=ENRON/OU=NA/CN=RECIPIENTS/CN=AAARDVA>
+X-Folder: \\BBRAMBL (Non-Privileged)\\Bramble, Bo\\Sent
+X-Origin: Bramble-B
 
-Will do. Matheson, Maggie sent the slides.
+Will do. Aardvark, Ann sent the slides.
 """
 
 
 @pytest.fixture
 def maildir(tmp_path):
     root = tmp_path / "maildir"
-    for name, body in (("blair-l/meetings/1.", MSG1), ("blair-l/sent/2.", MSG2)):
+    for name, body in (("bramble-b/meetings/1.", MSG1), ("bramble-b/sent/2.", MSG2)):
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(body, encoding="utf-8")
@@ -44,8 +44,8 @@ def maildir(tmp_path):
 
 def test_identity_table_learns_from_sender_pairs():
     table = enron.build_identity_table([MSG1, MSG2])
-    assert table.resolve("Matheson, Maggie") == "maggie.matheson@enron.com"
-    assert table.resolve("Blair, Lynn") == "lynn.blair@enron.com"
+    assert table.resolve("Aardvark, Ann") == "ann.aardvark@enron.com"
+    assert table.resolve("Bramble, Bo") == "bo.bramble@enron.com"
 
 
 def test_offsets_agree_with_the_text(maildir):
@@ -58,7 +58,7 @@ def test_addresses_become_cross_document_identities(maildir):
     """The address is the same person in every mailbox - the property TAB cannot supply."""
     corpus = enron.load(maildir, min_name_count=1)
     chains = {m.gold_entity_id for d in corpus for m in d.mentions if m.type == "PERSON"}
-    assert chains == {"maggie.matheson@enron.com", "lynn.blair@enron.com"}
+    assert chains == {"ann.aardvark@enron.com", "bo.bramble@enron.com"}
 
 
 def test_the_same_person_is_linked_across_two_documents(maildir):
@@ -98,7 +98,7 @@ def test_annotation_provenance_is_recorded(maildir):
 
 
 def test_mailbox_owner_becomes_the_subject(maildir):
-    assert {d.subject_id for d in enron.load(maildir, min_name_count=1)} == {"blair-l"}
+    assert {d.subject_id for d in enron.load(maildir, min_name_count=1)} == {"bramble-b"}
 
 
 def test_min_name_count_drops_singletons(maildir):
@@ -124,26 +124,26 @@ def test_stride_spreads_the_sample_instead_of_taking_a_prefix(maildir):
 
 RAW = """Message-ID: <1234.5678.JavaMail.evans@thyme>
 Date: Mon, 14 May 2001 16:39:00 -0700 (PDT)
-From: phillip.allen@enron.com
-To: tim.belden@enron.com
-Cc: john.arnold@enron.com
-Bcc: john.arnold@enron.com
+From: carl.cresswell@enron.com
+To: dee.dunmore@enron.com
+Cc: eve.everly@enron.com
+Bcc: eve.everly@enron.com
 Subject: Re: gas nominations
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-X-From: Phillip K Allen
-X-To: Tim Belden
-X-cc: John Arnold
-X-Folder: \\Phillip_Allen_Jan2002_1\\Allen, Phillip K.\\'Sent Mail
-X-Origin: Allen-P
-X-FileName: pallen (Non-Privileged).pst
+X-From: Carl K Cresswell
+X-To: Dee Dunmore
+X-cc: Eve Everly
+X-Folder: \\Carl_Cresswell_Jan2002_1\\Cresswell, Carl K.\\'Sent Mail
+X-Origin: Cresswell-C
+X-FileName: ccresswell (Non-Privileged).pst
 
 Here is the schedule we discussed.
 
 -----Original Message-----
-From: tim.belden@enron.com
+From: dee.dunmore@enron.com
 Sent: Monday, May 14, 2001 9:02 AM
-To: phillip.allen@enron.com
+To: carl.cresswell@enron.com
 Subject: gas nominations
 
 > what did we agree on Friday?
@@ -155,9 +155,9 @@ def test_condition_a_text_keeps_the_specified_fields_and_nothing_else():
     text = enron.build_text(message)
 
     # sender, recipients, names, addresses, subject
-    assert "Phillip K Allen" in text and "phillip.allen@enron.com" in text
-    assert "Tim Belden" in text and "tim.belden@enron.com" in text
-    assert "John Arnold" in text
+    assert "Carl K Cresswell" in text and "carl.cresswell@enron.com" in text
+    assert "Dee Dunmore" in text and "dee.dunmore@enron.com" in text
+    assert "Eve Everly" in text
     assert "Subject: Re: gas nominations" in text
     assert "Here is the schedule we discussed." in text
 
@@ -231,20 +231,20 @@ def test_exchange_distinguished_names_are_dropped_from_the_headers():
     """49,463 of them, all in the header block, none in the body.
 
     Every recipient appears three times — display name, X.500 DN, address — and a mail client shows
-    the first and third. The DN carries nothing the others do not (`CN=VLAMADR` truncates the same
+    the first and third. The DN carries nothing the others do not (`CN=FFAIRBA` truncates the same
     name) while contributing a highly regular string a detector will learn instead of the task.
     """
     import email
 
     raw = (
         "Message-ID: <1.JavaMail@thyme>\n"
-        "From: victor.lamadrid@enron.com\n"
-        "To: robert.superty@enron.com\n"
+        "From: finn.fairbairn@enron.com\n"
+        "To: gail.goodwin@enron.com\n"
         "Subject: Schedule\n"
-        "X-From: Lamadrid, Victor </O=ENRON/OU=NA/CN=RECIPIENTS/CN=VLAMADR>\n"
-        "X-To: Superty, Robert </O=ENRON/OU=NA/CN=RECIPIENTS/CN=Rsupert>\n"
-        "X-cc: Ames, Chuck </O=ENRON/OU=NA/CN=RECIPIENTS/CN=Cames>, "
-        "Brawner, Sandra F. </O=ENRON/OU=NA/CN=RECIPIENTS/CN=Sbrawne>\n"
+        "X-From: Fairbairn, Finn </O=ENRON/OU=NA/CN=RECIPIENTS/CN=FFAIRBA>\n"
+        "X-To: Goodwin, Gail </O=ENRON/OU=NA/CN=RECIPIENTS/CN=Ggoodwi>\n"
+        "X-cc: Hale, Hugo </O=ENRON/OU=NA/CN=RECIPIENTS/CN=Hhale>, "
+        "Ivers, Iris M. </O=ENRON/OU=NA/CN=RECIPIENTS/CN=Iivers>\n"
         "X-Folder: \\Sent\n"
         "\n"
         "Please confirm the schedule.\n"
@@ -253,9 +253,9 @@ def test_exchange_distinguished_names_are_dropped_from_the_headers():
 
     assert "/O=ENRON" not in text and "CN=RECIPIENTS" not in text
     # display names keep their Last, First surface; addresses stay — both are what a client shows
-    assert "Lamadrid, Victor" in text and "victor.lamadrid@enron.com" in text
-    assert "Superty, Robert" in text and "robert.superty@enron.com" in text
-    assert "Ames, Chuck" in text and "Brawner, Sandra F." in text
+    assert "Fairbairn, Finn" in text and "finn.fairbairn@enron.com" in text
+    assert "Goodwin, Gail" in text and "gail.goodwin@enron.com" in text
+    assert "Hale, Hugo" in text and "Ivers, Iris M." in text
     # removing a DN must not leave ", ," or a dangling comma behind
     assert ", ," not in text and not any(l.rstrip().endswith(",") for l in text.splitlines())
     assert "Please confirm the schedule." in text

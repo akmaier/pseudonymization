@@ -9,13 +9,13 @@ from pseudonymkit.adapters import ontonotes
 
 NAME = (
     '<DOC DOCNO="wsj_0001">\n'
-    'A &amp; B told <ENAMEX TYPE="PERSON">Pierre Vinken</ENAMEX> that '
+    'A &amp; B told <ENAMEX TYPE="PERSON">Quentin Quill</ENAMEX> that '
     '<ENAMEX TYPE="GPE">Paris</ENAMEX> was <ENAMEX TYPE="ORG">Elsevier</ENAMEX> .\n'
     "</DOC>\n"
 )
 COREF = (
     '<DOC DOCNO="wsj_0001">\n'
-    'A &amp; B told <COREF ID="7">Pierre Vinken</COREF> that '
+    'A &amp; B told <COREF ID="7">Quentin Quill</COREF> that '
     '<COREF ID="9">Paris</COREF> was Elsevier .\n'
     "</DOC>\n"
 )
@@ -37,7 +37,7 @@ def test_offsets_survive_an_escaped_entity_before_the_span():
     text, spans = ontonotes.parse_name(NAME)
     # "&amp;" collapses to one character; a span recorded before that collapse would be shifted.
     assert "A & B told" in text
-    assert [text[a:b] for a, b, _ in spans] == ["Pierre Vinken", "Paris", "Elsevier"]
+    assert [text[a:b] for a, b, _ in spans] == ["Quentin Quill", "Paris", "Elsevier"]
     assert [label for _, _, label in spans] == ["PERSON", "GPE", "ORG"]
 
 
@@ -48,7 +48,7 @@ def test_the_doc_wrapper_is_not_part_of_the_text():
 
 def test_coref_parses_to_chain_ids():
     text, spans = ontonotes.parse_coref(COREF)
-    assert [(text[a:b], cid) for a, b, cid in spans] == [("Pierre Vinken", "7"), ("Paris", "9")]
+    assert [(text[a:b], cid) for a, b, cid in spans] == [("Quentin Quill", "7"), ("Paris", "9")]
 
 
 # ----------------------------------------------------------------------------------- the loader
@@ -95,7 +95,7 @@ def test_null_elements_in_coref_do_not_block_the_alignment(tmp_path):
     # The real blocker: .coref carries Penn Treebank null elements that .name has no counterpart
     # for. Requiring identical text attached zero chains across all 4,560 real coref layers.
     write(tmp_path, "english", "nw/wsj/00/wsj_0001",
-          coref='<DOC>\n<TEXT PARTNO="000">\nA &amp; B told *T*-1 <COREF ID="7">Pierre Vinken</COREF> '
+          coref='<DOC>\n<TEXT PARTNO="000">\nA &amp; B told *T*-1 <COREF ID="7">Quentin Quill</COREF> '
                 'that *PRO* <COREF ID="9">Paris</COREF> was 0 Elsevier .\n</TEXT>\n</DOC>\n')
     report: dict[str, ontonotes.LoadReport] = {}
     corpus = ontonotes.load(tmp_path, languages=("english",), report=report)

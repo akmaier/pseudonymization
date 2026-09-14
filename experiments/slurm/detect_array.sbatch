@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=pseudo-detect
-#SBATCH --partition=main
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16G

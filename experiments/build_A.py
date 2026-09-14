@@ -23,11 +23,11 @@ asserted away:
 
 Usage::
 
-    python experiments/build_A.py --all --out /cluster/maier/pseudonymization/data/conditionA
-    python experiments/build_A.py --corpus cardiode --out /cluster/maier/dua-restricted/cardiode/A
+    python experiments/build_A.py --all --out "$PSEUDONYMKIT_WORK/data/conditionA"
+    python experiments/build_A.py --corpus cardiode --out "$PSEUDONYMKIT_DUA/cardiode/A"
 
 **CARDIO:DE never goes to a shared directory.**  The script refuses to write it under
-``/cluster/shared_dataset`` — the DUA is single-user (``CLAUDE.md`` §3) and a path slip would breach
+the group-readable shared tree — the DUA is single-user and a path slip would breach
 it silently.
 """
 
@@ -40,14 +40,15 @@ import time
 from collections import Counter
 from pathlib import Path
 
+from pseudonymkit.paths import shared_corpora, dua_dir, ontonotes_extract, work_dir
 from pseudonymkit.detokenise import unescape_corpus
 from pseudonymkit.domain import Corpus, Document
 from pseudonymkit.serialisation import read_corpus, write_corpus
 
-CORPORA = Path("/cluster/shared_dataset/pseudonymization-corpora")
-ONTONOTES = Path("/cluster/maier/pseudonymization/data/ontonotes")
-CARDIODE = Path("/cluster/maier/dua-restricted/cardiode")
-SUBLISTS = Path("/cluster/maier/pseudonymization/data/codealltag_sublists")
+CORPORA = shared_corpora()
+ONTONOTES = ontonotes_extract()
+CARDIODE = dua_dir() / "cardiode"
+SUBLISTS = work_dir() / "data" / "codealltag_sublists"
 
 EXPECTED = {"tab": 1268, "ontonotes": None, "cardiode": 500, "enron": None}
 """Document counts §11 records.  ``None`` where the count depends on the sampling scheme."""

@@ -12,20 +12,21 @@
 # No GPU is requested: Presidio is spaCy pipelines and rule recognisers, and asking for a card would
 # hold one idle for hours.
 #
+# Partition and account are NOT set here: Slurm reads SBATCH_PARTITION and SBATCH_ACCOUNT
+# from the environment, and naming a group's account in a repository that ships with the
+# paper is exactly what config/env.example.sh exists to avoid. Source config/env.sh first.
 #SBATCH --job-name=detect_cpu
-#SBATCH --partition=main
-#SBATCH --account=miti
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --time=24:00:00
-#SBATCH --output=/cluster/maier/pseudonymization/logs/detect_cpu_%x_%j.out
-#SBATCH --error=/cluster/maier/pseudonymization/logs/detect_cpu_%x_%j.err
+#SBATCH --output=logs/detect_cpu_%x_%j.out
+#SBATCH --error=logs/detect_cpu_%x_%j.err
 #
 # Slurm redirects stdout/stderr *before* this script runs, so logs/ must exist at submit time or the
 # job dies instantly with no log at all.
 
 set -euo pipefail
-R=/cluster/maier/pseudonymization
+R="${PSEUDONYMKIT_WORK:-$PWD}"
 mkdir -p "$R/logs"
 cd "$R"
 

@@ -36,12 +36,13 @@ import json
 import sys
 from pathlib import Path
 
+from pseudonymkit.paths import cardiode_a_optional
 from pseudonymkit.construction import detected_documents
 from pseudonymkit.detectors.cache import DetectorCache
 from pseudonymkit.domain import Document
 
 CONDITION_A = Path("data/conditionA")
-CARDIODE_A = Path("/cluster/maier/dua-restricted/cardiode/A/cardiode_A.jsonl.gz")
+CARDIODE_A = cardiode_a_optional()
 SOURCES = {
     "tab": CONDITION_A / "tab_A.jsonl.gz",
     "ontonotes": CONDITION_A / "ontonotes_A.jsonl.gz",

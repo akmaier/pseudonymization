@@ -38,6 +38,7 @@ import time
 from dataclasses import replace as _replace
 from pathlib import Path
 
+from pseudonymkit.paths import cardiode_a_optional
 from pseudonymkit.detectors.cache import DetectorCache
 from pseudonymkit.detectors.domain import PrivacyTagger
 from pseudonymkit.detectors.finetuned import FINETUNED_MODELS, TokenClassificationDetector
@@ -48,18 +49,20 @@ from pseudonymkit.domain import Document
 from pseudonymkit.serialisation import iter_documents
 
 CONDITION_A = Path("data/conditionA")
-CARDIODE_A = Path("/cluster/maier/dua-restricted/cardiode/A/cardiode_A.jsonl.gz")
+CARDIODE_A = cardiode_a_optional()
 PRIVACY_TAGGER = Path("models/privacy_tagger.pt")
 
 # Enron last, for the same reason as in detect_gateway: it is 58,636 of 66,298 documents, so running
 # it first would park the three small corpora behind a multi-day job.
-CORPORA: tuple[tuple[str, int, Path], ...] = (
+# CARDIO:DE is present only when PSEUDONYMKIT_DUA is configured. Absent, it is dropped from
+# the table and reported at startup — the other three corpora still run (§1: report, do not
+# substitute), and a reproducer without the DUA is not blocked from the whole study.
+CORPORA: tuple[tuple[str, int, Path], ...] = tuple(e for e in (
     ("cardiode", 400, CARDIODE_A),
     ("tab", 1268, CONDITION_A / "tab_A.jsonl.gz"),
     ("ontonotes", 5994, CONDITION_A / "ontonotes_A.jsonl.gz"),
     ("enron", 58636, CONDITION_A / "enron_A.jsonl.gz"),
-)
-
+) if e[2] is not None)
 HF_MODELS: tuple[str, ...] = GLINER_MODELS + FINETUNED_MODELS
 """The five checkpoints §14 fixes that are **not** on the cluster (measured 2026-09-12)."""
 

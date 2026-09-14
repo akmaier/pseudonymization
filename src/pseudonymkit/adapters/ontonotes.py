@@ -7,7 +7,7 @@ evaluations report detector collapse (Arabic F1 0.04).
 
 The release stores one directory per document with parallel annotation layers.  Two matter here:
 
-* ``.name`` — inline SGML, ``<ENAMEX TYPE="PERSON">Pierre Vinken</ENAMEX>``, over the sentence
+* ``.name`` — inline SGML, ``<ENAMEX TYPE="PERSON">Quentin Quill</ENAMEX>``, over the sentence
   stream.  Gives the text and the typed spans.
 * ``.coref`` — the same stream marked with ``<COREF ID="…">``.  Gives the chains the stability
   metrics need.
