@@ -159,3 +159,59 @@ def test_register_type_refuses_a_non_dataclass():
 
 def test_the_cardiode_layers_registered_themselves():
     assert {"MedicationSpan", "SectionSpan", "MedicationRelation"} <= set(TYPES)
+
+
+def test_the_adapter_import_is_thread_safe(tmp_path):
+    """Two threads reading corpora at once must not race the lazy adapter import.
+
+    The flag used to be set *before* the import, so a second thread saw it true, skipped the import,
+    found nothing registered and raised `no decoder for 'MedicationSpan'` while the first thread was
+    still importing. Serialised corpus loads hid it; one thread per detector model exposed it at
+    once.
+
+    Reaching the race in-process needs the adapter package dropped from ``sys.modules`` as well as
+    from ``TYPES`` — otherwise ``import_module`` returns the cached module without re-running
+    ``register_type``, and the decoder can never recover. Re-import makes new class objects, so the
+    assertion is on the class *name*.
+    """
+    import importlib
+    import sys
+    import threading
+
+    from pseudonymkit import serialisation
+    from pseudonymkit.adapters.cardiode import MedicationSpan
+
+    path = tmp_path / "c.jsonl"
+    doc = Document(doc_id="d1", text="x", language="de", corpus="cardiode",
+                   task={"medications": (MedicationSpan(0, 1, "x", "DRUG", True, False, "1"),)})
+    write_corpus(Corpus("c", (doc,)), path)
+
+    saved_types = dict(serialisation.TYPES)
+    saved_modules = {k: v for k, v in sys.modules.items() if k.startswith("pseudonymkit.adapters")}
+    try:
+        serialisation.TYPES.pop("MedicationSpan", None)
+        for name in saved_modules:
+            sys.modules.pop(name, None)
+        serialisation._ADAPTERS_IMPORTED = False
+
+        errors: list[BaseException] = []
+
+        def read() -> None:
+            try:
+                got = read_corpus(path)
+                span = got.documents[0].task["medications"][0]
+                assert type(span).__name__ == "MedicationSpan"
+            except BaseException as exc:      # noqa: BLE001 — the point is to surface any of them
+                errors.append(exc)
+
+        threads = [threading.Thread(target=read) for _ in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        assert not errors, errors
+    finally:
+        sys.modules.update(saved_modules)
+        serialisation.TYPES.update(saved_types)
+        serialisation._ADAPTERS_IMPORTED = True
+        importlib.import_module("pseudonymkit.adapters")

@@ -225,3 +225,37 @@ def test_messages_with_no_body_are_excluded(tmp_path):
 
     both = enron.load(tmp_path / "maildir", require_body=False)
     assert len(both) == 2
+
+
+def test_exchange_distinguished_names_are_dropped_from_the_headers():
+    """49,463 of them, all in the header block, none in the body.
+
+    Every recipient appears three times — display name, X.500 DN, address — and a mail client shows
+    the first and third. The DN carries nothing the others do not (`CN=VLAMADR` truncates the same
+    name) while contributing a highly regular string a detector will learn instead of the task.
+    """
+    import email
+
+    raw = (
+        "Message-ID: <1.JavaMail@thyme>\n"
+        "From: victor.lamadrid@enron.com\n"
+        "To: robert.superty@enron.com\n"
+        "Subject: Schedule\n"
+        "X-From: Lamadrid, Victor </O=ENRON/OU=NA/CN=RECIPIENTS/CN=VLAMADR>\n"
+        "X-To: Superty, Robert </O=ENRON/OU=NA/CN=RECIPIENTS/CN=Rsupert>\n"
+        "X-cc: Ames, Chuck </O=ENRON/OU=NA/CN=RECIPIENTS/CN=Cames>, "
+        "Brawner, Sandra F. </O=ENRON/OU=NA/CN=RECIPIENTS/CN=Sbrawne>\n"
+        "X-Folder: \\Sent\n"
+        "\n"
+        "Please confirm the schedule.\n"
+    )
+    text = enron.build_text(email.message_from_string(raw))
+
+    assert "/O=ENRON" not in text and "CN=RECIPIENTS" not in text
+    # display names keep their Last, First surface; addresses stay — both are what a client shows
+    assert "Lamadrid, Victor" in text and "victor.lamadrid@enron.com" in text
+    assert "Superty, Robert" in text and "robert.superty@enron.com" in text
+    assert "Ames, Chuck" in text and "Brawner, Sandra F." in text
+    # removing a DN must not leave ", ," or a dangling comma behind
+    assert ", ," not in text and not any(l.rstrip().endswith(",") for l in text.splitlines())
+    assert "Please confirm the schedule." in text

@@ -171,7 +171,11 @@ def _mentions(doc_id: str, text: str, table: IdentityTable, known: Sequence[str]
         taken.append((start, end))
         address = match.group(0).casefold()
         found.append(
-            Mention(doc_id, f"a{start}", Span(start, end, match.group(0), "EMAIL"),
+            # Harmonised name in ``type``, source label in ``type_src`` — the same shape every
+            # other adapter emits.  Writing the raw label into ``type`` made ``span.type`` mean one
+            # thing on TAB and another on Enron, so anything reading it without harmonising first
+            # saw 445,560 spans typed EMAIL and none typed CODE (experiment_plan.md §10).
+            Mention(doc_id, f"a{start}", Span(start, end, match.group(0), "CODE", type_src="EMAIL"),
                     gold_entity_id=address)
         )
 
@@ -184,7 +188,8 @@ def _mentions(doc_id: str, text: str, table: IdentityTable, known: Sequence[str]
             if free(start, end):
                 taken.append((start, end))
                 found.append(
-                    Mention(doc_id, f"n{start}", Span(start, end, text[start:end], "PERSON"),
+                    Mention(doc_id, f"n{start}",
+                            Span(start, end, text[start:end], "PERSON", type_src="PERSON"),
                             gold_entity_id=address)
                 )
             start = lowered.find(name, start + 1)
@@ -252,23 +257,50 @@ def _body(message: Message) -> str:
     return payload if isinstance(payload, str) else ""
 
 
+_X500 = re.compile(r"\s*</?O=[^>\n]{0,200}>")
+"""Exchange distinguished names, as a mail client would never show them.
+
+Every recipient appears three times in these headers: display name, X.500 DN, and address —
+``Lamadrid, Victor </O=ENRON/OU=NA/CN=RECIPIENTS/CN=VLAMADR>, victor.lamadrid@enron.com``.  Measured
+over 4,000 documents: **3,883 DNs in the header block and 0 in the body**, 49,463 across the corpus.
+
+The DN goes (AM, 2026-09-13).  It carries nothing the other two forms do not — ``CN=VLAMADR`` is a
+truncation of the same name — while contributing 49,463 highly regular strings that a detector will
+learn instead of the task, and inflating the corpus's ``CODE`` count.  Display names stay in their
+``Last, First`` form because that is the real surface a client shows and detecting a person in it is
+part of the task; addresses stay because they are identifiers, they are what a client shows, and the
+gold layer is built from them."""
+
+
 def build_text(message: Message) -> str:
     """The document text for condition A: sender, recipients, names, addresses, subject, body.
 
     Constructed rather than taken raw.  A raw Enron message is largely archive metadata — the audit
     measured about a third of its characters as RFC-822 headers — and one of those headers is the
     label of a task the study scores, so the raw message cannot be the document text.
+
+    The headers are kept in the reduced form a mail client shows: display name and address, without
+    the Exchange routing internals (see :data:`_X500`).
     """
     lines: list[str] = []
     for address_header, name_header in _KEEP_HEADERS:
-        address = (message.get(address_header) or "").strip()
-        name = (message.get(name_header) or "").strip() if name_header else ""
+        address = _X500.sub("", (message.get(address_header) or "")).strip()
+        name = _X500.sub("", (message.get(name_header) or "")).strip() if name_header else ""
+        name = _tidy(name)
+        address = _tidy(address)
         value = ", ".join(v for v in (name, address) if v) if name and name != address else (
             name or address)
         if value:
             lines.append(f"{address_header}: {value}")
     body = strip_quoted(_body(message))
     return "\n".join(lines) + ("\n\n" + body if body else "\n")
+
+
+def _tidy(value: str) -> str:
+    """Repair the separators that removing a DN leaves behind — ``a, , b`` and a trailing comma."""
+    value = re.sub(r",\s*(?=,)", "", value)
+    value = re.sub(r"\s{2,}", " ", value)
+    return value.strip().strip(",").strip()
 
 
 def load(

@@ -140,9 +140,27 @@ _ENRON = _route(PERSON="PERSON", CODE="EMAIL")
 therefore **no LOC gold on Enron**, and §8.1's PERSON-and-LOCATION-separately requirement cannot be
 met there (§12.1)."""
 
-_CARDIODE = _route(DATETIME="PSEUDO DATE")
-"""CARDIO:DE gold: the ``<[Pseudo] …>`` date markers, exposed by the adapter with
-``type_src="Pseudo"``.  DATETIME is the corpus's only identifier layer."""
+_CARDIODE = _route(
+    PERSON="PER",
+    LOC="LOC ADDR PLZ",
+    ORG="ORG",
+    DATETIME="PSEUDO DATE DAY MONTH YEAR",
+    CODE="PHONE OTHER OTHERG OTH II",
+    DEMOGRAPHIC="TITLE SALUTE",
+)
+"""CARDIO:DE gold, in two layers.
+
+As released the corpus's only identifier annotation is the ``<[Pseudo] …>`` date marker, exposed by
+the adapter with ``type_src="Pseudo"``.  The condition-A fill
+(:mod:`pseudonymkit.adapters.cardiode_fill`) adds the other fifteen: it replaces the IOB tag runs
+left in the running text and records ``type_src`` as the tag, so ``PER``, ``TITLE``, ``ADDR`` and the
+rest arrive here and need routes or they would be counted as inventions.
+
+Two of these are judgements rather than translations and are marked as such.  ``TITLE`` (*Dr.*,
+*Prof. Dr. med.*) and ``SALUTE`` (*Herr*, *Frau*) go to **DEMOGRAPHIC**: neither names a person, both
+carry attributes of one — academic rank and gender — which is what TAB's DEM category is for.
+``PLZ`` and ``ADDR`` go to **LOC** rather than CODE: a postcode locates rather than identifies, and
+TAB routes address components to LOC."""
 
 _LLM = _route(
     PERSON="PERSON",

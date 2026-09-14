@@ -41,6 +41,7 @@ import dataclasses
 import gzip
 import importlib
 import json
+import threading
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -58,6 +59,7 @@ TYPES: dict[str, type] = {}
 """``__type__`` name -> the dataclass to rebuild.  Populated by :func:`register_type`."""
 
 _ADAPTERS_IMPORTED = False
+_IMPORT_LOCK = threading.Lock()
 
 
 def register_type(cls: type) -> type:
@@ -101,9 +103,16 @@ def _resolve(name: str) -> type:
     cls = TYPES.get(name)
     if cls is not None:
         return cls
-    if not _ADAPTERS_IMPORTED:
-        _ADAPTERS_IMPORTED = True
-        importlib.import_module("pseudonymkit.adapters")
+    # Under a lock, and the flag is set **after** the import rather than before it.  The first
+    # version set it first, so a second thread reading a corpus concurrently saw the flag already
+    # true, skipped the import, found nothing registered and raised
+    # ``no decoder for 'MedicationSpan'`` — while the first thread was still importing.  It could
+    # not fire while corpus loads were serialised; inverting the detection loops made two threads
+    # read corpora at once and it fired immediately.
+    with _IMPORT_LOCK:
+        if not _ADAPTERS_IMPORTED:
+            importlib.import_module("pseudonymkit.adapters")
+            _ADAPTERS_IMPORTED = True
         cls = TYPES.get(name)
         if cls is not None:
             return cls

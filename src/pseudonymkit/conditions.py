@@ -69,6 +69,21 @@ NORMALISER = "N2"
 POLICY = "deterministic"
 TECHNIQUE = "hmac"
 
+POOLED = ("PERSON", "LOC", "ORG", "DEMOGRAPHIC")
+"""Types condition B renders by drawing from an inventory."""
+
+CONSTRUCTED = ("CODE",)
+"""Types condition B renders by building a string of the same shape — there is no list to draw
+from.  35.2 % of the study's mentions, and all 444,332 of Enron's."""
+
+UNCHANGED = ("DATETIME", "QUANTITY", "MISC")
+"""Types condition B leaves alone (AM, 2026-09-13).
+
+Reported, not hidden: this is 9.6 %, 3.8 % and 1.1 % of the study's mentions respectively, and for
+CARDIO:DE — where 45,176 of 55,154 mentions are dates — it means 82 % of the corpus's identifiers
+are carried into condition B verbatim.  See :class:`~pseudonymkit.surrogates.PassThrough` for what
+the literature does instead, which for DATETIME is to shift."""
+
 
 @dataclass(frozen=True, slots=True)
 class ConditionSpec:
@@ -123,14 +138,16 @@ SPECS: Mapping[str, ConditionSpec] = {
         label="pseudonymised",
         identifiers=(
             "a realistic, locale-appropriate surrogate; the same entity receives the same "
-            "surrogate throughout the corpus"
+            "surrogate throughout the corpus. Names, places, organisations and demographic "
+            "attributes are drawn from an inventory; codes are rebuilt to the same shape; dates, "
+            "quantities and MISC are left unchanged"
         ),
         linkable=True,
         reversible="with the key",
         normaliser=NORMALISER,
         policy=POLICY,
         technique=TECHNIQUE,
-        surrogate="realistic",
+        surrogate="routed",
         stability_meaningful=True,
     ),
     "C": ConditionSpec(
@@ -254,7 +271,20 @@ def build(
                 "condition B is HMAC-SHA256 (experiment_plan.md §7) and needs key material; "
                 "load it from the gitignored config and record only its key id with the result"
             )
-        surrogate = SURROGATES.create("realistic", inventory=inventory)
+        # One condition, but not one rendering rule.  A person is drawn from a name list, a phone
+        # number has to be constructed digit by digit, and a date is left as it stands.  Routing
+        # keeps all three inside the surrogate-form axis, so B and C still differ in exactly one
+        # level (§7) — which is what makes H2's exchange rate attributable to the condition.
+        pooled = SURROGATES.create("realistic", inventory=inventory)
+        surrogate = SURROGATES.create(
+            "routed",
+            routes={
+                **{t: pooled for t in POOLED},
+                **{t: SURROGATES.create("format_preserving") for t in CONSTRUCTED},
+                **{t: SURROGATES.create("unchanged") for t in UNCHANGED},
+            },
+            default=pooled,
+        )
     else:
         surrogate = SURROGATES.create("placeholder")
 

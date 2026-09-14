@@ -72,6 +72,16 @@ class TokenClassificationDetector:
     device: int | str | None = None
     batch_size: int = 8
     family: str = "ner"
+    path: str | None = None
+    """Load the weights from this directory instead of resolving ``model`` against the Hub.
+
+    ``name`` still reports ``model``, so a results row names the checkpoint rather than a cache path.
+    This exists for ``StanfordAIMI/stanford-deidentifier-base``, which ships only ``pytorch_model.bin``
+    and which ``transformers`` 4.57 refuses to ``torch.load`` under torch < 2.6 (CVE-2025-32434):
+    *"This version restriction does not apply when loading files with safetensors."*  Converting the
+    checkpoint locally is not enough on its own — ``from_pretrained`` resolves against the **repo's**
+    file list, and the upstream repo has no ``model.safetensors``, so it never looks for the local
+    one.  Pointing at the directory is what makes it find it."""
     _pipeline: Any = field(default=None, init=False, repr=False)
 
     @property
@@ -89,8 +99,9 @@ class TokenClassificationDetector:
         """Build the pipeline.  Separate from ``__init__`` so a job can time the weight download."""
         from transformers import AutoModelForTokenClassification, AutoTokenizer, pipeline
 
-        tokenizer = AutoTokenizer.from_pretrained(self.model, use_fast=True)
-        model = AutoModelForTokenClassification.from_pretrained(self.model)
+        source = self.path or self.model
+        tokenizer = AutoTokenizer.from_pretrained(source, use_fast=True)
+        model = AutoModelForTokenClassification.from_pretrained(source)
         self._pipeline = pipeline(
             "token-classification",
             model=model,

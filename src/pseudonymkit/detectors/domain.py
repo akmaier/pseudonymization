@@ -77,6 +77,169 @@ def align_tokens(
     return offsets, cursor
 
 
+def _install_bpemb_shim() -> None:
+    """Make a flair 0.11-era checkpoint unpicklable under flair 0.15.
+
+    Eder et al.'s tagger was trained when ``flair.embeddings.token`` still defined
+    ``BPEmbSerializable``; 0.15.1 removed it, so unpickling the checkpoint raises
+    ``AttributeError: Can't get attribute 'BPEmbSerializable'``.  Pickle resolves a class by *name and
+    module*, so restoring the name at that path is all that is required.
+
+    The class has to reproduce the original ``__setstate__``, which is not a formality: the old flair
+    stored the SentencePiece model **inside** the checkpoint as ``spm_model_binary`` rather than as a
+    path, precisely so that a checkpoint would keep working when the cache moved.  Writing those bytes
+    back out and reloading them is what makes the embedding usable; skipping it would leave a tagger
+    that loads and then produces nothing.
+
+    Downgrading flair instead would be the other option, and a worse one: it is shared with nothing
+    else here, but pinning a four-year-old release to read one checkpoint trades a contained shim for
+    an uncontained dependency.
+    """
+    import flair
+    import flair.embeddings.token as token_module
+
+    if hasattr(token_module, "BPEmbSerializable"):
+        return
+    try:
+        from bpemb import BPEmb
+    except ModuleNotFoundError as exc:                       # reported, never worked around (§1)
+        raise RuntimeError(
+            "privacy_tagger's checkpoint needs `bpemb` to unpickle its embeddings "
+            "(flair 0.15 dropped BPEmbSerializable). pip install bpemb."
+        ) from exc
+
+    class BPEmbSerializable(BPEmb):                          # noqa: N801 — the pickled name
+        def __getstate__(self):
+            state = self.__dict__.copy()
+            state["spm_model_binary"] = open(self.model_file, mode="rb").read()
+            state["spm"] = None
+            return state
+
+        def __setstate__(self, state):
+            from bpemb.util import sentencepiece_load
+
+            model_file = self.model_tpl.format(lang=state["lang"], vs=state["vs"])
+            self.__dict__ = state
+            self.cache_dir = Path(flair.cache_root) / "embeddings"
+            if "spm_model_binary" in state:
+                # The checkpoint carries the SentencePiece model; write it where bpemb expects it
+                # rather than re-downloading, which is the whole point of the original design.
+                (self.cache_dir / state["lang"]).mkdir(parents=True, exist_ok=True)
+                self.model_file = self.cache_dir / model_file
+                self.model_file.write_bytes(state["spm_model_binary"])
+            else:
+                self.model_file = self._load_file(model_file)
+            state["spm"] = sentencepiece_load(self.model_file)
+
+    token_module.BPEmbSerializable = BPEmbSerializable
+
+
+def _install_bytepair_shim() -> None:
+    """Teach flair 0.15's ``BytePairEmbeddings`` how to read a flair 0.11-era pickle of itself.
+
+    Unpickling the checkpoint restores a ``BytePairEmbeddings`` *instance* whose ``__dict__`` is the
+    one flair 0.11 wrote::
+
+        {'_BytePairEmbeddings__embedding_length': 200, 'embedder': BPEmbSerializable(...),
+         'name': '1-bpe-de-100000-100', 'static_embeddings': True, ...}
+
+    Between 0.11 and 0.15 flair rewrote the class.  Where 0.11 kept a live ``BPEmb`` object in
+    ``self.embedder`` and embedded a token with ``self.embedder.embed(word.lower())`` — a numpy
+    lookup, one token at a time — 0.15 keeps the same vectors in a ``torch.nn.Embedding`` and
+    embeds a whole batch with one tensor gather.  That rewrite introduced five attributes the old
+    pickle does not carry: ``embedding``, ``spm``, ``force_cpu``, ``field`` and ``do_preproc``.
+    The first one to be touched is ``force_cpu``, in ``BytePairEmbeddings._apply``, which flair
+    reaches while moving the freshly loaded model onto a device::
+
+        AttributeError: 'BytePairEmbeddings' object has no attribute 'force_cpu'
+
+    and behind it, at prediction time, ``spm``, ``do_preproc``, ``field`` and ``embedding`` in
+    ``_add_embeddings_internal``.
+
+    flair does this migration itself for the sibling class ``WordEmbeddings`` — see its
+    ``__setstate__``, which fills in ``force_cpu``/``fine_tune``/``field`` and turns a pickled
+    gensim ``precomputed_word_embeddings`` into an ``nn.Embedding``.  It simply never wrote the
+    equivalent for ``BytePairEmbeddings``.  This shim is that missing ``__setstate__``, written to
+    the same pattern, so what runs afterwards is flair's own unmodified 0.15 code path.
+
+    **Why the translation is exact, not approximate.**  Old flair asked bpemb for the vectors:
+    ``BPEmb.embed(t)`` is ``self.emb.vectors[self.encode_ids(t)]``, i.e. a row lookup into the same
+    matrix by sentencepiece id, and old flair then kept the first and last subword vector
+    (``np.concatenate((e[0], e[-1]))``).  New flair takes ``ids = spm.EncodeAsIds(word.lower())``,
+    keeps ``[ids[0], ids[-1]]`` and gathers them out of ``nn.Embedding.from_pretrained(vstack(
+    embedder.vectors, zeros))``.  Same matrix, same rows, same order — so rebuilding the
+    ``nn.Embedding`` from ``embedder.vectors`` reproduces the old numbers rather than approximating
+    them.  The appended zero row is how new flair spells the old "empty token gets a zero vector"
+    branch: it indexes it as ``spm.vocab_size()``, which is why that row must line up with the end
+    of the vector matrix — asserted below, because an off-by-one there would leave a tagger that
+    loads, runs, and quietly returns the wrong embedding for every token.
+
+    Preprocessing lines up too, which is worth stating because it is where a silent divergence
+    would otherwise hide.  Old flair passed ``word.lower()`` to bpemb, and bpemb applied its own
+    ``preprocess`` — ``re.sub(r"\\d", "0", text.lower())`` — when its ``do_preproc`` was set.  New
+    flair applies ``re.sub(r"\\d", "0", word)`` itself under its own ``do_preproc`` flag and then
+    lowercases inside ``EncodeAsIds(word.lower())``.  Digit folding and lowercasing commute, so the
+    two agree exactly — provided ``do_preproc`` is carried over from the pickled bpemb object
+    instead of being defaulted, which is what this shim does.
+
+    ``field`` is ``None`` because flair 0.11 had no such option: it always embedded ``token.text``.
+    ``force_cpu`` is ``True``, the value flair 0.15 defaults to for this class and the value its
+    ``WordEmbeddings.__setstate__`` fills in for old pickles; it keeps the 100k x 100 lookup table
+    on the CPU, which is where flair 0.11 kept it (a numpy array) in any case.
+    """
+    import flair
+    import numpy as np
+    import torch
+    from torch import nn
+
+    from flair.embeddings.token import BytePairEmbeddings
+
+    if getattr(BytePairEmbeddings, "_pseudonymkit_bytepair_shim", False):
+        return
+
+    def __setstate__(self, state: dict) -> None:                 # noqa: N807 — the dunder is the API
+        embedder = state.pop("embedder", None)
+        if embedder is not None:
+            # A flair 0.11 pickle.  Translate it; a 0.15 pickle has none of this and falls through.
+            vectors = embedder.vectors
+            vocab_size = embedder.spm.vocab_size()
+            if vectors.shape[0] != vocab_size:
+                raise RuntimeError(                              # reported, never papered over (§1)
+                    "privacy_tagger's BytePairEmbeddings is inconsistent: its sentencepiece model "
+                    f"has {vocab_size} pieces but its vector matrix has {vectors.shape[0]} rows. "
+                    "flair 0.15 indexes the matrix by piece id, so these must match."
+                )
+            state["spm"] = embedder.spm
+            state["do_preproc"] = bool(getattr(embedder, "do_preproc", True))
+            state["embedding"] = nn.Embedding.from_pretrained(
+                torch.FloatTensor(
+                    np.vstack((vectors, np.zeros(vectors.shape[1], dtype=vectors.dtype)))
+                ),
+                freeze=True,
+            )
+        state.setdefault("force_cpu", True)
+        state.setdefault("field", None)
+        state.setdefault("do_preproc", True)
+        super(BytePairEmbeddings, self).__setstate__(state)
+        # __init__ ends with .to(flair.device); _add_embeddings_internal reads self.device, and an
+        # old pickle carries none.  force_cpu=True makes this a no-op move that only sets the flag.
+        self.to(flair.device)
+
+    BytePairEmbeddings.__setstate__ = __setstate__
+    BytePairEmbeddings._pseudonymkit_bytepair_shim = True
+
+
+def _install_flair_compat_shims() -> None:
+    """Every compatibility patch needed to read Eder et al.'s 2022 checkpoint under flair 0.15.
+
+    Kept as one entry point so a caller cannot install half of them, and so the reason they exist —
+    a checkpoint frozen at flair ~0.11 against a library four minor versions ahead of it — is stated
+    in one place.  Each patch is documented at its own definition.
+    """
+    _install_bpemb_shim()
+    _install_bytepair_shim()
+
+
 @DETECTORS.register("privacy_tagger")
 @dataclass
 class PrivacyTagger:
@@ -103,6 +266,7 @@ class PrivacyTagger:
         from flair.models import SequenceTagger
         from somajo import SoMaJo
 
+        _install_flair_compat_shims()
         self._tagger = SequenceTagger.load(str(self.model_path))
         try:
             self._tokenizer = SoMaJo(

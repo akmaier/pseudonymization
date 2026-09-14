@@ -37,6 +37,7 @@ except ModuleNotFoundError:             # 3.10, which is what the cluster runs
 from typing import Sequence
 
 from ..domain import Document, Span
+from .budget import DEFAULT_CONTEXT, TokenBudget
 from .alignment import ground_snippets
 from .base import DetectorOutput
 
@@ -71,19 +72,26 @@ class LlmDetector:
         max_chars: int = 6000,
         timeout: int = 300,
         max_retries: int = 40,
-        max_tokens: int = 16384,
+        max_tokens: int | None = None,
+        context: int | None = None,
     ) -> None:
         self.model = model
         self.name = f"llm:{model}"
         self._types = tuple(types)
-        self._max_chars = max_chars
-        # Generous by decision (AM, 2026-09-08): gateway tokens cost us nothing, and a tight budget
-        # is actively harmful here. The reasoning models -- gpt-oss-120b, Qwen3.6 -- spend tokens
-        # thinking before they emit the JSON array, so a 2048 cap made Qwen return *zero* spans on
-        # every CARDIO:DE letter with no error at all: it was truncated mid-thought. A silent empty
-        # result is the worst possible failure for a detector pool, because the ensemble treats it
+        # The window and the cap are derived from each other and from the model's family, because
+        # they are not independent: a prompt of p tokens can only be answered in (context - p), so a
+        # family that needs r x p output can only be sent context/(1+r) of input.  A fixed pair got
+        # this wrong in both directions -- 16,384 truncated the reasoning models on every long
+        # CARDIO:DE letter while being four times what the plain models ever used, and before that a
+        # 2,048 cap made Qwen return *zero* spans with no error at all, truncated mid-thought.  A
+        # silent empty result is the worst failure a detector pool can have: the ensemble reads it
         # as "found nothing" rather than "never answered".
-        self._max_tokens = max_tokens
+        self._budget = TokenBudget.for_model(model, context=context)
+        # Keep the configured window unless the family cannot answer one that large.  Changing how
+        # much text a model sees changes what it finds, for reasons unrelated to the study, so the
+        # window shrinks only when the arithmetic forces it.
+        self._max_chars = min(max_chars, self._budget.max_chars)
+        self._fixed_max_tokens = max_tokens
         self._timeout = timeout
         self._max_retries = max_retries
         cfg = tomllib.load(Path(config_path).open("rb"))["llm"]
@@ -154,7 +162,12 @@ class LlmDetector:
                 {"role": "user", "content": f"Types: {', '.join(self._types)}\n\n{text}"},
             ],
             "temperature": 0,
-            "max_tokens": self._max_tokens,
+            # From the chunk actually being sent, not a constant.  Measured on the 1 % sweep, every
+            # truncation by a *plain* model was a runaway rather than a shortfall — 279 spans
+            # against a normal 53.8 — so a loose cap buys nothing there and merely pays for more of
+            # the runaway before cutting it.  Tight for plain, generous for reasoning, both scaled
+            # by the input.
+            "max_tokens": self._fixed_max_tokens or self._budget.max_tokens(len(text)),
         }
         delay = 10.0
         last = ""
@@ -261,6 +274,7 @@ class LlmDetector:
             "truncated": sum(1 for r in reasons if r == "length"),
             "completion_tokens": completion_tokens,
             "prompt_tokens": prompt_tokens,
-            "max_tokens": self._max_tokens,
+            "max_chars": self._max_chars,
+            "budget": self._budget.describe(),
         }
         return DetectorOutput(document.doc_id, self.name, tuple(spans)), meta

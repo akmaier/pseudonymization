@@ -1,8 +1,12 @@
 """Surrogate inventories — the one input that cannot be derived from the corpora.
 
 Realistic and attribute-matched surrogates need name and place lists carrying **frequencies** and
-**attributes**.  Frequencies are not decoration: H4 is about frequency and attribute preservation
-and attack A2 consumes the frequency distribution, so an unweighted list can test neither.
+**attributes**.  Frequencies are not decoration, but they do not enter A2 on this side of the fence:
+:class:`~pseudonymkit.attacks.frequency.FrequencyAttack` counts how often a pseudonym occurs *in the
+corpus* and never looks up the population frequency of the string it drew.  Weighting matters here
+because §7 asks for a realistic, locale-appropriate surrogate, and it matters to A2 only through
+``FrequencyAttack(reference=...)`` — the *attacker's* prior over real names, which is a different
+list.
 
 This module defines the port.  Adapters that load real gazetteers (census surnames, GeoNames,
 national given-name registries) implement the same interface, so the engine never learns where the
@@ -60,7 +64,14 @@ class ListInventory:
     Selection is by index, so the technique alone decides which surrogate an entity receives and
     the mapping stays reproducible.  When ``frequency_matched`` is set, the index selects within a
     frequency-weighted cumulative distribution instead of uniformly, so the surrogate distribution
-    imitates the real one — which is precisely what makes A2 easier and H4 testable.
+    imitates the real one.
+
+    This makes A2 **harder**, not easier, and the direction is worth stating because the opposite was
+    written here first.  A weighted draw gives two entities the same surrogate far more often than a
+    uniform one — for a Chinese surname, p(王)² = 0.56 % against 1/1806 = 0.055 % — and
+    ``FrequencyAttack._truth`` omits any pseudonym carried by more than one entity key while the
+    denominator keeps it.  The collisions are wanted anyway: a natural distribution produces them,
+    and they are not corrected (AM, 2026-09-10).
     """
 
     def __init__(
@@ -129,8 +140,8 @@ class SyntheticInventory:
 
     Produces stable pronounceable strings so the engine and the metrics can be exercised long
     before real gazetteers are licensed and loaded.  It is **not** suitable for the leakage
-    attacks: its frequency distribution is uniform by construction, which is the very property A1
-    and A2 depend on being realistic.
+    attacks: every surrogate is drawn from one flat pool, so the surrogates carry no locale and no
+    attribute, which is what §7's realistic, locale-appropriate surrogate requires of condition B.
     """
 
     _ONSET = ("b", "d", "f", "g", "k", "l", "m", "n", "p", "r", "s", "t", "v", "z")

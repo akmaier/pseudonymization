@@ -104,8 +104,51 @@ def test_per_topic_limit_keeps_the_seven_way_task_balanced(tmp_path):
     for topic in codealltag.topic_labels(corpus).values():
         counts[topic] = counts.get(topic, 0) + 1
     assert counts == {"EVENTS": 2, "TRAVELS": 2}
-    # The rate is stamped into the corpus name: no result may be quoted without its provenance.
-    assert corpus.name == "codealltag_XL@2"
+    # Rate *and seed* are stamped into the corpus name: the draw is random, so without the seed the
+    # provenance is incomplete and no result may be quoted from it.
+    assert corpus.name == "codealltag_XL@2#0"
+
+
+def test_the_per_topic_draw_is_random_and_reproducible(tmp_path):
+    """It used to take a numeric prefix, and the numeric stem is archive order — not a sample."""
+    build(tmp_path, xl={"EVENTS": [str(i) for i in range(1, 21)]})
+    pick = lambda seed: [
+        d.doc_id for d in codealltag.load_xl(
+            tmp_path, topics=("EVENTS",), limit_per_topic=5, seed=seed
+        ).documents
+    ]
+    first, again, other = pick(0), pick(0), pick(1)
+    assert first == again                      # same seed, same draw
+    assert first != other                      # a different seed draws differently
+    assert first != [f"codealltag/XL/EVENTS/{i}" for i in range(1, 6)]   # not a prefix
+
+
+def test_unusable_documents_are_excluded_before_the_draw(tmp_path):
+    """XL is a raw Usenet dump: one-byte files, and text carrying U+FFFD."""
+    build(tmp_path, xl={"EVENTS": [str(i) for i in range(1, 11)]})
+    root = tmp_path / "pXL_EVENTS"
+    files = sorted(root.rglob("*.txt"))
+    files[0].write_text("x", encoding="utf-8")                       # too short
+    files[1].write_text("ein besch\ufffddigter Text hier", encoding="utf-8")   # damaged
+    report: dict = {}
+    corpus = codealltag.load_xl(
+        tmp_path, topics=("EVENTS",), min_bytes=10, drop_damaged=True, report=report
+    )
+    kept = {d.doc_id.rsplit("/", 1)[1] for d in corpus.documents}
+    assert files[0].stem not in kept and files[1].stem not in kept
+    assert report["EVENTS"] == {"found": 10, "eligible": 8, "drawn": 8}
+    assert corpus.name == "codealltag_XLmin10clean"
+
+
+def test_the_filter_runs_before_the_draw_so_n_is_n_usable_documents(tmp_path):
+    build(tmp_path, xl={"EVENTS": [str(i) for i in range(1, 21)]})
+    for path in sorted((tmp_path / "pXL_EVENTS").rglob("*.txt"))[:10]:
+        path.write_text("x", encoding="utf-8")
+    corpus = codealltag.load_xl(
+        tmp_path, topics=("EVENTS",), limit_per_topic=8, min_bytes=10, seed=0
+    )
+    assert len(corpus.documents) == 8
+    assert all(len(d.text) >= 10 for d in corpus.documents)
 
 
 def test_numeric_ordering_makes_a_prefix_limit_reproducible(tmp_path):

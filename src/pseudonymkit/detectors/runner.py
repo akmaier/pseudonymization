@@ -12,10 +12,11 @@ requirements, and they were previously re-implemented in each experiment script:
 * **Stamp the record.**  Model id and prompt version go into every record, because which model was
   live is part of the experimental record (§7).
 
-The one thing this function deliberately does **not** do is decide whether a cached record is still
-valid.  The cache is keyed ``(corpus, detector, doc_id)`` and records no text version, so a document
-whose text changed keeps stale spans at wrong offsets (§12.2).  Records affected by a text change
-must be **deleted** by whoever changed the text; skipping them here would hide the problem.
+**Staleness is handled by the cache, not here.**  This docstring used to say the opposite — that a
+record carried no text version and had to be deleted by hand when a corpus was rebuilt.  Every record
+now carries ``text_sha256``, and :meth:`DetectorCache.done` re-detects a document whose text has
+changed rather than skipping it, so passing ``texts`` (which this function always does) is what keeps
+an ensemble from mixing spans over two different versions of the same document.
 """
 
 from __future__ import annotations
@@ -92,7 +93,9 @@ def run_detector(
     """
     docs = list(documents)
     started = time.time()
-    done = cache.done(detector.name) if resume else set()
+    # From ``docs``, not ``documents``: the latter is an Iterable and ``list()`` has consumed it.
+    texts = {d.doc_id: d.text for d in docs}
+    done = cache.done(detector.name, texts=texts) if resume else set()
     todo = [d for d in docs if d.doc_id not in done]
     if progress:
         progress(f"{cache.corpus} / {detector.name}: {len(done)} cached, {len(todo)} to do")
@@ -110,6 +113,7 @@ def run_detector(
             error=error,
             elapsed=elapsed,
             meta={"family": detector.family},
+            text=texts.get(doc_id),
         )
         if error is None:
             written += 1

@@ -154,9 +154,10 @@ into detecting privacy-bearing entities and then replacing them *"by synthetical
 surrogates (e.g., a person originally named 'John Doe' is renamed as 'Bill Powers')"*, with a system
 architecture for surrogate generation, evaluated on CodEAlltag (Krieg-Holz et al.,
 `10.1515/9783110464856-013`). That is this study's pipeline in its German e-mail arm — and its
-corpus, since CodEAlltag as released is that paper's output. It does not vary the function and
-measures neither utility nor leakage; and its surrogates were drawn frequency-independent by
-construction (§12), which is why A1 and A2 barely transfer there. *Cloaked Classifiers* (PrivateNLP
+corpus. It does not vary the function and measures neither utility nor leakage. We do not use
+that corpus — it ships no gold spans, so nothing on it is attributable to a method (§11) — but the
+paper remains the nearest published prior art to what this study varies, and its substitute lexicons
+are the inventory the CARDIO:DE fill draws on (§12). *Cloaked Classifiers* (PrivateNLP
 2024, `10.18653/v1/2024.privatenlp-1.13`) crosses pseudonymisation strategy with a downstream
 classification task — the utility axis in miniature.
 
@@ -244,9 +245,11 @@ injection: counter, hash, HMAC and AES-SIV are indistinguishable to an attacker 
 occurrences. This follows from the construction rather than from measurement, and the paper states it
 as such.
 
-The claim is made for the languages and domains the corpora support: legal (en), e-mail (en, de),
-news (en, zh, ar), clinical (de) — with detection scorable on three of the five corpora and no
-scorable German detection cell at present (§12, §17).
+The claim is made for the languages and domains the corpora support: legal (en), e-mail (en),
+news (en, zh, ar), clinical (de) — with detection scorable on **all four** corpora, though only TAB's
+gold was annotated for de-identification and the others' limits are stated with every number (§8.1).
+German e-mail left the study with CodEAlltag (§11), so German rests on CARDIO:DE alone — which is
+also the German detection cell, gold by construction from the condition-A fill (§12).
 
 ## 6. Hypotheses
 
@@ -337,7 +340,7 @@ across — is not run, so the middle of the linkability range is absent. All thr
 | **condition** | A full data · B pseudonymised · C de-identified | **3** |
 | **D** detector | Presidio · GLiNER-multi · GLiNER-PII · `obi/deid_roberta_i2b2` · `StanfordAIMI/stanford-deidentifier-base` · `Davlan/xlm-roberta-large-ner-hrl` · `privacy_tagger` · **every chat model the NHR@FAU gateway serves at run time, DeepSeek excluded** · gold spans | 7 + gateway |
 | **D′** combination rule | union · vote(k) · intersection · weighted vote · cascade · token-level BIO voting | **6** |
-| **E** corpus | TAB · OntoNotes · Enron · CodEAlltag · CARDIO:DE | **5** |
+| **E** corpus | TAB · OntoNotes · Enron · CARDIO:DE | **4** |
 | sampling rate | fixed per corpus before the run and recorded with every result (§13) | — |
 
 The condition and the corpus give **15 cells**. Detection is a separate stage: it produces spans,
@@ -351,11 +354,13 @@ post-hoc read of the detector cache and cost nothing to compute, however many ar
 *pseudonymisation* error, which no prior work does. Without it everything downstream is confounded by
 a name detector that the 2026 cross-lingual evaluations put at F1 0.40 (§4).
 
-**`privacy_tagger` is included deliberately as an overfitting probe** (AM, 2026-09-09). It was
-fine-tuned on 3,000 pseudonymised CodEAlltag e-mails, so on CodEAlltag it has already seen the
-substitutions it is asked to find. Running it there *and* on German text it has not seen measures how
-much a corpus-trained detector inflates its own recall — a number the field assumes and nobody
-reports. Its README concedes the mechanism from the other side: *"ORG, CITY, URL and EMAIL currently
+**`privacy_tagger` stays; the overfitting probe it was included for does not** (AM, 2026-09-09;
+narrowed 2026-09-11). It was fine-tuned on 3,000 pseudonymised CodEAlltag e-mails, and the probe was
+to run it on that corpus, where it has already seen the substitutions it is asked to find, *and* on
+German text it has not — measuring how much a corpus-trained detector inflates its own recall. With
+CodEAlltag out (§11) the in-domain half is gone, so the contrast is not measured. The detector
+remains in axis D as the German domain-specific level and runs on CARDIO:DE, where it has seen
+nothing; that is the out-of-domain half alone, and it is reported as such rather than as the probe. Its README concedes the mechanism from the other side: *"ORG, CITY, URL and EMAIL currently
 do not get recognized well due to their replacements in the pseudonymized texts."*
 
 **`privacy_tagger`, GLiNER and the fine-tuned de-ID models emit taxonomies that differ from each
@@ -383,11 +388,30 @@ category:
 - **DIRECT and QUASI identifiers are reported separately**, as TAB annotates them, and **PERSON and
   LOCATION separately** because those carry the stability requirement.
 
-Applies to the corpora with span gold — TAB, OntoNotes and Enron. On CodEAlltag and CARDIO:DE
-detection is the pipeline's input, not a scored measurement (§11, §12). Enron has no LOC gold, so
-PERSON and LOCATION cannot be separated there. Entity-level recall needs co-reference, so it is
-computable on TAB, OntoNotes and — through mailbox identity — Enron; token-level recall works
-wherever there is gold.
+**Scored on all four corpora** (AM, 2026-09-12). Their gold differs in kind, and the kind is
+reported beside every number rather than averaged over:
+
+| corpus | what the gold is | recall counts |
+|---|---|---|
+| **TAB** | manual annotation built for de-identification — 8 types, DIRECT/QUASI/NO_MASK, document-scoped `entity_id`, multiple annotators | of the spans annotators judged identifying |
+| **CARDIO:DE** | **ours by construction** — the 16,164 identifiers the condition-A fill inserted, each with its position, type and referent, plus the 14,854 released date markers (§12) | of the identifiers we placed; whatever the Heidelberg de-identifier missed is invisible to us |
+| **OntoNotes** | NER: 18 ENAMEX types, annotated for linguistics. No identifier notion, no DIRECT/QUASI | of the spans a linguist marked ENAMEX — a **proxy**, and labelled as one |
+| **Enron** | built here from message headers: an 11,124-name identity table matched into bodies | of the names matchable from a header. **No true denominator** — a name never appearing in a header cannot be counted as missed |
+
+**Silver gold is admitted, and its limits are stated rather than hidden** (AM, 2026-09-12). Only TAB
+carries annotation made for this purpose. OntoNotes answers a different question and Enron's layer is
+our own construction, but both have limits that can be written down, which is what separates them
+from a corpus with no span layer at all — the ground on which CodEAlltag was excluded (§11).
+**Recall is therefore not comparable across the four**, and no table may place the four numbers in
+one column without saying what each denominator is.
+
+Three consequences follow from the table. Enron has **no LOC gold**, so PERSON and LOCATION cannot be
+separated there. **DIRECT/QUASI is TAB only**; no other corpus annotates the distinction. And
+entity-level recall needs co-reference, so it is computable on TAB, OntoNotes, and — through mailbox
+identity — Enron; on CARDIO:DE the identity is the fill's own stipulation and most entities are
+singletons by construction, so entity-level and token-level recall nearly coincide there and the
+entity-level figure carries little extra information. Token-level recall works wherever there is
+gold.
 
 That asymmetry reappears in the combination rule (§7, axis D′) and must be reported there too.
 Union-of-spans maximises recall — the privacy-relevant direction — at the cost of precision and
@@ -428,8 +452,8 @@ TAB and OntoNotes about three quarters of PERSON chains hold a single mention, s
 measured on the remainder; the counts are produced by the run and reported with it, not fixed here.
 
 Drift needs identity across documents. Enron has it through mailbox identity; TAB's and OntoNotes'
-chains are document-scoped. CodEAlltag and CARDIO:DE carry no entity identity and enter no stability
-cell (§11).
+chains are document-scoped. CARDIO:DE carries no entity identity and enters no stability cell
+(§11).
 
 Cretu et al. (arXiv 2404.03948) measure what pseudonym-change frequency costs in linkability on
 smart-meter data, which is drift in another modality. No published work reports these on text (§4.1).
@@ -455,7 +479,7 @@ and makes interpretation harder.
 | section classification | CARDIO:DE | per-letter accuracy |
 | folder classification | Enron | correct / incorrect |
 | intent / speech act | Enron | correct / incorrect |
-| formality | Enron, CodEAlltag | Spearman ρ per batch, or per-document error |
+| formality | Enron | Spearman ρ per batch, or per-document error |
 | NER agreement | all | span F1 between original and pseudonymised output |
 
 **Always report the original-text score beside every condition.** If the frozen model is near chance
@@ -506,6 +530,20 @@ C. If that holds, **the stability requirement is itself the vulnerability**: wha
 what makes it attackable. The residual on C is the more interesting number: removing identity from the identifiers need not
 remove it from the surrounding text, and whatever A5 still recovers there is what pseudonymisation
 cannot reach.
+
+**A2 candidate representation (AM, 2026-09-10): name alone, and name with date of birth.** Two
+entities drawn from a population-weighted inventory receive the same surrogate name; that is what a
+natural distribution produces and it is not corrected. An attacker ranking names by frequency cannot
+separate them, and A2 scores the pair as a failure — which is a real protection, reported as one.
+A2 is therefore run in two settings and both are reported: **name alone**, the scorer as it stands;
+and **name with date of birth**, where the candidate is the pair and a shared name is separated by
+the date beside it. The difference measures what an independently pseudonymised quasi-identifier
+costs: a name collision protects only until a second attribute is released alongside it. This is the
+Fellegi–Sunter record-linkage setting.
+
+No corpus in §11 links a date of birth to a person — CARDIO:DE's dates are surrogate-replaced in
+place and unchained, TAB's `entity_id` is document-scoped, Enron's `Date` header is dropped in
+condition A. The pair setting therefore runs only on the synthetic construction of §8.2.
 
 **A5 is the text analogue of Packhäuser et al.**, *Deep learning-based patient re-identification …*
 (Sci Rep 2022, `10.1038/s41598-022-19045-3`), which showed that images believed de-identified are
@@ -624,9 +662,6 @@ either populate them or declare them null, and a corpus with both null cannot en
 
 ---
 
-
----
-
 ## 11. Corpora and their roles
 
 **One assembly, one schema** (AM, 2026-09-06): rather than pick corpora one at a time, the corpora
@@ -642,10 +677,10 @@ the same documents — which is the gap §4.1 claims nobody has closed.
 | **TAB / ECHR** (en, legal) | ✅ 8 types, DIRECT/QUASI | ✅ co-reference | ✅ 30-label articles | **full** |
 | **OntoNotes** (en, zh, ar; 5 genres) | ✅ 18 NE types | ✅ co-reference | ✅ co-reference + NER | **full** |
 | **Enron** (en, e-mail) | ⚠ structural, header-derived | ✅ cross-document identity | ✅ folder · intent · formality | **full** |
-| **CARDIO:DE** (de, clinical) | ⚠ DATETIME only — 14,854 `<[Pseudo] …>` date markers in the 400 annotated letters, no name layer | ❌ | ✅ medication IE · section classes | utility **+ leakage** (AM, 2026-09-08) |
-| **CodEAlltag** (de, e-mail) | ❌ none released | ❌ | ✅ formality · 7-way topic (the pXL partition *is* the label) | utility only |
+| **CARDIO:DE** (de, clinical) | ✅ **complete for the identifiers we placed** — 16,164 inserted by the condition-A fill, plus the 14,854 released `<[Pseudo] …>` date markers (§12) | ❌ | ✅ medication IE · section classes | detection **+ utility + leakage** (AM, 2026-09-08; detection added 2026-09-12) |
 | **BRONCO150** (de, clinical) | ✅ ICD/OPS/ATC | ❌ sentence-scrambled | ✅ coding | utility only — **not yet received** |
 | MEDDOCAN · MedDeID · REDACT · AI4Privacy | ✅ | ❌ | ❌ | **OUT** (AM, 2026-09-08) — no utility task, so no cell where a method's effect is attributable |
+| **CodEAlltag** (de, e-mail) | ❌ none released | ❌ | ✅ formality · 7-way topic | **OUT** (AM, 2026-09-11) — utility without gold, the same objection from the other side |
 | E3C | ❌ no PII layer | ❌ | ❌ | **OUT** (AM, 2026-09-08) |
 
 **The synthetic members are out** (AM, 2026-09-08): *"Let's only use data that has some utility."*
@@ -653,14 +688,47 @@ Attributing an effect to a method requires detection, stability **and** utility 
 documents, and MEDDOCAN, MedDeID, REDACT, AI4Privacy and E3C carry no utility task. **Only TAB,
 OntoNotes and Enron carry all three.**
 
+**CARDIO:DE is promoted to a scored detection cell** (AM, 2026-09-12). Its row said *"DATETIME only
+… no name layer"*, and that was true of the corpus as released. The condition-A fill changed the
+fact: the identifiers in the text are ones we placed, so every position, type and referent is known
+by construction (§12). That makes it the most complete detection gold of the four and **the study's
+only German detection cell** — §5's *"no scorable German detection cell at present"* no longer holds.
+Two limits travel with it. The gold covers what the Heidelberg de-identifier marked, so its own
+misses are invisible to us; and the entity identity is the fill's stipulation, not the corpus's,
+which is why CARDIO:DE still enters no stability cell.
+
+**CodEAlltag is out** (AM, 2026-09-11): *"We can only use codealltag data in our experiment that has
+de-id gold. Data with utility alone is not useful."* The rule that removed MEDDOCAN and the others
+applies from the other side, and the answer to how much of the corpus survives it is **none**.
+Verified against the copy on disk, not against the paper: `pS` holds exactly 800 `.txt` files plus a
+LICENSE and a README, the seven `pXL` trees have the same shape, and there is no `.ann`, standoff,
+BIO or CoNLL file anywhere in the release. The 35,800 condition-A documents built on 2026-09-10 are
+withdrawn.
+
+What that costs, stated rather than absorbed:
+
+- **The German e-mail cell.** §5's coverage becomes legal (en), e-mail (en), news (en, zh, ar),
+  clinical (de). E-mail survives through Enron; German rests on CARDIO:DE alone.
+- **The German arm of the formality task** (§8.3). Formality survives on Enron.
+- **The seven-way topic task**, which in any case had no row in §8.3 and was never wired into a
+  measurement.
+- **`privacy_tagger`'s overfitting probe** (§7), which needed the in-domain half.
+
+What it does not cost: the corpus was never scorable for detection, carried no entity identity and
+entered no stability cell, so no planned detection, stability or leakage cell is lost. The
+substitute lexicons from the same authors stay in use — they are the inventory the CARDIO:DE fill
+draws on (§12) — and Eder et al. remain the study's nearest prior art (§4).
+
+**The annotations were not requested.** A draft asking the authors for the spans over the 800 public
+e-mails was written on 2026-09-10 and deleted unsent (AM, 2026-09-11): *"i don't want to ask."*
+
 **What the identifiers are, stated once and not made into an axis.** TAB, OntoNotes and Enron carry
-**real names in a natural frequency distribution**. CodEAlltag carries **realistic surrogates** — its
-README: privacy-sensitive spans were annotated manually, then *"substituting them with realistic
-surrogates automatically"*. CARDIO:DE carries **shifted dates and no name layer**.
+**real names in a natural frequency distribution**. CARDIO:DE carries **shifted dates**, and the
+names its condition-A text carries were inserted by us (§12).
 
 This matters for exactly two attacks. **A1 and A2 both consume the name-frequency distribution**, so
-their numbers transfer only where that distribution is natural — TAB, OntoNotes, Enron. On CodEAlltag
-they are weaker evidence, and on CARDIO:DE they do not apply at all. That is a stated limit on where
+their numbers transfer only where that distribution is natural — TAB, OntoNotes, Enron. On
+CARDIO:DE they measure the inventory the fill drew from, not a natural population. That is a stated limit on where
 those results hold. It is **not** an experimental factor and there are no cells for it.
 
 **Access status.** TAB, Enron, OntoNotes, CodEAlltag, MEDDOCAN, MedDeID, REDACT, AI4Privacy, E3C,
@@ -714,6 +782,13 @@ appear only in `.coref` against five that appear only in `.name`. Chains are now
 token alignment, and a span transfers only when every one of its tokens lands in a matched block.
 The unmappable spans are the null elements themselves, which are co-reference mentions in OntoNotes but have no surface in
 `.name`; Chinese has the most, because it drops pronouns systematically.
+*Co-reference reaches a reduced set, and the reduced set is what is used* (AM, 2026-09-10).
+4,560 of the 5,994 documents ship a `.coref` file — 2,384 English, 1,729 Chinese, 447 Arabic. After
+the token alignment above, **4,027 carry a chain attached to a gold mention**: 1,940 of 3,637
+English, 1,646 of 1,911 Chinese, 441 of 446 Arabic. The 533 that do not are documents whose chains
+touch only spans that no `.name` token matched. Every measurement needing co-reference on OntoNotes
+— entity-level recall (§8.1), collision and fragmentation (§8.2), the co-reference utility task
+(§8.3) — runs on those 4,027 and reports that denominator beside the result.
 *Name distribution:* surname Zipf slope −0.925 against a US-Census reference of −0.918, so the shape
 is natural — but Spearman ρ with census frequency is 0.263. It is a newswire-celebrity distribution:
 real names, not population-representative ones.
@@ -743,19 +818,16 @@ no detector records — but changing the *text* invalidates every record compute
 Enron gold emits only PERSON and EMAIL, so **there is no LOC gold on Enron** and §8.1's
 PERSON-and-LOCATION-separately requirement cannot be met there.
 
-**CodEAlltag.** The release ships **no span annotations**, which is why it is utility-only. Its
-formality scores were **Git-LFS pointers**, not data — the cluster has no `git-lfs`, so a plain
-checkout leaves 130-byte stubs; fetched over `media.githubusercontent.com`. `pXL` is ~1.47 M files in
-shard directories, so a recursive scan over it is expensive and must be bounded. Given names are
-near-uniform draws from a closed list of 975 and surnames were drawn *frequency-independent* by
-construction, so A1 and A2 transfer weakly at best.
-**Check every corpus directory for LFS stubs before counting it as present** — REDACT's real 213 MB
-benchmark was a 134-byte stub by the same mechanism.
+**Check every corpus directory for LFS stubs before counting it as present.** REDACT's real 213 MB
+benchmark was a 134-byte stub; CodEAlltag's formality scores were 130-byte pointers by the same
+mechanism. The cluster has no `git-lfs`, so a plain checkout leaves pointers where a reader sees
+files, and a corpus can be counted as present when none of it is there.
 
 **CARDIO:DE.** Every de-identified date is marked in place as `<[Pseudo] 12/03/2019>` — 14,854 in the
 400-letter split, 6.20 % of all characters, one every 320 characters — and the marker wraps nothing
-but dates. That is the corpus's only identifier gold, and it is DATETIME only. Person, institution
-and contact tokens were replaced by the de-identifier's own IOB output, shaped `<letter>-<CLASS>`:
+but dates. **As released** that is the corpus's only identifier gold, and it is DATETIME only —
+superseded by the condition-A fill below, which supplies the rest. Person, institution and contact
+tokens were replaced by the de-identifier's own IOB output, shaped `<letter>-<CLASS>`:
 **11 distinct strings in the person slot across 400 letters**, one of which fills the patient slot in
 384 of them.
 *Alignment rule:* the CAS `sofaString` and the `.txt` are **equal in length and differ in content** —
@@ -777,6 +849,40 @@ layers, so it supports neither utility task. The adapter defaults to `CARDIODE40
 
 *Also unused:* the Becker extension (`extension/…/json/`) carries a token-level NER layer —
 Diagnosis, Diagnostic, Drug, Medical_Finding, Therapy — that no adapter loads.
+
+*Condition A is built, not read* (AM, 2026-09-10). CARDIO:DE is the only corpus of the five that
+ships no full-data text: TAB, OntoNotes and Enron carry real names, and here the identifiers are IOB
+tag tokens left in the running text — **26,836 tokens, 16 types, 19,729 runs across the 500
+letters**. The fill replaces each run with a plausible German entity of the matching type and
+unwraps the `<[Pseudo] …>` markers to the bare date, so the result is a letter rather than a
+marked-up letter. On the 400-letter split it fills **16,164 runs** and remaps the 27,065 medication,
+section and relation spans onto the new offsets. Names come from Eder et al.'s CodEAlltag substitute
+lists — 53,028 surnames, 441 male and 534 female given names, 32,758 German cities, 51,583 streets —
+so the inventory is the one the German baseline this study cites already used. A run's length decides
+its surface: `B-PER` stood for a surname and `B-PER I-PER` for a given name and a surname, so one
+entity acquires two forms exactly where the original letter had two. The run → entity map is written
+beside the corpus and **is the detection gold**, since after the fill every identifier's position,
+type and referent is known by construction.
+
+*Identity is stipulated and is an upper bound.* The tags mark where an identifier stood, not who it
+was; two `B-PER` runs may be one person or two and nothing in the markup separates them. The rule:
+a `PER` run whose preceding context contains *Patient* / *Patientin* belongs to the letter's single
+patient entity — 452 of 2,740 runs — and gender is taken from the same cue, since the morphology
+survives de-identification even though *Herr* / *Frau* became `B-SALUTE`. Every other `PER` run
+becomes its own person: 1,357 after *Mit freundlichen Grüßen*, 66 after a referral cue, 865 with no
+cue at all. That yields **6.72 person entities per letter, which is a ceiling, not an estimate** — a
+physician named in the body and again in the signature receives two names. The patient is named
+1.13 times per letter and carries more than one surface form in 31 of 400 letters, so CARDIO:DE
+supports no fragmentation measurement; §8.2 already excludes it. Inferring identity from the filled
+names instead would be circular, since the names are ours.
+
+*Institution names are composed, not drawn.* CodEAlltag's `org` sublist is general business names —
+*Apfelscheune*, *AC-Cosmetics* — and a discharge letter referring a patient to one of those does not
+read as a letter, so the 1,969 `ORG` runs are filled from templates over the city list
+(`Klinikum {Stadt}`, `Universitätsklinikum {Stadt} gGmbH`, `Kardiologische Praxis {Stadt}`). These
+are plausible but not attested. The Destatis *Krankenhausverzeichnis* 2024 — 1,829 site names, 2,129
+street names, 1,736 postcodes, free to reproduce with attribution — is the attested source and is
+not yet fetched.
 
 ### 12.2 Cross-cutting
 
@@ -813,10 +919,8 @@ Four of the five corpora are small enough to use whole, so no scheme is needed a
 |---|---|---|
 | TAB | all 1,268 | — |
 | OntoNotes | all | — |
-| CodEAlltag_S | all 800 | — |
 | CARDIO:DE | all 400 annotated letters | — |
 | **Enron** | **`subject` @ 0.10, seed recorded** — whole mailboxes, all their messages | `subject` |
-| CodEAlltag_XL | **equal n per topic** | stratified by topic |
 
 **Enron uses `subject` and only `subject`** (AM, 2026-09-08). Two schemes are two different document
 sets, so detection would have to cover their union, and Enron is the largest corpus in the study by
@@ -830,9 +934,9 @@ stated with the result.
 The identity table is built from **all** ~517,000 messages before the draw, so cross-document
 identity is complete even for mailboxes outside the sample (§12).
 
-**CodEAlltag_XL is drawn equal-n per topic**, not proportionally: the partition *is* the label for
-the seven-way topic task, and proportional sampling would carry the partitions' size imbalance into
-the class balance.
+**CodEAlltag is no longer sampled** — it is out of the study entirely (AM, 2026-09-11, §11). The
+reduction designed for `CodEAlltag_XL` on 2026-09-10 — 5,000 per topic from the 881,957 of 1,468,942
+documents that passed a 200-byte floor and an encoding check — is withdrawn with it.
 
 Scheme, rate and seed are stamped into `Corpus.name` and into every document's metadata. **No result
 may be quoted without its sampling provenance** (§9).
@@ -845,13 +949,26 @@ may be quoted without its sampling provenance** (§9).
 | zero-shot NER | `urchade/gliner_multi-v2.1`, `urchade/gliner_multi_pii-v1` |
 | public fine-tuned de-ID | `obi/deid_roberta_i2b2`, `StanfordAIMI/stanford-deidentifier-base` |
 | multilingual NER | `Davlan/xlm-roberta-large-ner-hrl` |
-| domain-specific | CodEAlltag `privacy_tagger` (flair) |
+| domain-specific (de) | `privacy_tagger` (flair) — Eder et al.'s German de-identification tagger; the corpus it was trained on is out of the study (§11), the model is not. **On the cluster: `models/privacy_tagger.pt` under the work directory** — 2,637,679,217 bytes, verified 2026-09-11 against `privacy-tagger.aau.at/model.pt` (`Content-Length` identical, `Last-Modified` 2022-04-19). It is **not** in the `privacy_tagger` repository, which holds only a LICENSE and a README, and it does not need fetching again. `flair` 0.15.1 and `torch` 2.5.1+cu121 are in the venv |
 | co-reference | `biu-nlp/lingmess-coref` |
 | embeddings | `intfloat/multilingual-e5-large` |
 | perplexity | `Qwen/Qwen2.5-0.5B` |
-| LLM detectors, A4, zero-shot tasks | NHR@FAU gateway — `gpt-oss-120b`, `Qwen/Qwen3.6-35B-A3B-FP8`, `RedHatAI/gemma-4-31B-it-FP8-block`, `RedHatAI/Mistral-Small-3.2-24B-…`, `GaleneAI/Magistral-Small-…` |
+| LLM detectors, A4, zero-shot tasks | NHR@FAU gateway — **every chat model it serves that can extract spans**, which §7 axis D requires and which is **eight** as of the probe of 2026-09-12: `gpt-oss-120b` · `Qwen/Qwen3.6-35B-A3B-FP8` · `RedHatAI/gemma-4-31B-it-FP8-block` · `RedHatAI/Mistral-Small-3.2-24B-Instruct-2506-FP8` · `GaleneAI/Magistral-Small-2509-FP8-Dynamic` · `google/gemma-4-E4B-it` · `Microsoft/Phi-4-mini-instruct` · `ibm-granite/granite-4.1-3b` |
 
-**DeepSeek is excluded** — the gateway backend is down (AM, 2026-09-08).
+**Two of the gateway's ten chat models are out, for different reasons.** `lightonai/LightOnOCR-2-1B`
+is **not a span extractor**: probed 2026-09-12, it echoed the system prompt back and ran to
+`finish_reason=length`. **DeepSeek is excluded by decision** (AM, 2026-09-10: *"C1 — no deepseek"*),
+and that stands independently of availability — the earlier note that its backend was down was an
+observation, not the reason. `deepseek-ai/DeepSeek-V4-Flash` still returns HTTP 500 and the `-0731`
+variant timed out on 2026-09-12, but neither fact is what excludes them.
+
+**`Microsoft/Phi-4-mini-instruct` and `ibm-granite/granite-4.1-3b` were added 2026-09-12** (AM). They
+were served all along and their absence was a gap between §7's wording and the run script, not a
+decision. Both answer in 0.5 s against 4–25 s for the rest, so they cost almost nothing in wall clock,
+and at 3–4 B against 24–120 B they are the only small models in the pool — the diversity H5 feeds on.
+
+**Re-probe availability before every run and record which models were live** (§5): a model that is
+down blocks its cell and is reported, never silently substituted.
 
 **Gazetteers** (frequency- and attribute-bearing; an unweighted list can test neither H4 nor A1's
 banding): US Census 2010 surnames (162,253, public domain) · UCI Gender-by-Name (147,269, CC-BY,
@@ -934,15 +1051,31 @@ builder.
    published generator implements (§4); and the **document-randomised** policy — linkable within a
    document, not across — is not run, so the middle of the linkability range is absent. Each would
    need one further condition.
-7. **Four of axis D's levels have no code** — Presidio, GLiNER, `obi/deid_roberta_i2b2` and
-   `privacy_tagger` have software and weights on the cluster but no adapter.
+7. **Axis D's non-gateway levels have adapters but have never been run.** Corrected 2026-09-12: the
+   earlier wording — *"no adapter"* — was wrong. `PresidioDetector`, `GlinerDetector`,
+   `TokenClassificationDetector` and `PrivacyTagger` all exist. What was missing is a **runner** to
+   execute them over the corpora into the shared detector cache, which is what
+   `experiments/detect_local.py` now is. Two real gaps remain, both measured on 2026-09-12:
+   **`privacy_tagger`'s 2.6 GB weights are on the cluster** (`models/privacy_tagger.pt`) and every
+   library is installed — `presidio_analyzer`, `gliner` 0.2.29, `flair` 0.15.1, `transformers`
+   4.57.6, `torch` 2.5.1+cu121, and the spaCy models `de_core_news_lg`, `en_core_web_lg`,
+   `xx_ent_wiki_sm` — but the **five HuggingFace detectors are not downloaded**:
+   `urchade/gliner_multi-v2.1`, `urchade/gliner_multi_pii-v1`, `obi/deid_roberta_i2b2`,
+   `StanfordAIMI/stanford-deidentifier-base`, `Davlan/xlm-roberta-large-ner-hrl`. Presidio is CPU
+   and runs on the head node beside the gateway pool; the neural levels need a GPU and therefore a
+   Slurm allocation, which is the one part of the pipeline that does.
 8. Does the **2026 revision of ISO 25237** change any recommendation we would make? Somebody needs a
    copy — it is not open access.
-9. **Ask Eder / Krieg-Holz / Hahn for CodEAlltag's annotated S+d subset.** The release ships the
-    800 donated e-mails without the manual span annotations that were made before substitution. If
-    the authors will share them, CodEAlltag gains gold spans — and it is one of only two routes to a
-    scorable German detection cell, the other being BRONCO150. Carried over from
-    `data/metacorpus.md`, which was rewritten as a corpus list on 2026-09-09.
+9. ~~Ask Eder / Krieg-Holz / Hahn for CodEAlltag's annotated S+d subset.~~ **Closed 2026-09-11,
+    both ways.** The request was drafted and deleted unsent — *"i don't want to ask"* (AM) — and the
+    corpus is out of the study regardless (§11). Two findings from the drafting are worth keeping,
+    because they would otherwise be rediscovered. The annotations over the **800 released** e-mails
+    were never barred by the authors: LREC 2020 §6 and LREC 2022 §3.2 bar distribution of *e-mails*
+    the donors did not write — the 590 dropped from the release — and say nothing about spans. And a
+    manually annotated pseudonymised set that carries no real personal data at all exists in their
+    hands: LREC 2022 Table 3, XL1k, 1,000 e-mails and 3,226 entities. Neither was pursued. **German detection no longer depends on
+    this ask**: the CARDIO:DE fill supplies that cell (§8.1, §11). BRONCO150, unanswered since
+    2026-09-07, would be a second one.
 10. Ensemble composition: which LLMs, and is the combination rule fixed across languages or tuned per
    language? Tuning per language risks overfitting the benchmark.
 

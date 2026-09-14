@@ -66,10 +66,27 @@ def test_the_specs_match_the_plans_table():
         "de-identified", False, "no")
 
 
-def test_b_is_n2_deterministic_hmac_realistic():
+def test_b_is_n2_deterministic_hmac_routed():
+    """B's surrogate form became ``routed`` on 2026-09-14.
+
+    It was ``realistic``, which was only ever true of the types that have a pool.  Condition B has
+    to render all eight harmonised types, and three of them cannot be drawn from a list — CODE is
+    constructed, DATETIME/QUANTITY/MISC are deliberately left alone.  Routing keeps that inside the
+    surrogate-form axis, so the test below still finds exactly one level of difference against C.
+    """
     spec = SPECS["B"]
     assert (spec.normaliser, spec.policy, spec.technique, spec.surrogate) == (
-        "N2", "deterministic", "hmac", "realistic")
+        "N2", "deterministic", "hmac", "routed")
+
+
+def test_names_places_and_organisations_are_still_rendered_realistically():
+    """What the previous assertion was really protecting: B does not degrade to placeholders."""
+    engine = build("B", inventory=SyntheticInventory(pool_size=4096), key=KEY)
+    for entity_type in ("PERSON", "LOC", "ORG", "DEMOGRAPHIC"):
+        assert engine.surrogate.for_type(entity_type).name == "realistic"
+    assert engine.surrogate.for_type("CODE").name == "format_preserving"
+    for entity_type in ("DATETIME", "QUANTITY", "MISC"):
+        assert engine.surrogate.for_type(entity_type).name == "unchanged"
 
 
 def test_b_and_c_differ_in_exactly_one_axis_level():

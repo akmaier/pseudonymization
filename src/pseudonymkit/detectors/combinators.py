@@ -127,15 +127,31 @@ def _make(entity_type: str, items: Sequence[tuple[Span, str]]) -> Cluster:
 
 
 class _RuleBase:
+    """A rule over clusters, plus the clustering settings that decide what a cluster *is*.
+
+    ``link`` and ``iou`` were previously fixed at :func:`cluster_spans`'s defaults and unreachable
+    from here, which made them invisible parameters of every ensemble result.  They are constructor
+    arguments now, they appear in :attr:`settings`, and a result that does not carry them is not
+    reproducible (§9).
+    """
+
     name = "rule"
     _representative: Callable[[Cluster], Span] = staticmethod(Cluster.widest)
+
+    def __init__(self, link: str = "single", iou: float = 0.5) -> None:
+        self.link = link
+        self.iou = iou
+
+    @property
+    def settings(self) -> dict[str, object]:
+        return {"rule": self.name, "link": self.link, "iou": self.iou}
 
     def _keep(self, cluster: Cluster, n_detectors: int) -> bool:
         raise NotImplementedError
 
     def combine(self, outputs: Sequence[DetectorOutput]) -> tuple[Span, ...]:
         n = len({o.detector for o in outputs})
-        kept = [c for c in cluster_spans(outputs) if self._keep(c, n)]
+        kept = [c for c in cluster_spans(outputs, link=self.link, iou=self.iou) if self._keep(c, n)]
         spans = [type(self)._representative(c) for c in kept]
         return tuple(sorted(spans, key=lambda s: (s.start, s.end)))
 
@@ -177,7 +193,8 @@ class MajorityVote(_RuleBase):
     name = "vote"
     _representative = staticmethod(Cluster.most_agreed)
 
-    def __init__(self, k: int | None = None) -> None:
+    def __init__(self, k: int | None = None, **clustering: object) -> None:
+        super().__init__(**clustering)  # type: ignore[arg-type]
         self.k = k
         if k is not None:
             self.name = f"vote{k}"
@@ -199,7 +216,9 @@ class WeightedVote(_RuleBase):
     name = "weighted_vote"
     _representative = staticmethod(Cluster.most_agreed)
 
-    def __init__(self, weights: Mapping[str, float], threshold: float = 1.0) -> None:
+    def __init__(self, weights: Mapping[str, float], threshold: float = 1.0,
+                 **clustering: object) -> None:
+        super().__init__(**clustering)  # type: ignore[arg-type]
         self._weights = dict(weights)
         self._threshold = threshold
 
@@ -217,7 +236,8 @@ class Cascade(_RuleBase):
 
     name = "cascade"
 
-    def __init__(self, order: Sequence[str]) -> None:
+    def __init__(self, order: Sequence[str], **clustering: object) -> None:
+        super().__init__(**clustering)  # type: ignore[arg-type]
         self._order = tuple(order)
 
     def combine(self, outputs: Sequence[DetectorOutput]) -> tuple[Span, ...]:

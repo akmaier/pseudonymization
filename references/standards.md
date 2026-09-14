@@ -38,4 +38,11 @@ random search."*
 
 The stability requirement — one person, one pseudonym, corpus-wide — forces the **deterministic**
 policy, i.e. the one the standard itself says permits linkage. That trade-off is stated
-qualitatively in the standard and, as far as this survey found, has never been measured.
+qualitatively in the standard and has not been measured *for cross-document linkage*.
+
+**Qualified 2026-09-14.** This previously read "has never been measured", which is too strong.
+BRATsynthetic (arXiv 2210.16125) does measure consistent versus randomised replacement, reporting
+document-level PHI leakage falling from 27.1 % to 0.1 % at a 0.1 % false-negative rate. That is a
+different question — leakage of an entity the *detector missed*, hiding among surrogates (HIPS) —
+rather than an adversary linking records across documents by a stable pseudonym. Adjacent, not the
+same; the claim to make in the paper is the narrower one.

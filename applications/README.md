@@ -3,6 +3,10 @@
 Four corpora needed access. **Two are sent, one is blocked, one turned out to need nothing.** All were on the critical path — nothing else in the schedule absorbs their latency.
 Drafts below are ready for AM to check, sign and send. **Nothing here has been sent.**
 
+**CodEAlltag needs no application.** It is public under CC BY-SA 4.0 and already on the cluster. Its
+span annotations were never released; a request for them was drafted on 2026-09-10 and **deleted
+unsent (AM, 2026-09-10)** — we use what is public.
+
 | corpus | to | status | who must act |
 |---|---|---|---|
 | **BRONCO150** | Prof. Dr. Ulf Leser, `leser@informatik.hu-berlin.de` | sent 2026-09-07, **no reply yet** | wait; ⏰ delete by **2027-09-07** |
