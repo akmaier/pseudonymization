@@ -183,6 +183,30 @@ def build_enron(out: Path, source: Path | None) -> dict:
 # the corpus whose condition-A text has to be built
 
 
+NAME_WEIGHTS = "cardiode_name_weights.json"
+"""Optional German name-frequency table, as ``{"family": {name: count}, "male": …, "female": …}``.
+
+§12.1 requires the draw to reproduce German naming frequencies; the CodEAlltag lists carry no counts,
+so the weights come from a separate source and **which source is recorded with the build**.  When the
+file is absent the draw is uniform and the manifest says ``uniform`` — a stated fact rather than an
+implied weighting."""
+
+
+def _name_weights() -> tuple[dict | None, str]:
+    """Load the frequency table if it has been fetched, else report that it has not."""
+    for candidate in (work_dir() / "data" / NAME_WEIGHTS, shared_corpora() / NAME_WEIGHTS):
+        if candidate.exists():
+            import json
+
+            payload = json.loads(candidate.read_text(encoding="utf-8"))
+            source = payload.get("__source__", str(candidate.name))
+            tables = {k: v for k, v in payload.items() if not k.startswith("__")}
+            log(f"  name weights: {source} ({', '.join(f'{k} {len(v)}' for k, v in tables.items())})")
+            return tables, source
+    log(f"  name weights: none found ({NAME_WEIGHTS}) — the draw is uniform and recorded as such")
+    return None, "uniform"
+
+
 def build_cardiode(out: Path, seed: int) -> dict:
     from pseudonymkit.adapters import cardiode
     from pseudonymkit.adapters.cardiode_fill import Inventories, fill_corpus
@@ -197,7 +221,23 @@ def build_cardiode(out: Path, seed: int) -> dict:
         f"{len(inventories.male)}/{len(inventories.female)} given names, "
         f"{len(inventories.city)} cities, {len(inventories.street)} streets")
 
-    documents, mapping, fill = fill_corpus(corpus.documents, inventories, seed=seed)
+    # §12.1 (AM, 2026-09-15): identity is constructed across the corpus, not per letter — a bounded
+    # physician pool with turnover, and patients who re-appear coupled to the letter sequence.
+    from pseudonymkit.adapters.cardiode_population import PopulationSpec
+
+    weights, weight_source = _name_weights()
+    documents, mapping, fill = fill_corpus(
+        corpus.documents, inventories, seed=seed,
+        spec=PopulationSpec(seed=seed), weights=weights, weight_source=weight_source,
+    )
+    if fill.population:
+        pop = fill.population
+        log(f"  population: {pop['patients']} patients over {pop['letters']} letters, "
+            f"{pop['patients_with_more_than_one_letter']} with a follow-up "
+            f"(max {pop['max_letters_per_patient']}); "
+            f"{pop['physicians_in_post']} physicians in post, roster {pop['physician_roster']}")
+        log(f"  names: {pop['family_names']['source']}, "
+            f"{pop['family_names']['coverage']:.1%} of surnames carry a weight")
     log(f"  {fill}")
 
     filled = Corpus(f"cardiode[A#{seed}]", tuple(documents))
@@ -209,6 +249,10 @@ def build_cardiode(out: Path, seed: int) -> dict:
         "orphan_runs": fill.orphan_runs,
         "seed": seed,
     }
+    # The construction's parameters and what they produced go into the manifest, because §12.1 makes
+    # them recorded settings rather than hidden constants — a corpus built with a different physician
+    # pool or a different weight source is a different corpus and must say so.
+    summary["population"] = fill.population
     summary["roles"] = dict(Counter(e.role for e in mapping).most_common())
     log(f"  roles: {summary['roles']}")
 

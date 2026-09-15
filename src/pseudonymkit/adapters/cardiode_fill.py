@@ -285,6 +285,9 @@ class FillReport:
     orphan_runs: int = 0
     """Runs that began with an ``I-`` token and no ``B-``."""
     layers_remapped: int = 0
+    population: Mapping[str, object] | None = None
+    """How the corpus-level identity was constructed — the parameters, the name-weight source and
+    what it produced.  §12.1 requires these to be recorded with the build, not inferred afterwards."""
 
     def __str__(self) -> str:
         types = ", ".join(f"{k} {v}" for k, v in sorted((self.by_type or {}).items()))
@@ -507,6 +510,21 @@ def _entity_id(doc_id: str, type_: str, index: int, surface: str, person) -> str
     return f"{doc_id}:{type_}:{index}"
 
 
+def _from_slot(slot) -> _Person:
+    """Adapt a corpus-level person to the per-letter one the renderer expects.
+
+    Two types rather than one because they are decided in different places: the population decides
+    *who exists* across the corpus, the fill decides *how a run is surfaced* in one letter.
+    """
+    return _Person(
+        entity_id=slot.entity_id,
+        given=slot.given,
+        second=slot.second,
+        family=slot.family,
+        female=slot.female,
+    )
+
+
 def _new_person(entity_id: str, inventories: Inventories, rng: random.Random, female: bool | None = None) -> _Person:
     if female is None:
         female = rng.random() < 0.5
@@ -583,6 +601,7 @@ def fill_document(
     document: Document,
     inventories: Inventories,
     seed: int = 0,
+    population: "Population | None" = None,
 ) -> tuple[Document, tuple[FilledEntity, ...]]:
     """Return the condition-A letter and the run → entity map that is its gold.
 
@@ -609,7 +628,14 @@ def fill_document(
 
     # --- pass 1: who is who ---------------------------------------------------------------------
     female = bool(_FEMALE_CUE.search(text))
-    patient = _new_person(f"{document.doc_id}:patient", inventories, rng, female=female)
+    # With a population, the patient is resolved against the corpus register, so a follow-up letter
+    # reuses the person it follows (§12.1). Without one, the old per-letter behaviour stands, which
+    # is what the unit tests exercise.
+    patient = (
+        _from_slot(population.patient(document.doc_id))
+        if population is not None
+        else _new_person(f"{document.doc_id}:patient", inventories, rng, female=female)
+    )
     # Everything after the closing salutation is the signature block: those are physicians, and each
     # is a different one.  Before it, the letter is about the patient.
     lowered_text = text.lower()
@@ -641,8 +667,15 @@ def fill_document(
             roles[index] = "patient_body"
             people[index] = patient
             continue
+        # A signatory or a referring physician is a member of the department, not a person invented
+        # for this letter. Resolving against the pool is what gives the corpus consultants who sign
+        # many letters — and A3/A5 a gallery a query can be linked to.
+        people[index] = (
+            _from_slot(population.physician(document.doc_id, made))
+            if population is not None
+            else _new_person(f"{document.doc_id}:p{made + 1}", inventories, rng)
+        )
         made += 1
-        people[index] = _new_person(f"{document.doc_id}:p{made}", inventories, rng)
 
     # A salutation belongs to the next person named after it.
     next_person: dict[int, _Person] = {}
@@ -815,8 +848,36 @@ def fill_corpus(
     documents: Iterable[Document],
     inventories: Inventories,
     seed: int = 0,
+    spec: "PopulationSpec | None" = None,
+    weights: Mapping[str, Mapping[str, float]] | None = None,
+    weight_source: str = "uniform",
 ) -> tuple[list[Document], list[FilledEntity], FillReport]:
-    """Fill a whole corpus, returning the letters, the map and what was done."""
+    """Fill a whole corpus, returning the letters, the map and what was done.
+
+    **Identity is decided here, once, for the corpus** (§12.1).  A letter cannot know that its
+    patient was seen three months ago or that its signatory also signs two hundred others, so the
+    population is built from the ordered documents and handed to each fill.  ``spec=None`` keeps the
+    old per-letter behaviour, which is what the unit tests use.
+
+    ``weights`` supplies the German name frequencies §12.1 requires, as
+    ``{"family": {...}, "male": {...}, "female": {...}}``.  ``weight_source`` names where they came
+    from and is recorded; ``"uniform"`` is a legitimate value that says plainly none were applied.
+    """
+    documents = list(documents)
+    population = None
+    if spec is not None:
+        from .cardiode_population import Population, WeightedNames
+
+        weights = weights or {}
+        population = Population(
+            [d.doc_id for d in documents],
+            WeightedNames(inventories.family, weights.get("family"), weight_source),
+            WeightedNames(inventories.male, weights.get("male"), weight_source),
+            WeightedNames(inventories.female, weights.get("female"), weight_source),
+            spec,
+            female_patient={d.doc_id: bool(_FEMALE_CUE.search(d.text)) for d in documents},
+        )
+
     out_documents: list[Document] = []
     out_map: list[FilledEntity] = []
     by_type: dict[str, int] = {}
@@ -827,7 +888,8 @@ def fill_corpus(
         for run in find_runs(document.text):
             if run.text.startswith("I-"):
                 orphans += 1
-        filled, mapping = fill_document(document, inventories, seed=seed)
+        filled, mapping = fill_document(document, inventories, seed=seed,
+                                        population=population)
         out_documents.append(filled)
         out_map.extend(mapping)
         for entity in mapping:
@@ -844,5 +906,6 @@ def fill_corpus(
         by_type=by_type,
         orphan_runs=orphans,
         layers_remapped=moved,
+        population=population.report() if population is not None else None,
     )
     return out_documents, out_map, report
