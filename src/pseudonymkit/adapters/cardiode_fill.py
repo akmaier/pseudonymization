@@ -473,6 +473,40 @@ def _person_for(
     return _new_person(f"{doc_id}:p{counter[0]}", inventories, rng), role
 
 
+SHARED_ACROSS_LETTERS = frozenset({"ORG", "LOC", "ADDR", "PLZ"})
+"""Types whose surrogate **names the same thing wherever it appears**, so one surface is one entity.
+
+The fill draws institutions from a template over a city list — ``Klinikum {Stadt}`` and its siblings
+— and places from the same city list, so a pool of a few thousand over 400 letters puts the same
+hospital in many of them: measured on the current build, one institution appears in **98 letters**
+and another in **86**.  That recurrence is the cross-document identity the corpus otherwise lacks,
+and it was being thrown away: every run got an id prefixed with its own document, so the hospital in
+98 letters carried **138 distinct entity ids** and could never be matched to itself.  A3 and A5 key
+on the id, so their Rank-1 on CARDIO:DE was zero by construction rather than by measurement
+(AM, 2026-09-15: *"we constructed CARDIO:DE actually to link the different cases"*).
+
+**PERSON is deliberately not in this set.**  Two letters that happen to draw the same name are two
+different patients who collided, not one patient seen twice — that is precisely what §8.2 counts as a
+*collision* defect, and merging them would define the defect out of existence.  Person identity stays
+what the fill stipulates: one patient per letter, and a fresh physician per signature, because the
+same patient is investigated by different doctors (AM, 2026-09-15)."""
+
+
+def _entity_id(doc_id: str, type_: str, index: int, surface: str, person) -> str:
+    """The co-reference id for one filled run.
+
+    Three cases, and they differ in what "the same entity" means.  A ``PER`` run takes the identity
+    pass-1 assigned it.  A type in :data:`SHARED_ACROSS_LETTERS` takes its own surrogate, so the same
+    institution is one entity corpus-wide.  Everything else — dates, codes, titles — is not an entity
+    that recurs, and keeps a per-run id.
+    """
+    if type_ == "PER" and person is not None:
+        return person.entity_id
+    if type_ in SHARED_ACROSS_LETTERS:
+        return f"{type_}:{surface}"
+    return f"{doc_id}:{type_}:{index}"
+
+
 def _new_person(entity_id: str, inventories: Inventories, rng: random.Random, female: bool | None = None) -> _Person:
     if female is None:
         female = rng.random() < 0.5
@@ -645,11 +679,7 @@ def fill_document(
                   and _FEMININE_ARTICLE.search(text[max(0, run.start - 24):run.start]) else None)
         surface = _fill_surface(run, person, inventories, rng, year_hint, gender=needed)
         replacements.append((run.start, run.end, surface))
-        entity_id = (
-            people[index].entity_id
-            if run.type == "PER"
-            else f"{document.doc_id}:{run.type}:{index}"
-        )
+        entity_id = _entity_id(document.doc_id, run.type, index, surface, people.get(index))
         filled.append(
             FilledEntity(
                 start=0, end=0, type=run.type, surface=surface,

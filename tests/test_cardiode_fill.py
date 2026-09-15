@@ -362,3 +362,32 @@ def test_no_gold_mention_is_a_single_punctuation_character(inventories):
     bad = [m for m in filled.mentions
            if m.span.end - m.span.start == 1 and not m.span.text.isalnum()]
     assert not bad, [m.span.text for m in bad]
+
+
+def test_the_same_institution_is_one_entity_across_letters(inventories):
+    """AM, 2026-09-15: the fill draws institutions from a small template pool on purpose, so the
+    same hospital appears in many letters. That recurrence is the cross-document identity A3 and A5
+    need, and a per-document id threw it away — one institution carried 138 ids over 98 letters."""
+    a = Document(doc_id="L1", text=LETTER, language="de", corpus="cardiode")
+    b = Document(doc_id="L2", text=LETTER, language="de", corpus="cardiode")
+    fa, _ = fill_document(a, inventories, seed=0)
+    fb, _ = fill_document(b, inventories, seed=0)
+    orgs_a = {m.span.text: m.gold_entity_id for m in fa.mentions if m.type == "ORG"}
+    orgs_b = {m.span.text: m.gold_entity_id for m in fb.mentions if m.type == "ORG"}
+    shared = set(orgs_a) & set(orgs_b)
+    assert shared, "the fixture should produce at least one ORG"
+    for surface in shared:
+        assert orgs_a[surface] == orgs_b[surface], surface
+        assert "L1" not in orgs_a[surface] and "L2" not in orgs_a[surface]
+
+
+def test_two_patients_with_the_same_name_stay_two_entities(inventories):
+    """A name collision is a §8.2 collision defect, not an identity. Merging PERSON on surface would
+    define that defect out of existence."""
+    a = Document(doc_id="L1", text=LETTER, language="de", corpus="cardiode")
+    b = Document(doc_id="L2", text=LETTER, language="de", corpus="cardiode")
+    fa, _ = fill_document(a, inventories, seed=0)
+    fb, _ = fill_document(b, inventories, seed=0)
+    ids_a = {m.gold_entity_id for m in fa.mentions if m.type == "PERSON"}
+    ids_b = {m.gold_entity_id for m in fb.mentions if m.type == "PERSON"}
+    assert not (ids_a & ids_b), "person identity must stay letter-scoped"

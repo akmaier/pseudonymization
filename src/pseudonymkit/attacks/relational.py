@@ -181,12 +181,18 @@ class LearnedLinkage:
         epochs: int = 15,
         learning_rate: float = 0.5,
         seed: int = 0,
+        folds: int | None = None,
+        fold: int = 0,
     ) -> None:
         self._vocabulary_size = vocabulary_size
         self._train_fraction = train_fraction
         self._epochs = epochs
         self._learning_rate = learning_rate
         self._seed = seed
+        self._folds = folds
+        self._fold = fold
+        if folds is not None and not 0 <= fold < folds:
+            raise ValueError(f"fold {fold} is outside 0..{folds - 1}")
 
     def run(
         self,
@@ -200,8 +206,24 @@ class LearnedLinkage:
         pairs = [(q, g) for q, g in truth.items() if q in queries and g in gallery]
         rng = np.random.default_rng(self._seed)
         rng.shuffle(pairs)  # type: ignore[arg-type]
-        cut = int(len(pairs) * self._train_fraction)
-        train, test = pairs[:cut], pairs[cut:]
+        if self._folds:
+            # **k-fold, not repeated subsampling.** One shuffle under a fixed seed, then contiguous
+            # blocks: across the k folds every entity is tested exactly once and trained on k-1
+            # times. Re-drawing a random train_fraction per fold would overlap the test sets and the
+            # k results could not be averaged (AM, 2026-09-15: five-fold for the trained parts).
+            size, extra = divmod(len(pairs), self._folds)
+            bounds = []
+            start = 0
+            for index in range(self._folds):
+                stop = start + size + (1 if index < extra else 0)
+                bounds.append((start, stop))
+                start = stop
+            low, high = bounds[self._fold]
+            test = pairs[low:high]
+            train = pairs[:low] + pairs[high:]
+        else:
+            cut = int(len(pairs) * self._train_fraction)
+            train, test = pairs[:cut], pairs[cut:]
         if len(train) < 4 or len(test) < 2:
             return ReIdResult(self.name, policy, technique, 0, len(gallery), 0.0, 0.0, 0.0,
                               notes="too few entities for a disjoint split")
@@ -213,7 +235,10 @@ class LearnedLinkage:
         return _score(
             eval_queries, eval_gallery, eval_truth, weights, vocabulary,
             self.name, policy, technique,
-            notes=(f"trained on {len(train)} entities, evaluated on {len(test)} disjoint ones"),
+            notes=(
+                f"trained on {len(train)} entities, evaluated on {len(test)} disjoint ones"
+                + (f"; fold {self._fold + 1}/{self._folds}" if self._folds else "")
+            ),
         )
 
     def _fit(
