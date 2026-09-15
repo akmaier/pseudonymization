@@ -436,10 +436,12 @@ one column without saying what each denominator is.
 Three consequences follow from the table. Enron has **no LOC gold**, so PERSON and LOCATION cannot be
 separated there. **DIRECT/QUASI is TAB only**; no other corpus annotates the distinction. And
 entity-level recall needs co-reference, so it is computable on TAB, OntoNotes, and — through mailbox
-identity — Enron; on CARDIO:DE the identity is the fill's own stipulation and most entities are
-singletons by construction, so entity-level and token-level recall nearly coincide there and the
-entity-level figure carries little extra information. Token-level recall works wherever there is
-gold.
+identity — Enron, and on CARDIO:DE through the identity §12.1 constructs. It **was** near-degenerate
+there: with a fresh person per run almost every entity was a singleton, so entity-level and
+token-level recall nearly coincided and the entity-level figure carried little extra information.
+Recurring patients and a recurring physician pool give it a real denominator, and it is reported as
+a measurement rather than as a restatement of token recall. Token-level recall works wherever there
+is gold.
 
 That asymmetry reappears in the combination rule (§7, axis D′) and must be reported there too.
 Union-of-spans maximises recall — the privacy-relevant direction — at the cost of precision and
@@ -480,11 +482,13 @@ TAB and OntoNotes about three quarters of PERSON chains hold a single mention, s
 measured on the remainder; the counts are produced by the run and reported with it, not fixed here.
 
 Drift needs identity across documents. Enron has it through mailbox identity; TAB's and OntoNotes'
-chains are document-scoped. CARDIO:DE's identity is the fill's own stipulation rather than the
-corpus's, and it is letter-scoped — `subject_id` is null in every document and no entity recurs
-across letters — so it enters no stability cell (§11). *Corrected 2026-09-15: this read "carries no
-entity identity", which is false of the built artefact — the fill assigns one patient entity per
-letter, and §8.1 uses it. The exclusion stands on the stipulation, not on absence.*
+chains are document-scoped. CARDIO:DE **enters the stability cells** once its fill is rebuilt to §12.1's
+construction (AM, 2026-09-15): patients re-appear across letters and physicians recur across the
+department's correspondence, so `subject_id` is populated and drift has a denominator. *Its history:
+this read "carries no entity identity", which was false of the built artefact; it then read that the
+identity was letter-scoped, which was true of the build of 2026-09-14 and is the defect §12.1 now
+corrects.* The limit that remains is that the identity is one we constructed to be realistic, not one
+the corpus shipped — which is stated beside every CARDIO:DE stability number, not hidden.
 
 Cretu et al. (arXiv 2404.03948) measure what pseudonym-change frequency costs in linkability on
 smart-meter data, which is drift in another modality. No published work reports these on text (§4.1).
@@ -572,9 +576,12 @@ the date beside it. The difference measures what an independently pseudonymised 
 costs: a name collision protects only until a second attribute is released alongside it. This is the
 Fellegi–Sunter record-linkage setting.
 
-No corpus in §11 links a date of birth to a person — CARDIO:DE's dates are surrogate-replaced in
-place and unchained, TAB's `entity_id` is document-scoped, Enron's `Date` header is dropped in
-condition A. The pair setting therefore runs only on the synthetic construction of §8.2.
+**CARDIO:DE carries the pair once its fill is rebuilt** (AM, 2026-09-15). A patient who holds
+several letters carries the same shifted date of birth in each, so name and date of birth are linked
+to one person across documents — which is exactly the Fellegi–Sunter setting, and the only place in
+the study where it occurs on real clinical correspondence. The other corpora still do not: TAB's
+`entity_id` is document-scoped and Enron's `Date` header is dropped in condition A. The pair setting
+therefore runs on CARDIO:DE and on the synthetic construction of §8.2.
 
 **A5 is the text analogue of Packhäuser et al.**, *Deep learning-based patient re-identification …*
 (Sci Rep 2022, `10.1038/s41598-022-19045-3`), which showed that images believed de-identified are
@@ -708,7 +715,7 @@ the same documents — which is the gap §4.1 claims nobody has closed.
 | **TAB / ECHR** (en, legal) | ✅ 8 types, DIRECT/QUASI | ✅ co-reference | ✅ 30-label articles | **full** |
 | **OntoNotes** (en, zh, ar; 5 genres) | ✅ 18 NE types | ✅ co-reference | ✅ co-reference + NER | **full** |
 | **Enron** (en, e-mail) | ⚠ structural, header-derived | ✅ cross-document identity | ✅ folder · intent · formality | **full** |
-| **CARDIO:DE** (de, clinical) | ✅ **complete for the identifiers we placed** — 16,482 inserted by the condition-A fill, plus the 14,854 released `<[Pseudo] …>` date markers (§12); 31,336 gold mentions | ❌ | ✅ medication IE · section classes | detection **+ utility + leakage** (AM, 2026-09-08; detection added 2026-09-12) |
+| **CARDIO:DE** (de, clinical) | ✅ **complete for the identifiers we placed** — 16,482 inserted by the condition-A fill, plus the 14,854 released `<[Pseudo] …>` date markers (§12); 31,336 gold mentions | ✅ **constructed** — recurring patients and a recurring physician pool (§12.1) | ✅ medication IE · section classes | detection **+ stability + utility + leakage** (AM, 2026-09-08; detection added 2026-09-12; stability added 2026-09-15) |
 | **BRONCO150** (de, clinical) | ✅ ICD/OPS/ATC | ❌ sentence-scrambled | ✅ coding | utility only — **not yet received** |
 | MEDDOCAN · MedDeID · REDACT · AI4Privacy | ✅ | ❌ | ❌ | **OUT** (AM, 2026-09-08) — no utility task, so no cell where a method's effect is attributable |
 | **CodEAlltag** (de, e-mail) | ❌ none released | ❌ | ✅ formality · 7-way topic | **OUT** (AM, 2026-09-11) — utility without gold, the same objection from the other side |
@@ -724,9 +731,11 @@ OntoNotes and Enron carry all three.**
 fact: the identifiers in the text are ones we placed, so every position, type and referent is known
 by construction (§12). That makes it the most complete detection gold of the four and **the study's
 only German detection cell** — §5's *"no scorable German detection cell at present"* no longer holds.
-Two limits travel with it. The gold covers what the Heidelberg de-identifier marked, so its own
-misses are invisible to us; and the entity identity is the fill's stipulation, not the corpus's,
-which is why CARDIO:DE still enters no stability cell.
+Two limits travel with it, and one former limit is gone. The gold covers what the Heidelberg
+de-identifier marked, so its own misses are invisible to us; and the identity is ours by
+construction rather than the corpus's. It is no longer *letter-scoped*, though: §12.1 now constructs
+recurring patients and a recurring physician pool, so CARDIO:DE **does** enter the stability cells
+and can carry A3 and A5 (AM, 2026-09-15).
 
 **CodEAlltag is out** (AM, 2026-09-11): *"We can only use codealltag data in our experiment that has
 de-id gold. Data with utility alone is not useful."* The rule that removed MEDDOCAN and the others
@@ -757,10 +766,19 @@ e-mails was written on 2026-09-10 and deleted unsent (AM, 2026-09-11): *"i don't
 **real names in a natural frequency distribution**. CARDIO:DE carries **shifted dates**, and the
 names its condition-A text carries were inserted by us (§12).
 
-This matters for exactly two attacks. **A1 and A2 both consume the name-frequency distribution**, so
-their numbers transfer only where that distribution is natural — TAB, OntoNotes, Enron. On
-CARDIO:DE they measure the inventory the fill drew from, not a natural population. That is a stated limit on where
-those results hold. It is **not** an experimental factor and there are no cells for it.
+This matters for exactly two attacks. **A1 and A2 both consume the name-frequency distribution.**
+On TAB, OntoNotes and Enron that distribution is a natural one, carried by real names. On CARDIO:DE
+it is one we **construct to match German population frequencies** (§12.1, AM, 2026-09-15), so A2 is
+measurable there and its number is reportable — with the stated limit that the distribution is
+matched rather than sampled: it reproduces the shape of German naming, not a particular cohort of
+patients. Uniform drawing, which the build of 2026-09-14 used, is what made the attack meaningless
+here, and it is corrected rather than accepted. This is **not** an experimental factor and there are
+no cells for it.
+
+**The attacker's reference is external, never the corpus's own.** A2's corpus-internal setting is an
+upper bound and is reported as one; the number that counts is the one obtained against a public
+gazetteer, because *knowing the true distribution is not something an attacker may be assumed to
+have* (AM, 2026-09-15).
 
 **Access status.** TAB, Enron, OntoNotes, CodEAlltag, MEDDOCAN, MedDeID, REDACT, AI4Privacy, E3C,
 PIIBench are on the cluster in `/cluster/shared_dataset/pseudonymization-corpora`. **CARDIO:DE is
@@ -890,28 +908,72 @@ marked-up letter. On the 400-letter split it fills **16,482 runs** and remaps th
 own annotation onto the new offsets: 21,631 medication spans, 5,434 sections and 15,270 medication
 relations. Names come from Eder et al.'s CodEAlltag substitute
 lists — 53,028 surnames, 441 male and 534 female given names, 32,758 German cities, 51,583 streets —
-so the inventory is the one the German baseline this study cites already used. A run's length decides
+so the inventory is the one the German baseline this study cites already used.
+
+***The draw is frequency-weighted, not uniform*** (AM, 2026-09-15). A surrogate population has to
+carry a **realistic distribution of German names**: surnames and given names are drawn in proportion
+to their frequency in the German population, so that *Müller* and *Schmidt* recur at something like
+their real rate and a rare name stays rare. A uniform draw over 53,028 surnames produces a flat
+distribution that exists nowhere, and it takes two measurements with it — **A2 has no frequency
+signal to align**, and **H4's frequency-preservation question becomes unanswerable in German**.
+The CodEAlltag lists carry no counts, so the weights come from a German surname-frequency source;
+the *Deutscher Familienatlas*, from which CodEAlltag's own family list derives, is the attested one.
+Which source was used and its retrieval date are recorded with the build, as §9 requires of every
+corpus version. A run's length decides
 its surface: `B-PER` stood for a surname and `B-PER I-PER` for a given name and a surname, so one
 entity acquires two forms exactly where the original letter had two. The run → entity map is written
 beside the corpus and **is the detection gold**, since after the fill every identifier's position,
 type and referent is known by construction.
 
-*Identity is stipulated and is an upper bound.* The tags mark where an identifier stood, not who it
-was; two `B-PER` runs may be one person or two and nothing in the markup separates them. The rule:
-a `PER` run whose preceding context contains *Patient* / *Patientin* belongs to the letter's single
-patient entity — 455 of 2,800 runs — and an uncued run in the body belongs to it as well, a further
-707, because a discharge letter's body refers overwhelmingly to its own patient and naming each
-mention differently produces an incoherent document. Gender is taken from the same cue, since the morphology
-survives de-identification even though *Herr* / *Frau* became `B-SALUTE`. Every other `PER` run
-becomes its own person: 1,571 after *Mit freundlichen Grüßen* and 67 after a referral cue. That
-yields **5.09 person entities per letter, which is a ceiling, not an estimate** — a physician named
-in the body and again in the signature receives two names. The patient is named **2.905 times per
-letter** and carries more than one surface form in **234 of 400 letters**. *All four counts were
-restated on 2026-09-15 against the current build; the previous figures — 452 of 2,740, 1,357/66/865,
-6.72 per letter, 1.13 mentions, 31 of 400 — described the build of 2026-09-10, before the uncued-body
-rule and the gender-cue fix.* Fragmentation is therefore arithmetically computable here, but it is
-computable against identity we stipulated, which is why §8.2 excludes CARDIO:DE on that ground rather
-than on absence of identity. Inferring identity from the filled
+*Identity is constructed to be realistic, not maximal* (AM, 2026-09-15). The tags mark where an
+identifier stood, not who it was; two `B-PER` runs may be one person or two and nothing in the markup
+separates them. Treating every uncued run as a fresh person is the conservative reading, and it
+produces a corpus in which **nobody appears twice** — 2,038 person entities over 400 letters, none of
+them recurring, which is not how a cardiology department's correspondence looks and which silently
+removes every measurement that needs cross-document identity. Two properties are therefore
+constructed rather than stipulated away:
+
+***Physicians turn over realistically.*** A department's letters are signed by a bounded set of
+consultants, each signing many letters over the corpus's span, with slow turnover as staff arrive and
+leave — not by 1,571 people who each sign once. Signatories are drawn from a **departmental pool that
+recurs across letters**, and the pool's size and turnover rate are fixed before the build and
+recorded with it, like every other sampling parameter (§13).
+
+***Patients re-appear, coupled to the letter sequence.*** Cardiology is a follow-up speciality: a
+patient seen once is often seen again, and a share of the corpus is therefore repeat correspondence
+about the same person. Patient identity is **coupled to the letter sequence** so that a realistic
+share of patients hold several letters, ordered in time by the corpus's own shifted dates. The share
+and the coupling are fixed before the build and recorded with it.
+
+Together these give CARDIO:DE what it previously lacked: entities that recur across documents. That
+is what makes drift measurable (§8.2), what gives A3 and A5 a gallery a query can be linked to
+(§8.4), and what makes the German arm of the study comparable with the other three rather than a
+special case. The identity remains **ours by construction** — the limit that travels with it is that
+it is a realistic distribution we built, not a sample of real patients, and every result on this
+corpus says so.
+
+Within a letter the cued-mention rule stands:
+a `PER` run whose preceding context contains *Patient* / *Patientin* belongs to that letter's patient
+entity — 455 of 2,800 runs — and an uncued run in the body belongs to it as well, a further 707,
+because a discharge letter's body refers overwhelmingly to its own patient and naming each mention
+differently produces an incoherent document. Gender is taken from the same cue, since the morphology
+survives de-identification even though *Herr* / *Frau* became `B-SALUTE`.
+
+What changes is where the **other** runs get their identity. A run after *Mit freundlichen Grüßen*
+(1,571 of them) is a signatory and is resolved **against the departmental pool**, not minted fresh; a
+run after a referral cue (67) is a referring physician and resolves the same way. The patient entity
+is resolved against the **patient register**, so a letter that continues an earlier case reuses that
+patient rather than creating one. Only a run that resolves to nobody becomes a new person.
+
+Under the previous rule this yielded 2,038 person entities over 400 letters — 5.09 per letter, every
+one of them a singleton across documents. That number is a *ceiling on distinct people*, and treating
+it as the identity is what made drift, A3 and A5 unmeasurable here. Within a letter the counts are
+unaffected: the patient is named **2.905 times** and carries more than one surface form in **234 of
+400 letters**, so fragmentation and collision are computable per document either way.
+
+*Counts restated 2026-09-15 against the build of that date; the earlier figures — 452 of 2,740,
+1,357/66/865, 6.72 per letter, 1.13 mentions, 31 of 400 — described the build of 2026-09-10, before
+the uncued-body rule and the gender-cue fix.* Inferring identity from the filled
 names instead would be circular, since the names are ours.
 
 *Institution names are composed, not drawn.* CodEAlltag's `org` sublist is general business names —
