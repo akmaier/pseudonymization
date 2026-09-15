@@ -203,8 +203,23 @@ def main() -> int:
                 f"Rank-5 {means['rank5']:.3f} mAP {means['mean_average_precision']:.3f} "
                 f"over {args.folds} folds")
 
-    destination.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
-    log(f"wrote {len(rows)} rows to {destination}")
+    # **Merge, do not overwrite.** The attacks are selectable, so a run with --attacks a4 used to
+    # rewrite the file with only its own rows and destroyed the A2/A3/A5 results already there.
+    # Rows whose attack this run produced are replaced; every other row is kept.
+    produced = {r["attack"] for r in rows}
+    kept: list[dict] = []
+    if destination.exists():
+        for line in destination.open(encoding="utf-8"):
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if row.get("attack") not in produced:
+                kept.append(row)
+    destination.write_text(
+        "\n".join(json.dumps(r) for r in kept + rows) + "\n", encoding="utf-8"
+    )
+    log(f"wrote {len(rows)} rows ({len(kept)} earlier rows kept) to {destination}")
     return 0
 
 
