@@ -112,3 +112,44 @@ def test_a_corrupted_patch_is_caught_rather_than_silently_misaligned(built):
     rebuilt = to_pseudonymised_corpus([docs[0]], _replace(sets["B"], patches=(broken,)), check=False)
     with pytest.raises(ValueError, match="diverge"):
         check_roundtrip(rebuilt.documents[0], broken)
+
+
+# ------------------------------------------------- the guard against a rebuilt condition A
+# CARDIO:DE's condition A was rebuilt on 2026-09-15 underneath jobs already reading it. 247 of 400
+# union patches then addressed offsets past the end of the new text, and nine hours of utility
+# scoring went into a corpus that no longer existed. Offsets still parsed; nothing looked wrong.
+
+from dataclasses import replace as _dc_replace      # noqa: E402
+
+from pseudonymkit.construction import check_current  # noqa: E402
+
+
+def test_a_freshly_built_patch_carries_the_digest_of_its_text(built):
+    docs, sets = built
+    for patchset in sets.values():
+        assert all(p.text_sha256 for p in patchset.patches)
+    assert check_current(docs, sets["B"])["stale"] == 0
+
+
+def test_a_rebuilt_corpus_is_refused_rather_than_scored(built):
+    docs, sets = built
+    rebuilt = [_dc_replace(d, text=d.text.replace("Berlin", "Bremen")) for d in docs]
+    with pytest.raises(ValueError, match="different condition-A text"):
+        check_current(rebuilt, sets["B"])
+
+
+def test_a_patch_written_before_the_guard_existed_is_unverifiable_not_waved_through(built):
+    docs, sets = built
+    old = _dc_replace(sets["B"], patches=tuple(
+        _dc_replace(p, text_sha256=None) for p in sets["B"].patches))
+    with pytest.raises(ValueError, match="no digest"):
+        check_current(docs, old)
+
+
+def test_the_digest_survives_a_trip_through_disk(built, tmp_path):
+    from pseudonymkit.construction import read_patchset, write_patchset
+
+    docs, sets = built
+    path = tmp_path / "b.patch.jsonl"
+    write_patchset(sets["B"], path)
+    assert check_current(docs, read_patchset(path))["stale"] == 0

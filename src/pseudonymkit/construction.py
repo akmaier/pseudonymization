@@ -51,7 +51,7 @@ from typing import Iterable, Mapping, Sequence
 
 from .conditions import SPECS, build as build_condition
 from .detectors.base import DetectorOutput
-from .detectors.cache import DetectorCache
+from .detectors.cache import DetectorCache, text_digest
 from .detectors.combinators import COMBINATORS, Combinator
 from .domain import Assignment, Corpus, Document, Mention, PseudonymMapping, Span
 from .engine import (
@@ -107,6 +107,14 @@ class Patch:
     skipped: int = 0
     """Detected mentions dropped because they overlapped one already replaced.  A union ensemble
     produces overlaps by construction and their rate is a result, not noise (§8.1)."""
+    text_sha256: str | None = None
+    """Digest of the **condition-A text these offsets address**.
+
+    A patch is a list of offsets into a text it does not carry, so it is silently wrong the moment
+    that text is rebuilt — and CARDIO:DE's was, on 2026-09-15, underneath jobs already reading it:
+    247 of 400 union patches then pointed past the end of the new text and a utility run spent nine
+    hours scoring a corpus that no longer existed.  This is the same guard the detector cache carries
+    for the same reason, and :func:`check_current` is what makes it bite."""
 
 
 @dataclass(frozen=True)
@@ -356,7 +364,9 @@ def construct(
                 for r in replacements(result)
             )
             collected[condition].append(
-                Patch(doc_id=document.doc_id, entries=entries, skipped=len(result.skipped))
+                Patch(doc_id=document.doc_id, entries=entries,
+                      skipped=len(result.skipped),
+                      text_sha256=text_digest(document.text))
             )
 
     base = dict(provenance or {})
@@ -439,6 +449,42 @@ index the technique produced on the way there.  Nothing downstream reads it (the
 and all five attacks consume ``surface`` and ``entity_key``), so it is marked rather than
 reconstructed: a plausible-looking integer that is not the one HMAC produced would be worse than an
 obvious placeholder."""
+
+
+def check_current(documents: Iterable[Document], patchset: PatchSet) -> dict:
+    """Refuse a patch set whose condition-A text has been rebuilt underneath it.
+
+    Returns a report; raises when anything is stale.  Called by every downstream driver *before* it
+    spends model time, because the failure this catches is silent: offsets still parse, the
+    materialised text still looks like text, and the numbers are simply wrong.
+
+    Patches written before this field existed carry ``None`` and are treated as **unverifiable**,
+    which is refused rather than waved through — an unchecked patch set is exactly the situation the
+    guard exists to end.
+    """
+    texts = {d.doc_id: d.text for d in documents}
+    stale, unverifiable, missing = [], [], []
+    for patch in patchset.patches:
+        text = texts.get(patch.doc_id)
+        if text is None:
+            missing.append(patch.doc_id)
+        elif patch.text_sha256 is None:
+            unverifiable.append(patch.doc_id)
+        elif patch.text_sha256 != text_digest(text):
+            stale.append(patch.doc_id)
+    report = {
+        "patches": len(patchset.patches),
+        "stale": len(stale),
+        "unverifiable": len(unverifiable),
+        "absent_from_corpus": len(missing),
+    }
+    if stale or unverifiable:
+        raise ValueError(
+            f"{patchset.corpus}/{patchset.condition}: {len(stale)} patches were built against a "
+            f"different condition-A text and {len(unverifiable)} carry no digest. Rebuild the "
+            f"conditions before scoring them — {report}"
+        )
+    return report
 
 
 def to_pseudonymised(
@@ -581,6 +627,7 @@ def write_patchset(patchset: PatchSet, path: Path | str) -> int:
             handle.write(json.dumps({
                 "doc_id": patch.doc_id,
                 "skipped": patch.skipped,
+                "text_sha256": patch.text_sha256,
                 "entries": [
                     [e.old_start, e.old_end, e.new_start, e.new_end, e.replacement,
                      e.entity_key, e.entity_type, e.type_src, list(e.voters)]
@@ -604,6 +651,7 @@ def read_patchset(path: Path | str) -> PatchSet:
             patches.append(Patch(
                 doc_id=record["doc_id"],
                 skipped=record.get("skipped", 0),
+                text_sha256=record.get("text_sha256"),
                 entries=tuple(
                     PatchEntry(
                         old_start=e[0], old_end=e[1], new_start=e[2], new_end=e[3],

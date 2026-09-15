@@ -49,7 +49,11 @@ from pseudonymkit.attacks import (
     truth_map,
 )
 from pseudonymkit.conditions import Unmodified
-from pseudonymkit.construction import read_patchset, to_pseudonymised_corpus
+from pseudonymkit.construction import (
+    check_current,
+    read_patchset,
+    to_pseudonymised_corpus,
+)
 from pseudonymkit.domain import Corpus
 from pseudonymkit.paths import cardiode_a, cardiode_conditions, condition_a_dir, work_dir
 from pseudonymkit.serialisation import iter_documents
@@ -140,8 +144,12 @@ def main() -> int:
         if not found:
             log(f"  {condition}: no patch set for rule {args.rule!r} — SKIPPED")
             continue
-        conditions[condition] = to_pseudonymised_corpus(documents, read_patchset(found[0]))
-        log(f"  {condition}: {found[0].name}")
+        patchset = read_patchset(found[0])
+        # Verified before any attack runs: a patch set built against a rebuilt condition A scores a
+        # corpus that no longer exists, and every rate it produces is wrong without looking wrong.
+        check = check_current(documents, patchset)
+        conditions[condition] = to_pseudonymised_corpus(documents, patchset)
+        log(f"  {condition}: {found[0].name}, text digests verified ({check['patches']} patches)")
 
     args.out.mkdir(parents=True, exist_ok=True)
     destination = args.out / f"{args.corpus}_{args.rule}_{args.entity_type}.jsonl"

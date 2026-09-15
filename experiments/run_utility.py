@@ -22,12 +22,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
 
 from pseudonymkit.conditions import Unmodified
-from pseudonymkit.construction import read_patchset, to_pseudonymised_corpus
+from pseudonymkit.construction import (
+    check_current,
+    read_patchset,
+    to_pseudonymised_corpus,
+)
+from pseudonymkit.engine import PseudonymisedCorpus
 from pseudonymkit.paths import cardiode_a, cardiode_conditions, condition_a_dir, work_dir
 from pseudonymkit.serialisation import iter_documents
 from pseudonymkit.tasks import medication_ie, ner_agreement, section_classification
@@ -55,6 +61,21 @@ def log(message: str, t0: float = time.time()) -> None:
     print(f"[{time.time() - t0:7.1f}s] {message}", flush=True)
 
 
+def _already_done(destination: Path) -> set[tuple[str, str, str]]:
+    """(condition, task, doc_id) triples already on disk, so a resumed run skips them."""
+    done: set[tuple[str, str, str]] = set()
+    if not destination.exists():
+        return done
+    for line in destination.open(encoding="utf-8"):
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue                     # a torn final line from a killed job
+        if row.get("doc_id"):
+            done.add((row.get("condition"), row.get("task"), row["doc_id"]))
+    return done
+
+
 def conditioned(corpus: str, documents, rule: str, conditions):
     """condition -> the corpus in the shape the runners consume."""
     out = {"A": Unmodified().pseudonymise_corpus(documents)}
@@ -67,8 +88,14 @@ def conditioned(corpus: str, documents, rule: str, conditions):
             log(f"  {condition}: no patch set matching {rule!r} in {root} — SKIPPED")
             continue
         patchset = read_patchset(matches[0])
+        # **Before anything costs model time.** A patch is offsets into a text it does not carry, so
+        # it is silently wrong the moment condition A is rebuilt — which happened on 2026-09-15
+        # underneath a running job, and nine hours went into scoring a corpus that no longer existed.
+        check = check_current(documents, patchset)
+        patchset_ok = True
         out[condition] = to_pseudonymised_corpus(documents, patchset)
-        log(f"  {condition}: {matches[0].name}, {len(out[condition].documents)} documents")
+        log(f"  {condition}: {matches[0].name}, {len(out[condition].documents)} documents, "
+            f"text digests verified ({check['patches']} patches)")
     return out
 
 
@@ -83,6 +110,8 @@ def main() -> int:
     ap.add_argument("--config", type=Path, default=Path("config/llm_api.toml"))
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--out", type=Path, default=Path("results/utility"))
+    ap.add_argument("--restart", action="store_true",
+                    help="discard an existing file instead of resuming from it")
     args = ap.parse_args()
 
     documents = list(iter_documents(SOURCES[args.corpus][0]()))
@@ -99,32 +128,54 @@ def main() -> int:
     destination = args.out / f"{args.corpus}_{args.rule}.jsonl"
     rows = 0
 
-    with destination.open("w", encoding="utf-8") as handle:
+    # **One document at a time, flushed as it lands.** The runners score each document
+    # independently, so driving them per document costs only call overhead and buys durability at
+    # text level: a killed job keeps every letter it finished instead of losing the whole
+    # task x condition. The previous shape wrote nothing for nine hours and then lost all of it.
+    done = _already_done(destination) if not args.restart else set()
+    if done:
+        log(f"resuming: {len(done)} (condition, task, document) results already on disk")
+
+    with destination.open("a" if done else "w", encoding="utf-8", buffering=1) as handle:
         for name in wanted:
             log(f"=== {name} ===")
             for condition, result in corpora.items():
                 started = time.time()
-                try:
-                    vectors = _run(name, result, condition, args)
-                except Exception as exc:              # reported, never silently skipped (§1)
-                    log(f"  {condition}/{name}: FAILED — {type(exc).__name__}: {exc}")
-                    handle.write(json.dumps({
-                        "corpus": args.corpus, "rule": args.rule, "condition": condition,
-                        "task": name, "error": f"{type(exc).__name__}: {exc}",
-                    }) + "\n")
-                    rows += 1
-                    continue
-                for key, vector in vectors.items():
-                    row = {
-                        "corpus": args.corpus, "rule": args.rule, "condition": condition,
-                        "task": key, "model": args.model,
-                        "n": len(vector.scores), "mean": vector.mean, "sd": vector.sd,
-                        "scores": list(vector.scores), "doc_ids": list(vector.doc_ids),
-                        "elapsed": time.time() - started,
-                    }
-                    handle.write(json.dumps(row) + "\n")
-                    rows += 1
-                    log(f"  {condition}/{key}: n={len(vector.scores)} mean={vector.mean:.4f}")
+                scored = failed = 0
+                for one in result.documents:
+                    key = (condition, name, one.document.doc_id)
+                    if key in done:
+                        continue
+                    single = PseudonymisedCorpus(documents=(one,), mapping=result.mapping)
+                    try:
+                        vectors = _run(name, single, condition, args)
+                    except Exception as exc:          # reported, never silently skipped (§1)
+                        failed += 1
+                        handle.write(json.dumps({
+                            "corpus": args.corpus, "rule": args.rule, "condition": condition,
+                            "task": name, "doc_id": one.document.doc_id,
+                            "error": f"{type(exc).__name__}: {exc}",
+                        }) + "\n")
+                        os.fsync(handle.fileno())
+                        rows += 1
+                        continue
+                    for task_key, vector in vectors.items():
+                        for doc_id, score in zip(vector.doc_ids, vector.scores):
+                            handle.write(json.dumps({
+                                "corpus": args.corpus, "rule": args.rule, "condition": condition,
+                                "task": task_key, "doc_id": doc_id, "score": score,
+                                "model": args.model,
+                            }) + "\n")
+                            rows += 1
+                    os.fsync(handle.fileno())
+                    scored += 1
+                    if scored % 25 == 0:
+                        rate = scored / max(time.time() - started, 1e-9)
+                        left = (len(result.documents) - scored) / rate if rate else float("inf")
+                        log(f"  {condition}/{name}: {scored}/{len(result.documents)}  "
+                            f"{rate * 3600:.0f}/h  eta {left / 3600:.1f}h  failed {failed}")
+                log(f"  {condition}/{name}: {scored} documents scored, {failed} failed, "
+                    f"{time.time() - started:.0f}s")
     log(f"wrote {rows} rows to {destination}")
     return 0
 
