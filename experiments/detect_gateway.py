@@ -172,6 +172,7 @@ def run_model(
     config: Path,
     log: Callable[[str], None],
     every: int = 25,
+    concurrency: int = 1,
 ) -> tuple[str, int, int, int]:
     """Walk one corpus for one model, **streaming**.  Returns ``(model, done, errors, truncated)``.
 
@@ -198,30 +199,69 @@ def run_model(
     errors = truncated = seen = 0
     total = len(todo)
     started = time.time()
-    for document in _stream_a(path):
-        if document.doc_id not in todo:
-            continue
+    # **Concurrency is per model, not just across models** (AM, 2026-09-15: the gateway can take it).
+    # One request in flight per model left each one at roughly 150 documents an hour while the thread
+    # sat in recv(); the gateway is a network service and the latency, not our CPU, is the limit.
+    # Writes are serialised on a lock rather than trusted to O_APPEND: a span-heavy record is well
+    # past PIPE_BUF, so concurrent appends to one detector's file could interleave mid-line.
+    write_lock = threading.Lock()
+    counter_lock = threading.Lock()
+
+    def process(document) -> None:
+        nonlocal seen, errors, truncated
         if _stop.is_set():
-            log(f"{model}: stopping after {seen}/{total}")
-            break
-        seen += 1
+            return
         t0 = time.time()
         try:
             output, meta = detector.detect_with_meta(document)
-            cache.append(detector.name, document.doc_id, output.spans, model=model,
-                         prompt_version=PROMPT_VERSION, elapsed=time.time() - t0, meta=meta,
-                         text=document.text)
-            truncated += bool(meta["truncated"])
+            with write_lock:
+                cache.append(detector.name, document.doc_id, output.spans, model=model,
+                             prompt_version=PROMPT_VERSION, elapsed=time.time() - t0, meta=meta,
+                             text=document.text)
+            with counter_lock:
+                truncated += bool(meta["truncated"])
         except Exception as exc:  # recorded, and retried on the next run
-            errors += 1
-            cache.append(detector.name, document.doc_id, (), model=model,
-                         prompt_version=PROMPT_VERSION, error=f"{type(exc).__name__}: {exc}",
-                         elapsed=time.time() - t0, text=document.text)
-        if seen % every == 0 or seen == total:
-            rate = seen / (time.time() - started)
-            remaining = (total - seen) / rate if rate else float("inf")
-            log(f"{model}: {seen}/{total}  {rate * 3600:.0f}/h  "
+            with write_lock:
+                cache.append(detector.name, document.doc_id, (), model=model,
+                             prompt_version=PROMPT_VERSION, error=f"{type(exc).__name__}: {exc}",
+                             elapsed=time.time() - t0, text=document.text)
+            with counter_lock:
+                errors += 1
+        with counter_lock:
+            seen += 1
+            done = seen
+        if done % every == 0 or done == total:
+            rate = done / (time.time() - started)
+            remaining = (total - done) / rate if rate else float("inf")
+            log(f"{model}: {done}/{total}  {rate * 3600:.0f}/h  "
                 f"eta {remaining / 3600:.1f}h  errors {errors}  truncated {truncated}")
+
+    if concurrency <= 1:
+        for document in _stream_a(path):
+            if document.doc_id in todo:
+                if _stop.is_set():
+                    break
+                process(document)
+        return model, seen, errors, truncated
+
+    # Chunked so the corpus is still never held whole: at most `concurrency * 4` documents are in
+    # memory at once, whatever the corpus size.
+    with ThreadPoolExecutor(max_workers=concurrency,
+                            thread_name_prefix=f"req:{model[:12]}") as pool:
+        chunk: list = []
+        for document in _stream_a(path):
+            if document.doc_id not in todo:
+                continue
+            chunk.append(document)
+            if len(chunk) >= concurrency * 4:
+                list(pool.map(process, chunk))
+                chunk = []
+                if _stop.is_set():
+                    break
+        if chunk and not _stop.is_set():
+            list(pool.map(process, chunk))
+    if _stop.is_set():
+        log(f"{model}: stopping after {seen}/{total}")
     return model, seen, errors, truncated
 
 
@@ -239,6 +279,9 @@ def main() -> int:
                     help="never draw fewer than this many per corpus — 1 %% of CARDIO:DE is 4 "
                          "documents, which measures nothing")
     ap.add_argument("--sample-seed", type=int, default=0)
+    ap.add_argument("--concurrency", type=int, default=1,
+                    help="requests in flight per model; the gateway tolerates more than one and "
+                         "the bottleneck is its latency, not our CPU (AM, 2026-09-15)")
     args = ap.parse_args()
 
     started = time.time()
@@ -277,7 +320,8 @@ def main() -> int:
             index = _corpus_index(name, path, args)
             cache = DetectorCache(args.cache, name)
             _, a, e, t = run_model(model, name, path, index, cache, args.config,
-                                   lambda m: log(f"[{name}] {m}"))
+                                   lambda m: log(f"[{name}] {m}"),
+                                   concurrency=args.concurrency)
             attempted += a
             errors += e
             truncated += t
