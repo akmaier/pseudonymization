@@ -25,12 +25,15 @@ cd "$R"
 
 CORPUS="${CORPUS:-cardiode}"
 MAXSIZE="${MAXSIZE:-3}"
+# RESTART=1 discards an existing file: needed whenever the gold layer changes, since
+# entity-level recall depends on the gold entity ids.
+RESTART="${RESTART:-}"
 
 echo "host      $(hostname)"
 echo "corpus    ${CORPUS}  max ensemble size ${MAXSIZE}"
 echo "started   $(date -Is)"
 
 PYTHONPATH=src "$R/.venv/bin/python" experiments/score_detection.py \
-    --corpus "${CORPUS}" --max-size "${MAXSIZE}"
+    --corpus "${CORPUS}" --max-size "${MAXSIZE}" ${RESTART:+--restart}
 
 echo "finished  $(date -Is)"

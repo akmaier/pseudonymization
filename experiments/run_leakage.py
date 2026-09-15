@@ -15,7 +15,12 @@ What runs where, from §8.4:
   distribution, which is the upper bound, and an external one where a gazetteer is given.
 * **A3** structural linkage and **A5** learned linkage — **A, B and C**.  A is the ceiling: what the
   adversary recovers with nothing replaced.  Without it a rate on B or C has no scale.
-* **A4** is a gateway protocol and is not run here.
+* **A4** LLM ranked-candidate re-identification — **A, B and C**, and run with and without
+  auxiliary context, as §8.4 requires. It is **opt-in** (``--attacks a4``) because it is the only
+  attack here that costs model time: one gateway call per query per arm. It is also the one attack
+  CARDIO:DE can carry in full, because it needs a *candidate list* rather than cross-document
+  identity — ``build_items`` draws distractors from the corpus itself, which is what §8.4 and §15
+  require, and a letter-scoped patient still has 399 other letters to be confused with.
 
 Two disjointness requirements, both enforced rather than assumed:
 
@@ -63,6 +68,40 @@ def log(message: str, t0: float = time.time()) -> None:
     print(f"[{time.time() - t0:7.1f}s] {message}", flush=True)
 
 
+def _run_a4(result, corpus, condition: str, args, stamp: dict, log) -> list[dict]:
+    """A4 over one condition, both context arms.
+
+    §8.4: *"Run with and without that auxiliary context, and stratified by public-figure status."*
+    The stratification has code but **no corpus in the study carries the annotation**, so it is
+    reported as absent rather than silently omitted.
+    """
+    from pseudonymkit.attacks import LlmCandidateRanker, build_items, score_candidates
+
+    out: list[dict] = []
+    for with_context in (False, True):
+        items = build_items(
+            result, corpus, entity_type=args.entity_type,
+            n_candidates=args.a4_candidates, seed=args.seed, with_context=with_context,
+        )
+        if args.a4_limit:
+            items = items[: args.a4_limit]
+        if not items:
+            log(f"  A4/{condition} context={with_context}: no queries — SKIPPED")
+            continue
+        ranker = LlmCandidateRanker(model=args.a4_model, config_path=str(args.config))
+        report = score_candidates(items, ranker, condition=condition)
+        # to_record(), not as_dict(): A4Report deliberately emits aggregate rates only, carrying no
+        # candidate surface, no document text and no identity, because §15.1 forbids a real name
+        # from the corpus appearing in any released artefact.
+        row = report.to_record() | stamp | {"model": args.a4_model, "queries": len(items)}
+        out.append(row)
+        o = report.overall
+        log(f"  A4/{condition} context={str(with_context):<5}: "
+            f"Rank-1 {o.rank1:.3f} Rank-5 {o.rank5:.3f} "
+            f"mAP {o.mean_average_precision:.3f} over {len(items)} queries")
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -72,6 +111,14 @@ def main() -> int:
     ap.add_argument("--folds", type=int, default=5, help="A5 cross-validation folds")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--attacks", nargs="+", default=["a2", "a3", "a5"],
+                    choices=["a2", "a3", "a4", "a5"],
+                    help="a4 costs one gateway call per query per arm, so it is opt-in")
+    ap.add_argument("--a4-candidates", type=int, default=10,
+                    help="candidates per query, the true identity included")
+    ap.add_argument("--a4-model", default="gpt-oss-120b")
+    ap.add_argument("--a4-limit", type=int, default=0, help="cap queries per condition per arm")
+    ap.add_argument("--config", type=Path, default=Path("config/llm_api.toml"))
     ap.add_argument("--out", type=Path, default=Path("results/leakage"))
     args = ap.parse_args()
 
@@ -104,11 +151,18 @@ def main() -> int:
         stamp = {"corpus": args.corpus, "rule": args.rule, "condition": condition,
                  "entity_type": args.entity_type, "seed": args.seed}
 
-        if condition == "B":
+        if "a4" in args.attacks:
+            rows.extend(_run_a4(result, corpus, condition, args, stamp, log))
+
+        if condition == "B" and "a2" in args.attacks:
             r = FrequencyAttack().run(result, args.entity_type, "deterministic", "hmac")
             rows.append(r.as_dict() | stamp | {"attack": "a2_frequency"})
-            log(f"  A2/{condition}: {r.as_dict().get('top1')} top-1")
+            bands = " ".join(f"{k}:{v:.2f}" for k, v in sorted(r.by_frequency_band.items()))
+            log(f"  A2/{condition}: top-1 {r.accuracy_top1:.3f} top-5 {r.accuracy_top5:.3f} "
+                f"rho {r.rank_correlation:.3f} over {r.candidates} pseudonyms | bands {bands}")
 
+        if not ({"a3", "a5"} & set(args.attacks)):
+            continue
         queries = build_queries(result, args.entity_type, documents=query_docs)
         truth = truth_map(result, args.entity_type)
         if not queries or not truth:
@@ -116,16 +170,17 @@ def main() -> int:
             continue
         log(f"  {condition}: {len(queries)} queries, {len(truth)} truth pairs")
 
-        r = StructuralLinkage().run(queries, gallery, truth, "deterministic", "hmac")
-        rows.append(r.as_dict() | stamp | {"attack": "a3_structural", "fold": None})
-        log(f"  A3/{condition}: Rank-1 {r.rank1:.3f} Rank-5 {r.rank5:.3f} "
-            f"mAP {r.mean_average_precision:.3f}")
+        if "a3" in args.attacks:
+            r = StructuralLinkage().run(queries, gallery, truth, "deterministic", "hmac")
+            rows.append(r.as_dict() | stamp | {"attack": "a3_structural", "fold": None})
+            log(f"  A3/{condition}: Rank-1 {r.rank1:.3f} Rank-5 {r.rank5:.3f} "
+                f"mAP {r.mean_average_precision:.3f}")
 
         # A5, five-fold. Every entity is tested exactly once across the folds, so the five results
         # are averaged rather than pooled — and the spread is reported, because a single split's
         # Rank-1 on a few hundred entities is not a stable number.
         fold_rows = []
-        for fold in range(args.folds):
+        for fold in (range(args.folds) if "a5" in args.attacks else ()):
             attack = LearnedLinkage(seed=args.seed, folds=args.folds, fold=fold)
             r = attack.run(queries, gallery, truth, "deterministic", "hmac")
             row = r.as_dict() | stamp | {"attack": "a5_learned", "fold": fold,
