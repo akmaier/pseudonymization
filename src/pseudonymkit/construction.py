@@ -53,8 +53,14 @@ from .conditions import SPECS, build as build_condition
 from .detectors.base import DetectorOutput
 from .detectors.cache import DetectorCache
 from .detectors.combinators import COMBINATORS, Combinator
-from .domain import Corpus, Document, Mention, Span
-from .engine import OffsetMap, Pseudonymiser, replacements
+from .domain import Assignment, Corpus, Document, Mention, PseudonymMapping, Span
+from .engine import (
+    OffsetMap,
+    PseudonymisedCorpus,
+    PseudonymisedDocument,
+    Pseudonymiser,
+    replacements,
+)
 from .taxonomy import Harmoniser, source_for
 from .inventories import Inventory
 
@@ -423,6 +429,124 @@ def _remap_task(task: Mapping[str, object], offsets: OffsetMap, text: str) -> di
             moved.append(_replace(span, **fields))
         out[name] = tuple(moved)
     return out
+
+
+NOT_PERSISTED = -1
+"""Stands where the technique's integer would be.
+
+A patch set stores what was written — the entity key, the type and the rendered surface — not the
+index the technique produced on the way there.  Nothing downstream reads it (the stability metrics
+and all five attacks consume ``surface`` and ``entity_key``), so it is marked rather than
+reconstructed: a plausible-looking integer that is not the one HMAC produced would be worse than an
+obvious placeholder."""
+
+
+def to_pseudonymised(
+    document: Document, patch: Patch, *, attach_gold: bool = True
+) -> PseudonymisedDocument:
+    """Rebuild the shape the metrics and attacks consume from a stored patch.
+
+    Detection, construction and evaluation are three separate runs, and only the middle one holds a
+    :class:`~pseudonymkit.engine.PseudonymisedCorpus` in memory.  Everything downstream — §8.2's
+    three stability metrics and all of §8.4's attacks — takes one, so without this the conditions
+    already built on disk cannot be evaluated at all.
+
+    Two details make the reconstruction faithful rather than approximate:
+
+    * **The mention order is the engine's.**  :func:`~pseudonymkit.engine.replacements` pairs a
+      document's kept mentions with its assignments *positionally*, so the mentions rebuilt here must
+      be in the same order the engine kept them — patch entries are already in that order, and
+      :func:`check_roundtrip` asserts the offsets it recomputes match the ones stored.
+    * **``attach_gold`` joins the gold chain back on.**  A patch carries detected spans, which have
+      no ``gold_entity_id``; the stability metrics need one. Each entry inherits the chain of the
+      gold mention it overlaps, which is the join those metrics would otherwise have to invent.
+    """
+    gold = sorted(
+        ((m.span.start, m.span.end, m.gold_entity_id) for m in document.mentions),
+        key=lambda g: g[0],
+    ) if attach_gold else []
+
+    def chain_for(start: int, end: int) -> str | None:
+        for g_start, g_end, chain in gold:
+            if g_start >= end:
+                break
+            if g_end > start:
+                return chain
+        return None
+
+    mentions = tuple(
+        Mention(
+            doc_id=document.doc_id,
+            mention_id=f"{document.doc_id}:patch:{number}",
+            span=Span(
+                entry.old_start,
+                entry.old_end,
+                document.text[entry.old_start : entry.old_end],
+                type=entry.entity_type,
+                type_src=entry.type_src,
+            ),
+            gold_entity_id=chain_for(entry.old_start, entry.old_end),
+        )
+        for number, entry in enumerate(patch.entries)
+    )
+    assignments = tuple(
+        Assignment(
+            scope_key=(entry.entity_key,),
+            entity_key=entry.entity_key,
+            entity_type=entry.entity_type,
+            index=NOT_PERSISTED,
+            surface=entry.replacement,
+        )
+        for entry in patch.entries
+    )
+    return PseudonymisedDocument(
+        document=_replace(document, mentions=mentions),
+        text=materialise(document, patch).text,
+        assignments=assignments,
+    )
+
+
+def check_roundtrip(rebuilt: PseudonymisedDocument, patch: Patch) -> None:
+    """Assert the engine's own offset replay agrees with what the patch recorded.
+
+    Cheap, and it is the whole guarantee: if these disagree the attacks would read spans from the
+    wrong place in the new text and the leakage numbers would be quietly wrong.
+    """
+    replayed = replacements(rebuilt)
+    stored = [(e.new_start, e.new_end) for e in patch.entries]
+    got = [(r.new_start, r.new_end) for r in replayed]
+    if got != stored:
+        first = next(i for i, (a, b) in enumerate(zip(got, stored)) if a != b)
+        raise ValueError(
+            f"{rebuilt.document.doc_id}: rebuilt offsets diverge from the patch at entry {first} — "
+            f"replayed {got[first]}, stored {stored[first]}"
+        )
+
+
+def to_pseudonymised_corpus(
+    documents: Iterable[Document], patchset: PatchSet, *, attach_gold: bool = True, check: bool = True
+) -> PseudonymisedCorpus:
+    """Whole-corpus :func:`to_pseudonymised`.  Documents with no patch are omitted.
+
+    Omitted, not passed through: a document the construction never patched has no assignments, and
+    including it would put an unpseudonymised document into a corpus every attack treats as
+    pseudonymised.
+    """
+    patches = patchset.by_doc()
+    out: list[PseudonymisedDocument] = []
+    mapping = PseudonymMapping()
+    for document in documents:
+        patch = patches.get(document.doc_id)
+        if patch is None:
+            continue
+        rebuilt = to_pseudonymised(document, patch, attach_gold=attach_gold)
+        if check:
+            check_roundtrip(rebuilt, patch)
+        for assignment in rebuilt.assignments:
+            if mapping.get(assignment.scope_key) is None:
+                mapping.put(assignment)
+        out.append(rebuilt)
+    return PseudonymisedCorpus(documents=tuple(out), mapping=mapping)
 
 
 def materialise_corpus(

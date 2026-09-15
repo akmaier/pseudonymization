@@ -340,15 +340,43 @@ across — is not run, so the middle of the linkability range is absent. All thr
 | **condition** | A full data · B pseudonymised · C de-identified | **3** |
 | **D** detector | Presidio · GLiNER-multi · GLiNER-PII · `obi/deid_roberta_i2b2` · `StanfordAIMI/stanford-deidentifier-base` · `Davlan/xlm-roberta-large-ner-hrl` · `privacy_tagger` · **every chat model the NHR@FAU gateway serves at run time, DeepSeek excluded** · gold spans | 7 + gateway |
 | **D′** combination rule | union · vote(k) · intersection · weighted vote · cascade · token-level BIO voting | **6** |
+| **D″** ensemble size | subsets of **1, 2 or 3** detectors (AM, 2026-09-15) | 15 · 105 · 455 |
 | **E** corpus | TAB · OntoNotes · Enron · CARDIO:DE | **4** |
 | sampling rate | fixed per corpus before the run and recorded with every result (§13) | — |
 
-The condition and the corpus give **15 cells**. Detection is a separate stage: it produces spans,
+The condition and the corpus give **12 cells** (corrected 2026-09-15; it read 15 while CodEAlltag was the fifth corpus, and was not updated when §11 removed it on 2026-09-11). Detection is a separate stage: it produces spans,
 which B and C then consume, and its cost is corpus × detector — the only runs that cost model time.
 The gateway's model list is not fixed in advance: **every chat model it serves at run time is used,
 DeepSeek excluded** (AM, 2026-09-08, the backend is down), and which models were live is recorded
 with the run because availability is part of the experimental record. The combination rules are a
 post-hoc read of the detector cache and cost nothing to compute, however many are reported.
+
+**Ensembles are subsets of up to three detectors** (AM, 2026-09-15). Axis D′ fixes the *rule*; this
+fixes what the rule is applied **to**, which was previously unstated and left the size of the sweep
+undefined. With the 15 detectors that ran, the subsets are 15 singletons, **105 pairs** and **455
+triples** — 560 genuine ensembles — beside the 15 singletons and the gold level. Six rules over 560
+subsets is an upper bound of 3,375 span sources per corpus; the count actually realised is smaller,
+because a rule is only applied where it is defined:
+
+| | subsets | rules that apply | sources |
+|---|---:|---|---:|
+| gold | 1 | — | 1 |
+| single detector | 15 | none — nothing to combine | 15 |
+| pair | 105 | union · intersection · vote(2) | 315 |
+| triple | 455 | union · intersection · vote(2) · vote(3) | 1,820 |
+| | | | **2,151** |
+
+`weighted vote` and `cascade` are **deferred rather than dropped**: §7 defines the weights as "that
+detector's precision on a dev split" and a cascade needs an order, and both are outputs of this
+sweep's singleton scores. They run as a second pass once those exist, and the plan records them as
+the remaining two of the six. Degenerate cells are reported rather than suppressed — `vote(2)` over
+a pair equals `intersection`, and that is a fact about the design, not a duplicate to hide.
+
+This is affordable precisely because detection scoring is set arithmetic over a cached span layer and
+costs no model time. **It does not follow that every one of those span sources feeds conditions B and
+C.** Utility and leakage re-run frozen models and attacks on each conditioned text, so the number of
+span sources carried downstream is a separate decision, and it is the one thing in this design that
+is still open — recorded in §17.
 
 **The gold-spans level is essential, not decorative.** It separates *detector* error from
 *pseudonymisation* error, which no prior work does. Without it everything downstream is confounded by
@@ -394,7 +422,7 @@ reported beside every number rather than averaged over:
 | corpus | what the gold is | recall counts |
 |---|---|---|
 | **TAB** | manual annotation built for de-identification — 8 types, DIRECT/QUASI/NO_MASK, document-scoped `entity_id`, multiple annotators | of the spans annotators judged identifying |
-| **CARDIO:DE** | **ours by construction** — the 16,164 identifiers the condition-A fill inserted, each with its position, type and referent, plus the 14,854 released date markers (§12) | of the identifiers we placed; whatever the Heidelberg de-identifier missed is invisible to us |
+| **CARDIO:DE** | **ours by construction** — the 16,482 identifiers the condition-A fill inserted, each with its position, type and referent, plus the 14,854 released date markers (§12); **31,336 gold mentions in total** (rebuilt 2026-09-15) | of the identifiers we placed; whatever the Heidelberg de-identifier missed is invisible to us |
 | **OntoNotes** | NER: 18 ENAMEX types, annotated for linguistics. No identifier notion, no DIRECT/QUASI | of the spans a linguist marked ENAMEX — a **proxy**, and labelled as one |
 | **Enron** | built here from message headers: an 11,124-name identity table matched into bodies | of the names matchable from a header. **No true denominator** — a name never appearing in a header cannot be counted as missed |
 
@@ -452,8 +480,11 @@ TAB and OntoNotes about three quarters of PERSON chains hold a single mention, s
 measured on the remainder; the counts are produced by the run and reported with it, not fixed here.
 
 Drift needs identity across documents. Enron has it through mailbox identity; TAB's and OntoNotes'
-chains are document-scoped. CARDIO:DE carries no entity identity and enters no stability cell
-(§11).
+chains are document-scoped. CARDIO:DE's identity is the fill's own stipulation rather than the
+corpus's, and it is letter-scoped — `subject_id` is null in every document and no entity recurs
+across letters — so it enters no stability cell (§11). *Corrected 2026-09-15: this read "carries no
+entity identity", which is false of the built artefact — the fill assigns one patient entity per
+letter, and §8.1 uses it. The exclusion stands on the stipulation, not on absence.*
 
 Cretu et al. (arXiv 2404.03948) measure what pseudonym-change frequency costs in linkability on
 smart-meter data, which is drift in another modality. No published work reports these on text (§4.1).
@@ -677,7 +708,7 @@ the same documents — which is the gap §4.1 claims nobody has closed.
 | **TAB / ECHR** (en, legal) | ✅ 8 types, DIRECT/QUASI | ✅ co-reference | ✅ 30-label articles | **full** |
 | **OntoNotes** (en, zh, ar; 5 genres) | ✅ 18 NE types | ✅ co-reference | ✅ co-reference + NER | **full** |
 | **Enron** (en, e-mail) | ⚠ structural, header-derived | ✅ cross-document identity | ✅ folder · intent · formality | **full** |
-| **CARDIO:DE** (de, clinical) | ✅ **complete for the identifiers we placed** — 16,164 inserted by the condition-A fill, plus the 14,854 released `<[Pseudo] …>` date markers (§12) | ❌ | ✅ medication IE · section classes | detection **+ utility + leakage** (AM, 2026-09-08; detection added 2026-09-12) |
+| **CARDIO:DE** (de, clinical) | ✅ **complete for the identifiers we placed** — 16,482 inserted by the condition-A fill, plus the 14,854 released `<[Pseudo] …>` date markers (§12); 31,336 gold mentions | ❌ | ✅ medication IE · section classes | detection **+ utility + leakage** (AM, 2026-09-08; detection added 2026-09-12) |
 | **BRONCO150** (de, clinical) | ✅ ICD/OPS/ATC | ❌ sentence-scrambled | ✅ coding | utility only — **not yet received** |
 | MEDDOCAN · MedDeID · REDACT · AI4Privacy | ✅ | ❌ | ❌ | **OUT** (AM, 2026-09-08) — no utility task, so no cell where a method's effect is attributable |
 | **CodEAlltag** (de, e-mail) | ❌ none released | ❌ | ✅ formality · 7-way topic | **OUT** (AM, 2026-09-11) — utility without gold, the same objection from the other side |
@@ -855,8 +886,9 @@ ships no full-data text: TAB, OntoNotes and Enron carry real names, and here the
 tag tokens left in the running text — **26,836 tokens, 16 types, 19,729 runs across the 500
 letters**. The fill replaces each run with a plausible German entity of the matching type and
 unwraps the `<[Pseudo] …>` markers to the bare date, so the result is a letter rather than a
-marked-up letter. On the 400-letter split it fills **16,164 runs** and remaps the 27,065 medication,
-section and relation spans onto the new offsets. Names come from Eder et al.'s CodEAlltag substitute
+marked-up letter. On the 400-letter split it fills **16,482 runs** and remaps the corpus's
+own annotation onto the new offsets: 21,631 medication spans, 5,434 sections and 15,270 medication
+relations. Names come from Eder et al.'s CodEAlltag substitute
 lists — 53,028 surnames, 441 male and 534 female given names, 32,758 German cities, 51,583 streets —
 so the inventory is the one the German baseline this study cites already used. A run's length decides
 its surface: `B-PER` stood for a surname and `B-PER I-PER` for a given name and a surname, so one
@@ -867,18 +899,24 @@ type and referent is known by construction.
 *Identity is stipulated and is an upper bound.* The tags mark where an identifier stood, not who it
 was; two `B-PER` runs may be one person or two and nothing in the markup separates them. The rule:
 a `PER` run whose preceding context contains *Patient* / *Patientin* belongs to the letter's single
-patient entity — 452 of 2,740 runs — and gender is taken from the same cue, since the morphology
+patient entity — 455 of 2,800 runs — and an uncued run in the body belongs to it as well, a further
+707, because a discharge letter's body refers overwhelmingly to its own patient and naming each
+mention differently produces an incoherent document. Gender is taken from the same cue, since the morphology
 survives de-identification even though *Herr* / *Frau* became `B-SALUTE`. Every other `PER` run
-becomes its own person: 1,357 after *Mit freundlichen Grüßen*, 66 after a referral cue, 865 with no
-cue at all. That yields **6.72 person entities per letter, which is a ceiling, not an estimate** — a
-physician named in the body and again in the signature receives two names. The patient is named
-1.13 times per letter and carries more than one surface form in 31 of 400 letters, so CARDIO:DE
-supports no fragmentation measurement; §8.2 already excludes it. Inferring identity from the filled
+becomes its own person: 1,571 after *Mit freundlichen Grüßen* and 67 after a referral cue. That
+yields **5.09 person entities per letter, which is a ceiling, not an estimate** — a physician named
+in the body and again in the signature receives two names. The patient is named **2.905 times per
+letter** and carries more than one surface form in **234 of 400 letters**. *All four counts were
+restated on 2026-09-15 against the current build; the previous figures — 452 of 2,740, 1,357/66/865,
+6.72 per letter, 1.13 mentions, 31 of 400 — described the build of 2026-09-10, before the uncued-body
+rule and the gender-cue fix.* Fragmentation is therefore arithmetically computable here, but it is
+computable against identity we stipulated, which is why §8.2 excludes CARDIO:DE on that ground rather
+than on absence of identity. Inferring identity from the filled
 names instead would be circular, since the names are ours.
 
 *Institution names are composed, not drawn.* CodEAlltag's `org` sublist is general business names —
 *Apfelscheune*, *AC-Cosmetics* — and a discharge letter referring a patient to one of those does not
-read as a letter, so the 1,969 `ORG` runs are filled from templates over the city list
+read as a letter, so the 2,130 `ORG` runs are filled from templates over the city list
 (`Klinikum {Stadt}`, `Universitätsklinikum {Stadt} gGmbH`, `Kardiologische Praxis {Stadt}`). These
 are plausible but not attested. The Destatis *Krankenhausverzeichnis* 2024 — 1,829 site names, 2,129
 street names, 1,736 postcodes, free to reproduce with attribution — is the attested source and is
@@ -913,7 +951,7 @@ record.
 
 ## 13. Sampling
 
-Four of the five corpora are small enough to use whole, so no scheme is needed and none is chosen.
+Three of the four corpora are small enough to use whole, so no scheme is needed and none is chosen (corrected 2026-09-15; it read "four of the five" while CodEAlltag was in).
 
 | corpus | drawn | scheme |
 |---|---|---|
@@ -1080,3 +1118,27 @@ builder.
    language? Tuning per language risks overfitting the benchmark.
 
 11. **Paper scoping** — which panels fit eight pages.
+
+12. **How many span sources reach conditions B and C.** *Opened 2026-09-15, and it is the largest
+    remaining specification gap.* §7 now bounds the detection sweep at 3,375 span sources per corpus,
+    and detection scoring over them is free. Utility and leakage are not: each re-runs frozen models
+    or attacks on a conditioned text, so the count of span sources carried downstream multiplies
+    every §8.3 and §8.4 number. The plan currently points three ways and settles none of them:
+
+    - §7 treats condition × corpus as the cell grid and puts detection outside it, which reads as one
+      B and one C per corpus;
+    - §8.1 requires the rule's effect **on utility** to be reported per rule — *"every false positive
+      pseudonymises a token that carried meaning"* — which is only computable if utility is
+      re-measured on each rule's output;
+    - §9 lists `detector` among the fields **every** result row carries, and §8.3 justifies
+      Benjamini–Hochberg by *"dozens of conditions per task"*, which three conditions cannot produce.
+
+    On CARDIO:DE the two readings give 55 evaluations against roughly 515. Whichever is chosen must
+    be written here, because it is not recoverable from the artefacts afterwards.
+
+13. **There is no result-row schema.** §10 is titled one but specifies the *corpus* record — it
+    carries no condition, detector, combination rule, metric, score or seed field. The only
+    row-keying sentence in the document is §9's *"Every result row carries: cell configuration, seed,
+    sampling scheme + rate, corpus version, detector, prompt version, library versions, commit
+    hash"*, and "cell configuration" is used once and defined nowhere. Until a schema exists, results
+    from different stages cannot be joined. *Opened 2026-09-15.*

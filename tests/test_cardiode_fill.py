@@ -335,3 +335,30 @@ def test_patientin_marks_a_female_patient_wherever_it_is_capitalised(inventories
     for variant in ("unsere Patientin", "Patientin", "PATIENTIN"):
         text = _MALE_LETTER_ADDRESSED_FORMALLY.replace("unseren Patienten", variant)
         assert _patient_of(text, inventories).surface.split()[0] in inventories.female, variant
+
+
+def test_only_real_date_markers_become_datetime_gold(inventories):
+    """A restored bracket is not an identifier.
+
+    ``is_date`` was built from ``dates + blanks + unescaped + flattened``, so every PTB bracket
+    restored to "(", every ``-UNK-`` flattened to "-" and every ``<NONE>`` blanked to " " was
+    emitted as a DATETIME gold mention. On the 400 letters that was 23,818 single-character gold
+    spans — 43.2 % of the whole layer (measured 2026-09-15).
+    """
+    text = ("Befund -LRB- normal -RRB- vom <[Pseudo] 16.01.2013>, Wert <none>, Rest -UNK-.\n")
+    document = Document(doc_id="L9", text=text, language="de", corpus="cardiode")
+    filled, _ = fill_document(document, inventories, seed=0)
+    datetimes = [m for m in filled.mentions if m.type == "DATETIME"]
+    assert len(datetimes) == 1, [m.span.text for m in datetimes]
+    assert datetimes[0].span.text == "16.01.2013"
+    # and the substitutions still happened in the text
+    assert "(" in filled.text and ")" in filled.text and "-LRB-" not in filled.text
+    assert "<none>" not in filled.text.lower() and "-UNK-" not in filled.text
+
+
+def test_no_gold_mention_is_a_single_punctuation_character(inventories):
+    document = Document(doc_id="L9", text=LETTER, language="de", corpus="cardiode")
+    filled, _ = fill_document(document, inventories, seed=0)
+    bad = [m for m in filled.mentions
+           if m.span.end - m.span.start == 1 and not m.span.text.isalnum()]
+    assert not bad, [m.span.text for m in bad]

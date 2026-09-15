@@ -664,9 +664,22 @@ def fill_document(
     blanks = [(m.start(), m.end(), " ") for m in nones]
     unescaped = [(m.start(), m.end(), _PTB_BRACKETS[m.group(1)]) for m in brackets]
     flattened = [(m.start(), m.end(), "-") for m in unknowns]
-    dates = dates + blanks + unescaped + flattened
-    replacements = sorted(replacements + dates)
+    # **`is_date` is built from the markers alone, before the other substitutions are added.**
+    # It decides what becomes a DATETIME *gold mention*, and the other three lists are not
+    # identifiers at all: they are a PTB bracket restored to "(", a `-UNK-` flattened to "-", and a
+    # `<NONE>` blanked to " ". Rebinding `dates` to the concatenation first — which is what this did
+    # until 2026-09-15 — made every one of them gold, and 23,818 of the corpus's 55,154 gold
+    # mentions were single characters: 9,477 "(", 9,569 ")", 4,619 "-" and 153 spaces, 43.2 % of the
+    # layer, all typed DATETIME. Detection scored against that gold would be measuring a detector's
+    # willingness to tag punctuation.
     is_date = {(start, end) for start, end, _ in dates}
+    # A third bucket, and the reason the partition below needs one. These three are pure text
+    # repairs: a PTB bracket restored to "(", a `-UNK-` flattened to "-", a `<NONE>` blanked. They
+    # are neither identifiers nor tag runs, so they must splice into the text and produce no mention
+    # at all. Folding them into `dates` made every one of them DATETIME gold; folding them into the
+    # tag runs instead misaligns `filled` and the build's own offset check catches it.
+    cosmetic = {(start, end) for start, end, _ in blanks + unescaped + flattened}
+    replacements = sorted(replacements + dates + blanks + unescaped + flattened)
 
     pieces: list[str] = []
     cursor = 0
@@ -689,6 +702,8 @@ def fill_document(
     for (start, end, surface), (new_start, new_end) in zip(replacements, positions):
         if (start, end) in is_date:
             date_spans.append((new_start, new_end, surface))
+        elif (start, end) in cosmetic:
+            continue                      # spliced into the text, carries no annotation
         else:
             tag_positions.append((new_start, new_end))
     filled = [
