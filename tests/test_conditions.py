@@ -82,11 +82,16 @@ def test_b_is_n2_deterministic_hmac_routed():
 def test_names_places_and_organisations_are_still_rendered_realistically():
     """What the previous assertion was really protecting: B does not degrade to placeholders."""
     engine = build("B", inventory=SyntheticInventory(pool_size=4096), key=KEY)
+
+    def underlying(entity_type):
+        form = engine.surrogate.for_type(entity_type)
+        return getattr(form, "inner", form).name      # unwrap the consistency check
+
     for entity_type in ("PERSON", "LOC", "ORG", "DEMOGRAPHIC"):
-        assert engine.surrogate.for_type(entity_type).name == "realistic"
-    assert engine.surrogate.for_type("CODE").name == "format_preserving"
+        assert underlying(entity_type) == "realistic"
+    assert underlying("CODE") == "format_preserving"
     for entity_type in ("DATETIME", "QUANTITY", "MISC"):
-        assert engine.surrogate.for_type(entity_type).name == "unchanged"
+        assert underlying(entity_type) == "unchanged"
 
 
 def test_b_and_c_differ_in_exactly_one_axis_level():

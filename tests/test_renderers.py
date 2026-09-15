@@ -240,3 +240,152 @@ def test_an_attested_pool_makes_condition_b_render_that_type():
     inventory, _ = build_attested_inventory(docs, [("DEMOGRAPHIC", "en")])
     form = SURROGATES.create("realistic", inventory=inventory)
     assert render(form, "senior consultant", "DEMOGRAPHIC") in {"nurse", "teacher"}
+
+
+# ---------------------------------------------------------- the consistency check and redraw
+# AM, 2026-09-15: a surrogate that is the wrong *kind* of thing does not make sense; draw again.
+# The first real CARDIO:DE build produced "42.87.1008" — day 42 of month 87 — for a date-shaped
+# CODE span, because format preservation copies the layout and not the meaning.
+
+from pseudonymkit.surrogates import (            # noqa: E402
+    Checked,
+    SurrogateRejected,
+    code_is_consistent,
+    differs_from_source,
+)
+
+
+def test_a_date_shaped_code_renders_a_real_date():
+    form = Checked(FormatPreserving(), code_is_consistent)
+    for index in range(40):                       # many entities, every one must come out valid
+        out = form.render(index, mention("04.12.1980", "CODE"), "de")
+        day, month, year = (int(p) for p in out.split("."))
+        assert 1 <= day <= 31 and 1 <= month <= 12, out
+        import calendar
+        assert day <= calendar.monthrange(year, month)[1], out
+
+
+def test_a_time_shaped_code_renders_a_real_time():
+    form = Checked(FormatPreserving(), code_is_consistent)
+    for index in range(40):
+        hour, minute = (int(p) for p in form.render(index, mention("09:45", "CODE"), "de").split(":"))
+        assert hour < 24 and minute < 60
+
+
+def test_an_unshaped_code_is_untouched_by_the_date_rule():
+    form = Checked(FormatPreserving(), code_is_consistent)
+    out = form.render(7, mention("john.smith@enron.com", "CODE"), "en")
+    assert "@" in out and out != "john.smith@enron.com"
+
+
+def test_the_check_never_returns_the_original():
+    form = Checked(FormatPreserving(), code_is_consistent)
+    for index in range(60):
+        assert form.render(index, mention("4711", "CODE"), "de") != "4711"
+
+
+def test_redrawing_is_deterministic_so_stability_survives():
+    a, b = Checked(FormatPreserving(), code_is_consistent), Checked(FormatPreserving(), code_is_consistent)
+    m = mention("04.12.1980", "CODE")
+    assert a.render(99, m, "de") == b.render(99, m, "de")
+
+
+def test_a_pooled_surrogate_never_equals_the_name_it_replaces():
+    inventory = SyntheticInventory(pool_size=8)   # small on purpose: collisions are likely
+    form = Checked(SURROGATES.create("realistic", inventory=inventory), differs_from_source)
+    for index in range(60):
+        surface = inventory.surface(index, "PERSON", "en")
+        assert form.render(index, mention(surface, "PERSON"), "en") != surface
+
+
+def test_an_unsatisfiable_check_is_reported_not_papered_over():
+    form = Checked(FormatPreserving(), lambda *_: False, attempts=4)
+    with pytest.raises(SurrogateRejected):
+        form.render(1, mention("abc", "CODE"), "en")
+
+
+def test_the_number_of_redraws_is_counted_for_reporting():
+    """A small pool collides with the original often, so the counter moves.
+
+    Dates deliberately do not appear here: they are generated inside their valid ranges rather than
+    retried into them, so they cost zero redraws. The counter is a rate worth reporting — it says
+    how often the pool is too small to avoid handing an entity back its own value."""
+    inventory = SyntheticInventory(pool_size=4)
+    form = Checked(SURROGATES.create("realistic", inventory=inventory), differs_from_source)
+    for index in range(40):
+        form.render(index, mention(inventory.surface(index, "PERSON", "en"), "PERSON"), "en")
+    assert form.redraws > 0
+
+
+def test_demographic_is_not_identity_checked():
+    """A two-valued category forced to differ becomes invertible: every Herr would become Frau."""
+    from pseudonymkit.conditions import IDENTITY_CHECKED, POOLED
+
+    assert "DEMOGRAPHIC" in POOLED and "DEMOGRAPHIC" not in IDENTITY_CHECKED
+
+
+def test_condition_b_routes_each_type_to_a_checked_renderer():
+    engine = build("B", inventory=SyntheticInventory(pool_size=4096), key=KEY)
+    assert engine.surrogate.for_type("CODE").name == "checked"
+    assert engine.surrogate.for_type("PERSON").name == "checked"
+    assert engine.surrogate.for_type("DEMOGRAPHIC").name == "realistic"
+    assert engine.surrogate.for_type("DATETIME").name == "unchanged"
+
+
+def test_a_span_with_nothing_substitutable_is_not_required_to_change():
+    """The union rule labelled a bare "(" as CODE. Format preservation keeps punctuation, so no
+    redraw can ever differ from it — and a span with no letter and no digit hides no identifier."""
+    form = Checked(FormatPreserving(), code_is_consistent)
+    assert form.render(3, mention("(", "CODE"), "de") == "("
+    assert form.render(3, mention(" - ", "CODE"), "de") == " - "
+
+
+def test_but_anything_with_a_letter_or_digit_must_still_change():
+    form = Checked(FormatPreserving(), code_is_consistent)
+    for surface in ("A", "7", "(x)"):
+        assert form.render(5, mention(surface, "CODE"), "de") != surface
+
+
+# --- plausible years (AM, 2026-09-15) -----------------------------------------------------------
+# "16.01.5628" is a real date but not one a clinical letter carries. The year band is enforced by
+# the check and satisfied by construction: a blind retry would exhaust its budget on two thirds of
+# date-shaped spans once a 200-year window is required.
+
+from pseudonymkit.surrogates import PLAUSIBLE_YEARS      # noqa: E402
+
+
+def test_a_four_digit_year_lands_in_the_plausible_band():
+    form = Checked(FormatPreserving(), code_is_consistent)
+    for index in range(300):
+        year = int(form.render(index, mention("04.12.1980", "CODE"), "de").split(".")[2])
+        assert PLAUSIBLE_YEARS[0] <= year <= PLAUSIBLE_YEARS[1], year
+
+
+def test_component_widths_are_preserved_so_length_never_changes():
+    form = Checked(FormatPreserving(), code_is_consistent)
+    for surface in ("04.12.1980", "1.6.19", "2019-07-04", "9:45", "09:45:07"):
+        for index in range(25):
+            out = form.render(index, mention(surface, "CODE"), "de")
+            assert len(out) == len(surface), (surface, out)
+
+
+def test_iso_and_slash_dates_are_valid_too():
+    import datetime
+    form = Checked(FormatPreserving(), code_is_consistent)
+    for index in range(60):
+        y, m, d = (int(p) for p in form.render(index, mention("2019-07-04", "CODE"), "de").split("-"))
+        datetime.date(y, m, d)                       # raises if the surrogate is not a real date
+
+
+def test_a_two_digit_year_is_not_band_constrained():
+    """Every value 00-99 is plausible, and constraining it would shrink the space for nothing."""
+    form = Checked(FormatPreserving(), code_is_consistent)
+    years = {form.render(i, mention("1.6.19", "CODE"), "de").split(".")[2] for i in range(80)}
+    assert len(years) > 10
+
+
+def test_dates_need_no_redraws_now_that_they_are_generated_directly():
+    form = Checked(FormatPreserving(), code_is_consistent)
+    for index in range(200):
+        form.render(index, mention("04.12.1980", "CODE"), "de")
+    assert form.redraws == 0

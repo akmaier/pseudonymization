@@ -55,6 +55,7 @@ from .detectors.cache import DetectorCache
 from .detectors.combinators import COMBINATORS, Combinator
 from .domain import Corpus, Document, Mention, Span
 from .engine import OffsetMap, Pseudonymiser, replacements
+from .taxonomy import Harmoniser, source_for
 from .inventories import Inventory
 
 __all__ = [
@@ -158,9 +159,30 @@ def detected_documents(
 
     pool: dict[str, dict[str, DetectorOutput]] = {}
     dropped_stale = dropped_truncated = 0
+    harmonisation: dict[str, dict[str, object]] = {}
     for name in model_detectors:
         records = _load_usable(cache, name, texts, drop_truncated)
-        pool[name] = records.output
+        # **Harmonise here, not at detection time.**  The classical detectors route their labels as
+        # they produce them; the gateway pool does not, and writes whatever the model said — which
+        # for a zero-shot prompt is an open vocabulary.  On CARDIO:DE the eight models between them
+        # emitted 160 distinct labels: ID, PROFESSION and PHONE, which the taxonomy routes, but also
+        # LAB_VALUE, BLOOD_PRESSURE, DIAGNOSIS and TRANSTHORAKTAL ECHOKARDIOGRAPHIE, which it cannot.
+        # Leaving them raw reached the renderer as unknown types and stopped the build.
+        #
+        # Doing it on read rather than on write keeps the model's own string in the cache, where it
+        # is part of the experimental record, and :meth:`Harmoniser.span` takes the raw label from
+        # ``type_src or type`` so applying it to an already-harmonised span is a no-op.
+        harmoniser = Harmoniser(source_for(name, cache.corpus))
+        pool[name] = {
+            doc_id: _replace(output, spans=harmoniser.spans(output.spans))
+            for doc_id, output in records.output.items()
+        }
+        # §10 requires the unmapped count to be reported; a caller that discards it drops a result.
+        harmonisation[name] = {
+            "spans": harmoniser.seen,
+            "unmapped_spans": harmoniser.unmapped_spans,
+            "unmapped_labels": dict(harmoniser.unmapped),
+        }
         dropped_stale += records.stale
         dropped_truncated += records.truncated
 
@@ -200,6 +222,7 @@ def detected_documents(
         "documents_missing_a_detector": incomplete,
         "records_dropped_stale_text": dropped_stale,
         "records_dropped_truncated": dropped_truncated,
+        "harmonisation": harmonisation,
         **getattr(combinator, "settings", {"rule": getattr(combinator, "name", str(rule))}),
     }
     if report is not None:

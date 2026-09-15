@@ -7,8 +7,10 @@ order of both utility and leakage.
 
 from __future__ import annotations
 
+import calendar
 import hashlib
-from typing import Mapping, Protocol, Sequence, runtime_checkable
+import re
+from typing import Callable, Mapping, Protocol, Sequence, runtime_checkable
 
 from .domain import Mention
 from .inventories import Inventory
@@ -23,6 +25,10 @@ __all__ = [
     "FormatPreserving",
     "TypeRouted",
     "URL_PREFIXES",
+    "Checked",
+    "SurrogateRejected",
+    "code_is_consistent",
+    "differs_from_source",
 ]
 
 PLACEHOLDER_NAMES: Mapping[str, str] = {"LOC": "LOCATION"}
@@ -253,6 +259,55 @@ class FormatPreserving:
             counter += 1
         return bytes(out[:length])
 
+    def _date_shaped(self, index: int, source: str) -> str | None:
+        """Generate a valid date or time directly, or ``None`` if the source is not one.
+
+        Redrawing until a random string happens to be a real date works — a valid ``dd.mm.yyyy``
+        turns up about one draw in twenty-seven — but adding a plausible-year band takes it to one
+        in twelve hundred, and a blind retry loop would then exhaust its budget on two thirds of
+        date-shaped spans.  So the components are drawn inside their own ranges instead, and
+        :class:`Checked` stays as the guarantee rather than the mechanism.
+
+        Every component keeps the width it had, so the surrogate is the same length as the original
+        and a one-digit day stays one digit.
+        """
+        digits = self._keystream(index, 8)
+
+        def year_of(width: int, a: int, b: int) -> int:
+            if width == 4:
+                low, high = PLAUSIBLE_YEARS
+                return low + ((a << 8 | b) % (high - low + 1))
+            return a % 100
+
+        def day_of(raw: int, width: int, year: int, month: int) -> int:
+            top = calendar.monthrange(year, month)[1]
+            return (raw % min(top, 9 if width == 1 else top)) + 1
+
+        match = _DMY.match(source)
+        if match:
+            day_s, sep, month_s, year_s = match.groups()
+            year = year_of(len(year_s), digits[0], digits[1])
+            month = (digits[2] % (9 if len(month_s) == 1 else 12)) + 1
+            day = day_of(digits[3], len(day_s), year if len(year_s) == 4 else year + 2000, month)
+            return (f"{day:0{len(day_s)}d}{sep}{month:0{len(month_s)}d}{sep}"
+                    f"{year:0{len(year_s)}d}")
+
+        match = _YMD.match(source)
+        if match:
+            year_s, sep, month_s, day_s = match.groups()
+            year = year_of(4, digits[0], digits[1])
+            month = (digits[2] % (9 if len(month_s) == 1 else 12)) + 1
+            day = day_of(digits[3], len(day_s), year, month)
+            return (f"{year:04d}{sep}{month:0{len(month_s)}d}{sep}{day:0{len(day_s)}d}")
+
+        match = _TIME.match(source)
+        if match:
+            hour_s, minute_s, second_s = match.groups()
+            hour = digits[0] % (10 if len(hour_s) == 1 else 24)
+            out = f"{hour:0{len(hour_s)}d}:{digits[1] % 60:02d}"
+            return out if second_s is None else f"{out}:{digits[2] % 60:02d}"
+        return None
+
     def render(self, index: int, mention: Mention, language: str) -> str:
         source = mention.surface
         prefix = ""
@@ -266,6 +321,9 @@ class FormatPreserving:
                     break
             else:
                 break
+        dated = self._date_shaped(index, source)
+        if dated is not None:
+            return prefix + dated
         stream = self._keystream(index, len(source))
         out: list[str] = []
         for character, byte in zip(source, stream):
@@ -302,3 +360,162 @@ class TypeRouted:
 
     def render(self, index: int, mention: Mention, language: str) -> str:
         return self.for_type(mention.type).render(index, mention, language)
+
+
+# ---------------------------------------------------------------------------------------------
+# Consistency: a surrogate that is the wrong *kind* of thing is worse than no surrogate at all.
+# ---------------------------------------------------------------------------------------------
+
+
+class SurrogateRejected(RuntimeError):
+    """No candidate passed the check within the attempt budget.
+
+    Raised rather than returning the last failing candidate: emitting a surrogate that is known to
+    be wrong is the silent substitution §1 forbids, and a check that can never pass is a defect in
+    the check, which should be visible.
+    """
+
+
+def _redraw(index: int, attempt: int) -> int:
+    """A fresh index derived from the original, deterministically.
+
+    Redrawing must not break stability: the same entity must reach the same surrogate everywhere in
+    the corpus, so the retry sequence is a pure function of the first index rather than of a random
+    source or of how many entities were seen before.
+    """
+    digest = hashlib.sha256(f"redraw:{index}:{attempt}".encode("utf-8")).digest()
+    return int.from_bytes(digest[:4], "big")
+
+
+_DMY = re.compile(r"^(\d{1,2})([./-])(\d{1,2})\2(\d{2,4})$")
+_YMD = re.compile(r"^(\d{4})([./-])(\d{1,2})\2(\d{1,2})$")
+_TIME = re.compile(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$")
+
+PLAUSIBLE_YEARS = (1900, 2099)
+"""The band a four-digit surrogate year must fall in.
+
+``42.87.1008`` became ``16.01.5628`` once the date was required to be real — a valid date, and still
+not one a clinical letter would carry (AM, 2026-09-15).  The upper bound is deliberately well past
+today: CARDIO:DE's dates were shifted by a constant per-document offset before release and admission
+dates already run into the 2030s, so a tighter ceiling would make the surrogates separable from the
+originals by year alone.
+
+A two-digit year is left unconstrained — every value 00-99 is plausible."""
+
+
+def _plausible_year(year: int) -> bool:
+    return PLAUSIBLE_YEARS[0] <= year <= PLAUSIBLE_YEARS[1]
+
+
+def _valid_dmy(day: int, month: int, year: int) -> bool:
+    return 1 <= month <= 12 and 1 <= day <= calendar.monthrange(year, month)[1]
+
+
+def _date_like(value: str) -> bool:
+    return bool(_DMY.match(value) or _YMD.match(value) or _TIME.match(value))
+
+
+def _date_valid(value: str) -> bool:
+    """True when ``value`` is not date-shaped at all, or is date-shaped **and** a real date."""
+    match = _DMY.match(value)
+    if match:
+        day, _, month, year = match.groups()
+        if len(year) == 2:
+            return _valid_dmy(int(day), int(month), int(year) + 2000)
+        return _plausible_year(int(year)) and _valid_dmy(int(day), int(month), int(year))
+    match = _YMD.match(value)
+    if match:
+        year, _, month, day = match.groups()
+        return _plausible_year(int(year)) and _valid_dmy(int(day), int(month), int(year))
+    match = _TIME.match(value)
+    if match:
+        hour, minute, second = match.groups()
+        return int(hour) < 24 and int(minute) < 60 and (second is None or int(second) < 60)
+    return True
+
+
+def code_is_consistent(surrogate: str, mention: Mention) -> bool:
+    """A CODE surrogate must be the same *kind* of string as the one it replaces.
+
+    Format preservation copies the layout but not the meaning, so a date-shaped code came back as
+    ``42.87.1008`` — day 42 of month 87 — on the first real CARDIO:DE build.  No source in the
+    surveyed literature imposes validity on code surrogates, and Carrell concedes the handling is
+    not uniform even within one engine; but a value no reader or parser would accept is not
+    "realistic" in the sense the condition claims, and it advertises which spans were replaced.
+
+    So: if the original is date- or time-shaped, the surrogate must be a real date or time.  And the
+    surrogate must differ from the original — a short numeric code can otherwise collide with itself
+    and silently pass the original through.  Anything not date-shaped is only checked for that.
+    """
+    # A span with nothing substitutable in it — a bare "(" , which the union rule really did label
+    # CODE — can never differ from itself, because format preservation keeps punctuation in place.
+    # Requiring a difference there is unsatisfiable and, more to the point, meaningless: a span with
+    # no letter and no digit carries no identifier to conceal.  Everything else must change.
+    if any(c.isascii() and c.isalnum() for c in mention.surface) and surrogate == mention.surface:
+        return False
+    return _date_valid(surrogate)
+
+
+def differs_from_source(surrogate: str, mention: Mention) -> bool:
+    """The surrogate must not be the value it replaces.
+
+    Applied to the types drawn from a large pool — PERSON, LOC, ORG — where an index collision means
+    an identifier survives into the released text under the name of a pseudonym.
+
+    **Not** applied to DEMOGRAPHIC, and that is deliberate.  Its pools are small and sometimes
+    binary — CARDIO:DE's ``SALUTE`` is *Herr* and *Frau* — and forcing a difference on a two-valued
+    category turns the mapping into a bijection: every *Herr* becomes *Frau* and the attacker
+    recovers the original by inverting it.  A collision is the lesser harm there, and for a
+    categorical attribute it is not even a leak: it is one of the values the category has.
+    """
+    return surrogate != mention.surface
+
+
+@SURROGATES.register("checked")
+class Checked:
+    """Wraps a surrogate form with a predicate, redrawing until it passes.
+
+    AM, 2026-09-15: *"It can simply draw again if the check did not pass and just create a new
+    one."*  The redraw is deterministic (see :func:`_redraw`), so stability is untouched: the same
+    entity still reaches the same surrogate everywhere, it is merely a later candidate in that
+    entity's own sequence.
+
+    ``attempts`` is 512 rather than a handful because the date case genuinely needs it.  A random
+    ``dd.mm.yyyy`` is a real date about 3.7 % of the time, so a dozen tries would leave roughly half
+    of them failing; at 512 the chance of exhausting the budget is about 4e-9 per span, which over
+    the study's 448,774 CODE mentions is comfortably below one.  Each attempt is one hash of a short
+    string, so the cost is invisible next to a gateway call.
+    """
+
+    name = "checked"
+
+    def __init__(
+        self,
+        form: SurrogateForm,
+        check: Callable[[str, Mention], bool],
+        attempts: int = 512,
+    ) -> None:
+        self._form = form
+        self._check = check
+        self._attempts = attempts
+        self.redraws = 0
+        """Total extra draws taken.  A rate worth reporting: it says how often the pool or the
+        format generator produces something the condition cannot honestly call a surrogate."""
+
+    @property
+    def inner(self) -> SurrogateForm:
+        return self._form
+
+    def render(self, index: int, mention: Mention, language: str) -> str:
+        for attempt in range(self._attempts):
+            candidate = self._form.render(
+                index if attempt == 0 else _redraw(index, attempt), mention, language
+            )
+            if self._check(candidate, mention):
+                self.redraws += attempt
+                return candidate
+        raise SurrogateRejected(
+            f"no surrogate passed {self._check.__name__} for type={mention.type!r} in "
+            f"{self._attempts} draws; last candidate {candidate!r} for {mention.surface!r}. "
+            "Either the pool is too small to avoid the original, or the check cannot be satisfied."
+        )

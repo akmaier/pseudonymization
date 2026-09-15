@@ -58,7 +58,7 @@ from .engine import PseudonymisedCorpus, PseudonymisedDocument, Pseudonymiser
 from .inventories import Inventory
 from .keys import NORMALISERS, Normaliser, entity_key
 from .policies import POLICIES
-from .surrogates import SURROGATES
+from .surrogates import SURROGATES, code_is_consistent, differs_from_source
 from .techniques import TECHNIQUES
 
 __all__ = ["ConditionSpec", "SPECS", "build", "Unmodified", "NORMALISER", "POLICY", "TECHNIQUE"]
@@ -71,6 +71,13 @@ TECHNIQUE = "hmac"
 
 POOLED = ("PERSON", "LOC", "ORG", "DEMOGRAPHIC")
 """Types condition B renders by drawing from an inventory."""
+
+IDENTITY_CHECKED = ("PERSON", "LOC", "ORG")
+"""Pooled types whose surrogate must differ from the value it replaces.
+
+DEMOGRAPHIC is pooled but deliberately absent: its pools are small and sometimes binary, and forcing
+a difference on a two-valued category makes the mapping invertible.  See
+:func:`~pseudonymkit.surrogates.differs_from_source`."""
 
 CONSTRUCTED = ("CODE",)
 """Types condition B renders by building a string of the same shape — there is no list to draw
@@ -276,14 +283,27 @@ def build(
         # keeps all three inside the surrogate-form axis, so B and C still differ in exactly one
         # level (§7) — which is what makes H2's exchange rate attributable to the condition.
         pooled = SURROGATES.create("realistic", inventory=inventory)
+        # Each renderer is wrapped in a check that redraws until the candidate is acceptable
+        # (AM, 2026-09-15).  The redraw is deterministic, so one entity still reaches one surrogate
+        # corpus-wide — it is simply a later candidate in that entity's own sequence.
+        checked_pool = SURROGATES.create(
+            "checked", form=pooled, check=differs_from_source
+        )
+        code = SURROGATES.create(
+            "checked",
+            form=SURROGATES.create("format_preserving"),
+            check=code_is_consistent,
+        )
         surrogate = SURROGATES.create(
             "routed",
             routes={
-                **{t: pooled for t in POOLED},
-                **{t: SURROGATES.create("format_preserving") for t in CONSTRUCTED},
+                **{t: checked_pool for t in IDENTITY_CHECKED},
+                # DEMOGRAPHIC draws from the same pool but is not identity-checked.
+                **{t: pooled for t in POOLED if t not in IDENTITY_CHECKED},
+                **{t: code for t in CONSTRUCTED},
                 **{t: SURROGATES.create("unchanged") for t in UNCHANGED},
             },
-            default=pooled,
+            default=checked_pool,
         )
     else:
         surrogate = SURROGATES.create("placeholder")
