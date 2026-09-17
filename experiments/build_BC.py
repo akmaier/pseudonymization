@@ -265,7 +265,14 @@ def main() -> int:
             log(f"  redirecting CARDIO:DE output away from {args.out} to {out}")
     out.mkdir(parents=True, exist_ok=True)
 
-    tag = f"{args.rule}-{args.link}{args.iou:g}-{len(detectors)}det"
+    # **The detector *set*, not just its size.** The tag named only the count, so two different
+    # three-detector ensembles under one rule produced the same filename and the second silently
+    # overwrote the first — harmless while the only sources were "all 15 under union" and "all 15
+    # under vote", and a correctness hazard the moment ensembles became an axis (§7, D"). Six hex
+    # characters of a digest over the sorted names distinguishes them; the names themselves are in
+    # the manifest, so the tag stays readable.
+    fingerprint = hashlib.sha256("\x1f".join(sorted(detectors)).encode("utf-8")).hexdigest()[:6]
+    tag = f"{args.rule}-{args.link}{args.iou:g}-{len(detectors)}det-{fingerprint}"
     written = {}
     for condition, patchset in patchsets.items():
         path = out / f"{args.corpus}_{condition}_{tag}.patch.jsonl"
