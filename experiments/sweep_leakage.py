@@ -72,6 +72,44 @@ def is_llm(name: str) -> bool:
     return name.startswith("llm:")
 
 
+def relational_identity(corpus, entity_type, gallery_docs, query_docs) -> tuple[bool, str]:
+    """Whether A3 and A5 have a denominator on this corpus, and why.
+
+    Both attacks link a query mention to a *profile of the same person built from other documents*.
+    That needs an identity the corpus asserts across documents.  Enron has one — the e-mail address —
+    and CARDIO:DE has one because §12.1 constructs recurring patients and a recurring physician pool.
+
+    TAB and OntoNotes do not.  Their co-reference is document-scoped by construction: every gold
+    entity id is prefixed with the document it came from, so **no entity appears in two documents**
+    (checked: 0 of 8,701 in TAB, 0 of 13,230 in OntoNotes).  After
+    :func:`disjoint_document_split`, no query's true identity is in the gallery at all.
+
+    Run anyway, the attacks return Rank-1 = 0 for every span source *and for condition A*, and a
+    reader of that table would conclude that pseudonymisation defeats structural linkage on TAB.  It
+    does not; the attack was never possible.  §2 says report faithfully, so this returns the reason
+    and the caller writes ``null`` with the reason attached rather than a zero that means something
+    else.  :mod:`experiments/run_stability` gives drift the same treatment for the same reason.
+    """
+    gallery_ids, query_ids = set(), set()
+    for doc in corpus:
+        if doc.doc_id in gallery_docs:
+            target = gallery_ids
+        elif doc.doc_id in query_docs:
+            target = query_ids
+        else:
+            continue
+        target.update(m.gold_entity_id for m in doc.mentions
+                      if m.type == entity_type and m.gold_entity_id)
+    shared = gallery_ids & query_ids
+    if shared:
+        return True, (f"{len(shared)} {entity_type} identities appear on both sides of the "
+                      f"document-disjoint split")
+    return False, (f"no {entity_type} identity appears in both the gallery and the query half of "
+                   f"the document-disjoint split ({len(gallery_ids)} and {len(query_ids)} "
+                   f"identities, 0 shared) — co-reference in this corpus is document-scoped, so a "
+                   f"cross-document linkage attack has no true match to find")
+
+
 def subsets(detectors: list[str], max_size: int):
     for size in range(1, max_size + 1):
         yield from itertools.combinations(detectors, size)
@@ -110,12 +148,22 @@ def main() -> int:
     log(f"  gallery {len(gallery)} profiles; document-disjoint split "
         f"{len(gallery_docs)}/{len(query_docs)}")
 
+    relational, why = relational_identity(corpus, args.entity_type, set(gallery_docs),
+                                          set(query_docs))
+    log(f"  A3/A5 {'computable' if relational else 'NOT COMPUTABLE'}: {why}")
+
     # Condition A once: the ceiling every row is read against (§8.4).
-    ceiling = Unmodified().pseudonymise_corpus(documents)
-    a_queries = build_queries(ceiling, args.entity_type, documents=query_docs)
-    a_truth = truth_map(ceiling, args.entity_type)
-    a3_ceiling = StructuralLinkage().run(a_queries, gallery, a_truth, "deterministic", "hmac")
-    log(f"  ceiling A3 on condition A: Rank-1 {a3_ceiling.rank1:.3f}")
+    a3_ceiling_rank1 = None
+    if relational:
+        ceiling = Unmodified().pseudonymise_corpus(documents)
+        a_queries = build_queries(ceiling, args.entity_type, documents=query_docs)
+        a_truth = truth_map(ceiling, args.entity_type)
+        a3_ceiling = StructuralLinkage().run(a_queries, gallery, a_truth, "deterministic", "hmac")
+        a3_ceiling_rank1 = a3_ceiling.rank1
+        log(f"  ceiling A3 on condition A: Rank-1 {a3_ceiling.rank1:.3f}")
+    else:
+        log("  skipping the condition-A ceiling: it would be 0 for the same structural reason, "
+            "which is not a measurement of anything")
 
     cache = DetectorCache(args.cache, args.corpus)
     detectors = sorted(p.stem.replace("__", "/") for p in cache.root.glob("*.jsonl"))
@@ -147,7 +195,7 @@ def main() -> int:
                     continue
                 try:
                     row = _one(names, rule, kwargs, label, documents, cache, index, inventory,
-                               key, gallery, query_docs, args)
+                               key, gallery, query_docs, args, relational)
                 except Exception as exc:          # recorded, never silently skipped (§1)
                     row = {"source": label, "error": f"{type(exc).__name__}: {exc}"}
                 row.update(corpus=args.corpus, entity_type=args.entity_type, size=len(names),
@@ -155,7 +203,9 @@ def main() -> int:
                            ensemble=list(names),
                            llms_only=all(is_llm(n) for n in names),
                            classical=[n for n in names if not is_llm(n)],
-                           a3_ceiling_rank1=a3_ceiling.rank1)
+                           a3_ceiling_rank1=a3_ceiling_rank1,
+                           relational_computable=relational,
+                           relational_note=None if relational else why)
                 handle.write(json.dumps(row) + "\n")
                 os.fsync(handle.fileno())
                 written += 1
@@ -167,7 +217,7 @@ def main() -> int:
 
 
 def _one(names, rule, kwargs, label, documents, cache, index, inventory, key,
-         gallery, query_docs, args) -> dict:
+         gallery, query_docs, args, relational: bool) -> dict:
     """Detection and leakage for one span source, condition B built and discarded in memory."""
     detected, report = detected_documents(
         documents, cache, list(names), rule=rule, rule_kwargs=kwargs
@@ -199,7 +249,11 @@ def _one(names, rule, kwargs, label, documents, cache, index, inventory, key,
 
     queries = build_queries(result, args.entity_type, documents=query_docs)
     truth = truth_map(result, args.entity_type)
-    if queries and truth:
+    # `relational` is a property of the corpus, not of this span source: where co-reference is
+    # document-scoped the gallery and the queries share no identity, so A3 and A5 would report zero
+    # for every row including the condition-A ceiling.  The fields are left absent rather than set
+    # to a zero that would read as "the attack failed".
+    if relational and queries and truth:
         a3 = StructuralLinkage().run(queries, gallery, truth, "deterministic", "hmac")
         row.update(a3_rank1=a3.rank1, a3_rank5=a3.rank5, a3_map=a3.mean_average_precision,
                    a3_queries=a3.queries)
