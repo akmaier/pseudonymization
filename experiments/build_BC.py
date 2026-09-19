@@ -165,7 +165,49 @@ def inventory_for(languages: set[str], documents=None):
         return gazetteer, notes
     compiled, reports = build_attested_inventory(documents, missing)
     notes["attested"] = f"compiled from the corpus's own attested values: {reports}"
-    return merge_inventories(gazetteer, compiled), notes
+    merged = merge_inventories(gazetteer, compiled)
+
+    # **Check the compiled pools before the build, not at the first mention that needs one.**
+    # ``build_attested_inventory`` omits a pair the documents do not attest, and the inventory then
+    # raises — correctly, but from inside :meth:`render`, 5,994 documents into a job, with a message
+    # that names the type and language and nothing about why they are absent.  OntoNotes' `vote` run
+    # died exactly there on ``LOC/ar``.
+    #
+    # The cause is that ``documents`` here is what the *rule* detected, not what the corpus attests.
+    # A precise rule finds fewer Arabic places, so it compiles a smaller pool, and below
+    # ``min_count`` it compiles none — the surrogate inventory shrinks because the detector got more
+    # selective, which is backwards.  (That the pool depends on the detector at all is a confound
+    # worth deciding separately; it is AM's call and is not changed here.)
+    #
+    # The singleton exclusion is a privacy rule with a reason — Carrell's "extremely rare" attribute
+    # — so it is relaxed only for a pair that would otherwise have no pool at all, and the relaxation
+    # is recorded rather than silent.  A pair still empty afterwards stops the run here, named.
+    still_missing = [pair for pair in missing if _uncovered(merged, *pair)]
+    if still_missing:
+        rescued, rescue_reports = build_attested_inventory(documents, still_missing, min_count=1)
+        merged = merge_inventories(merged, rescued)
+        notes["attested_singletons"] = (
+            f"RELAXED min_count to 1 for {still_missing} — nothing else was attested for them under "
+            f"this rule, and the alternative is no pool: {rescue_reports}"
+        )
+        log(f"  inventory: relaxed the singleton exclusion for {still_missing}")
+    unbuildable = [pair for pair in missing if _uncovered(merged, *pair)]
+    if unbuildable:
+        raise SystemExit(
+            f"no surrogate pool for {unbuildable} on {sorted(languages)}: neither §14's gazetteers "
+            f"nor the corpus's own attested values supply one, even with singletons admitted. "
+            f"This is a cell that cannot be built, not one to substitute for (§1). Either the rule "
+            f"detects too few mentions of these types to compile from, or the corpus does not "
+            f"contain them."
+        )
+    return merged, notes
+
+
+def _uncovered(inventory, entity_type: str, language: str) -> bool:
+    try:
+        return inventory.size(entity_type, language) == 0
+    except LookupError:
+        return True
 
 
 def main() -> int:
