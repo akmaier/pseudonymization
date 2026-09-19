@@ -443,9 +443,18 @@ def code_is_consistent(surrogate: str, mention: Mention) -> bool:
     not uniform even within one engine; but a value no reader or parser would accept is not
     "realistic" in the sense the condition claims, and it advertises which spans were replaced.
 
-    So: if the original is date- or time-shaped, the surrogate must be a real date or time.  And the
-    surrogate must differ from the original — a short numeric code can otherwise collide with itself
-    and silently pass the original through.  Anything not date-shaped is only checked for that.
+    So: if the original is a real date or time, the surrogate must be one too.  And the surrogate must
+    differ from the original — a short numeric code can otherwise collide with itself and silently
+    pass the original through.  Anything else is only checked for that.
+
+    **Validity is demanded only where the original has it**, and the qualification is not pedantry.
+    ``_DMY`` matches any ``n.n.nnn`` string, so OntoNotes' citation-like codes are date-*shaped*
+    without being dates: ``2.31.610`` is month 31.  Requiring its surrogate to be a real date fails
+    twice over.  It is unsatisfiable — format preservation keeps the three-digit trailing field, and
+    a three-digit year can never fall in ``PLAUSIBLE_YEARS``, so all 512 draws were rejected before
+    they could differ from one another, which is how the first OntoNotes build died.  And it is
+    backwards: turning a non-date into a valid date makes the surrogate *more* separable from the
+    original, which is the exact failure this check was written to prevent.
     """
     # A span with nothing substitutable in it — a bare "(" , which the union rule really did label
     # CODE — can never differ from itself, because format preservation keeps punctuation in place.
@@ -453,6 +462,8 @@ def code_is_consistent(surrogate: str, mention: Mention) -> bool:
     # no letter and no digit carries no identifier to conceal.  Everything else must change.
     if any(c.isascii() and c.isalnum() for c in mention.surface) and surrogate == mention.surface:
         return False
+    if _date_like(mention.surface) and not _date_valid(mention.surface):
+        return True          # the original is not a real date either; its shape is all we can match
     return _date_valid(surrogate)
 
 
