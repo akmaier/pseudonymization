@@ -84,7 +84,7 @@ def main() -> int:
                 "corpus": args.corpus, "rule": args.rule, "condition": "B", "scope": label,
             }
             rows.append(row)
-            drift = (f"drift {report.drift_rate:.4f}" if cross_document
+            drift = (f"drift {report.drift_rate:.4f}" if report.drift_rate is not None
                      else "drift n/a (document-scoped identity)")
             log(f"  {entity_type:<8} {label:<16} chains {report.chains:>5}  "
                 f"collision {report.collision_rate:.4f}  "

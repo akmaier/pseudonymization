@@ -41,10 +41,21 @@ class StabilityReport:
     fragmented_chains: int
     """Gold chains that received more than one pseudonym within a single document."""
     fragmentation_rate: float
-    drifting_chains: int
-    """Gold chains whose pseudonym differs between documents (needs cross-document identity)."""
-    drift_rate: float
+    drifting_chains: int | None
+    """Gold chains whose pseudonym differs between documents.
+
+    ``None`` unless the scoring ran cross-document, and that is not a formality.  Scored *within* a
+    document the chain key already carries the document id, so "the same chain in two documents"
+    cannot occur and this counter degenerates to :attr:`fragmented_chains` exactly — same numerator,
+    same denominator, a different name.  TAB's first stability run wrote ``drift_rate 0.1462``
+    beside ``fragmentation_rate 0.1462`` for that reason, and on a corpus with no cross-document
+    identity that duplicate was the only drift number on disk.  §2 says results are artefacts on
+    disk rather than claims in prose, so the artefact has to be as careful as the log line.
+    """
+    drift_rate: float | None
     surfaces: int
+    cross_document: bool = False
+    """Whether identity was resolved across documents.  Decides whether drift means anything."""
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -58,6 +69,11 @@ class StabilityReport:
             "drifting_chains": self.drifting_chains,
             "drift_rate": self.drift_rate,
             "surfaces": self.surfaces,
+            "cross_document": self.cross_document,
+            "drift_note": None if self.cross_document else (
+                "not computable: identity is document-scoped in this scope, so drift would be "
+                "fragmentation under another name"
+            ),
         }
 
 
@@ -115,9 +131,10 @@ def evaluate_stability(
         collision_rate=collisions / max(len(chains_per_surface), 1),
         fragmented_chains=fragmented,
         fragmentation_rate=fragmented / n_doc_chains,
-        drifting_chains=drifting,
-        drift_rate=drifting / max(chains, 1),
+        drifting_chains=drifting if cross_document else None,
+        drift_rate=(drifting / max(chains, 1)) if cross_document else None,
         surfaces=len({s for ss in surfaces_per_chain.values() for s in ss}),
+        cross_document=cross_document,
     )
 
 
