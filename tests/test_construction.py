@@ -223,3 +223,46 @@ def test_the_clustering_settings_reach_the_summary(tmp_path):
         [_doc()], cache, ["a"], "union", rule_kwargs={"link": "iou", "iou": 0.7}
     )
     assert summary["link"] == "iou" and summary["iou"] == 0.7
+
+
+def test_a_varying_pool_size_is_recorded_and_flagged_for_a_vote_rule(tmp_path):
+    """A majority threshold derived per document is not the rule the patch set is labelled with.
+
+    MajorityVote with no explicit k uses (n // 2) + 1 over the detectors *present for that
+    document*. Where records were dropped as truncated or never written, n differs between
+    documents, so one is judged at 7 of 13 and its neighbour at 8 of 15 under one name. On Enron
+    that is 56,993 of 58,636 documents; on OntoNotes 5,416 of 5,994. The behaviour is left alone
+    deliberately — changing it changes every condition built on a partial pool — but it must be
+    visible in the summary rather than inferable only from a document count.
+    """
+    from pseudonymkit.detectors.cache import DetectorCache
+
+    cache = DetectorCache(tmp_path, "tab")
+    documents = [
+        Document("full", "Anna met Bob in Bonn.", "en"),
+        Document("short", "Carla met Dan in Kiel.", "en"),
+    ]
+    for name in ("d1", "d2", "d3"):
+        cache.append(name, "full", [Span(0, 4, "Anna", "PERSON")], text=documents[0].text)
+    for name in ("d1", "d2"):                       # "short" is missing d3 entirely
+        cache.append(name, "short", [Span(0, 5, "Carla", "PERSON")], text=documents[1].text)
+
+    _, summary = detected_documents(documents, cache, ["d1", "d2", "d3"], "vote")
+    assert summary["pool_size_histogram"] == {2: 1, 3: 1}
+    assert summary["documents_missing_a_detector"] == 1
+    assert "WARNING_vote_threshold_varies" in summary
+
+
+def test_a_complete_pool_carries_no_warning(tmp_path):
+    from pseudonymkit.detectors.cache import DetectorCache
+
+    cache = DetectorCache(tmp_path, "tab")
+    documents = [Document("a", "Anna met Bob in Bonn.", "en"),
+                 Document("b", "Carla met Dan in Kiel.", "en")]
+    for document in documents:
+        for name in ("d1", "d2", "d3"):
+            cache.append(name, document.doc_id, [Span(0, 4, document.text[:4], "PERSON")],
+                         text=document.text)
+    _, summary = detected_documents(documents, cache, ["d1", "d2", "d3"], "vote")
+    assert summary["pool_size_histogram"] == {3: 2}
+    assert "WARNING_vote_threshold_varies" not in summary

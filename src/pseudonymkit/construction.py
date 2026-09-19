@@ -44,6 +44,8 @@ Three things it refuses to do quietly:
 
 from __future__ import annotations
 
+from collections import Counter
+
 import json
 from dataclasses import dataclass, field, replace as _replace
 from pathlib import Path
@@ -172,6 +174,7 @@ def detected_documents(
     model_detectors = [d for d in detectors if d != "gold"]
 
     pool: dict[str, dict[str, DetectorOutput]] = {}
+    pool_sizes: list[int] = []
     dropped_stale = dropped_truncated = 0
     harmonisation: dict[str, dict[str, object]] = {}
     for name in model_detectors:
@@ -225,6 +228,7 @@ def detected_documents(
                 continue
         if not outputs:
             continue
+        pool_sizes.append(len({o.detector for o in outputs}))
         spans = combinator.combine(outputs)
         voters = _voters(outputs)
         out.append(document.with_mentions(_mentions(document.doc_id, spans, voters)))
@@ -234,11 +238,28 @@ def detected_documents(
         "documents_in": len(documents),
         "documents_out": len(out),
         "documents_missing_a_detector": incomplete,
+        "pool_size_histogram": dict(sorted(Counter(pool_sizes).items())),
         "records_dropped_stale_text": dropped_stale,
         "records_dropped_truncated": dropped_truncated,
         "harmonisation": harmonisation,
         **getattr(combinator, "settings", {"rule": getattr(combinator, "name", str(rule))}),
     }
+    # **A vote threshold that moves between documents is not the rule it is labelled with.**
+    # MajorityVote with no explicit k uses (n // 2) + 1 where n is the number of detectors *present
+    # for that document*, so a document short of two records is judged at 7 of 13 while its
+    # neighbour is judged at 8 of 15. On Enron that is 56,993 of 58,636 documents, and on OntoNotes
+    # 5,416 of 5,994 — in both cases because records were dropped as truncated or were never
+    # written, not because the ensemble was specified differently.
+    #
+    # This is recorded rather than corrected: fixing the threshold to the nominal pool size changes
+    # every condition built on a partial pool, which is a measurement decision and AM's to take
+    # (CLAUDE.md §0.1). What must not happen is that it stays invisible.
+    if len(set(pool_sizes)) > 1 and getattr(combinator, "name", "").startswith("vote"):
+        summary["WARNING_vote_threshold_varies"] = (
+            f"the pool size varies across documents {dict(sorted(Counter(pool_sizes).items()))}, "
+            f"so a majority threshold derived from it varies too; rows built here are not all "
+            f"judged at the same k"
+        )
     if report is not None:
         report.update(summary)
     return out, summary
