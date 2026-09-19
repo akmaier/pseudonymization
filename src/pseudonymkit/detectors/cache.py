@@ -30,6 +30,7 @@ is why :func:`text_digest` is cheap enough to always pass.
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import os
@@ -118,10 +119,20 @@ class DetectorCache:
             "ts": time.time(),
             **(meta or {}),
         }
+        # **An advisory file lock, not a thread lock.** ``O_APPEND`` is atomic only up to
+        # ``PIPE_BUF`` (4 KB) and a record here runs to 13 KB, so two writers can land inside one
+        # another: four records in the cache are two documents concatenated, the first truncated
+        # mid-span. A lock held in the runner cannot prevent that, because the colliding writers were
+        # different *processes* — two gateway runs overlapping across a restart — and a thread lock
+        # is invisible across process boundaries. ``flock`` is not.
         with self.path(detector).open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
-            handle.flush()
-            os.fsync(handle.fileno())
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
     def digests(self, detector: str) -> dict[str, str]:
         """``doc_id -> text_sha256`` for every successful record.  The resume index for a **streamed**

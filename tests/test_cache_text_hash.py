@@ -8,6 +8,8 @@ behaviour that makes that loud instead of silent.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from pseudonymkit.detectors.cache import DetectorCache, text_digest
 from pseudonymkit.domain import Span
 
@@ -94,3 +96,53 @@ def test_a_record_written_before_hashing_existed_is_not_resumable(tmp_path):
     cache = _cache(tmp_path)
     cache.append("llm:x", "d1", [])          # no text=, so no digest
     assert cache.digests("llm:x") == {}
+
+
+# --- concurrent appends must not interleave -----------------------------------------------------
+# Four records in the live cache were two documents concatenated, the first truncated mid-span.
+# O_APPEND is atomic only to PIPE_BUF (4 KB) and a record runs to 13 KB; the colliding writers were
+# two gateway *processes* overlapping across a restart, which no thread lock can serialise.
+
+
+def test_concurrent_appends_from_threads_stay_whole(tmp_path):
+    import json as _json
+    from concurrent.futures import ThreadPoolExecutor
+
+    cache = DetectorCache(tmp_path, "tab")
+    big = "x" * 9000                      # well past PIPE_BUF, like a real span-heavy record
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        list(pool.map(
+            lambda i: cache.append("llm:x", f"d{i}", [Span(0, 4, big, "PERSON")], text=f"t{i}"),
+            range(64)))
+    lines = cache.path("llm:x").read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 64
+    assert all(_json.loads(line)["doc_id"].startswith("d") for line in lines)
+
+
+def test_concurrent_appends_from_separate_processes_stay_whole(tmp_path):
+    """The case that actually happened: two processes, one file, no shared lock but flock."""
+    import json as _json
+    import subprocess
+    import sys as _sys
+    import textwrap
+
+    script = textwrap.dedent(f"""
+        import sys
+        sys.path.insert(0, {str(Path(__file__).resolve().parents[1] / "src")!r})
+        from pseudonymkit.detectors.cache import DetectorCache
+        from pseudonymkit.domain import Span
+        cache = DetectorCache({str(tmp_path)!r}, "tab")
+        big = "y" * 9000
+        tag = sys.argv[1]
+        for i in range(40):
+            cache.append("llm:x", f"{{tag}}{{i}}", [Span(0, 4, big, "PERSON")], text=f"t{{tag}}{{i}}")
+    """)
+    path = tmp_path / "writer.py"
+    path.write_text(script, encoding="utf-8")
+    procs = [subprocess.Popen([_sys.executable, str(path), tag]) for tag in ("a", "b", "c")]
+    for proc in procs:
+        assert proc.wait() == 0
+    lines = (tmp_path / "tab" / "llm:x.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 120
+    for line in lines:
+        _json.loads(line)          # raises if any record was cut into another
