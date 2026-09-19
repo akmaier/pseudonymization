@@ -40,6 +40,7 @@ from pseudonymkit.paths import shared_corpora, cardiode_a, cardiode_conditions
 from pseudonymkit.conditions import POOLED
 from pseudonymkit.construction import construct, detected_documents, write_patchset
 from pseudonymkit.detectors.cache import DetectorCache
+from pseudonymkit.engine import mention_language
 from pseudonymkit.gazetteers import (
     build_inventory,
     load_census_surnames,
@@ -148,15 +149,27 @@ def inventory_for(languages: set[str], documents=None):
     # compiled from the corpus's own attested values (see
     # :func:`pseudonymkit.gazetteers_intl.attested_pool`), which is what this repo already does for
     # Arabic names and what i2b2 did for professions and hospital departments.
+    # **Only the pairs the documents actually contain.**  Iterating POOLED x languages demands a
+    # pool for every combination the corpus *could* have, and OntoNotes' `vote` run then stopped for
+    # want of DEMOGRAPHIC surrogates in three languages and Arabic ORG — none of which it had a
+    # single mention of, because no two detectors agreed on one.  A surrogate is never needed for a
+    # mention that does not exist, and demanding it turns a buildable cell into a refused one.
+    needed = {
+        (mention.type, mention_language(mention, document.language))
+        for document in (documents or ())
+        for mention in document.mentions
+        if mention.type in POOLED
+    }
+    if documents is None:                     # no corpus in hand: fall back to the full cross product
+        needed = {(t, lang) for t in POOLED for lang in languages}
     missing = []
-    for entity_type in POOLED:
-        for language in sorted(languages):
-            try:
-                covered = gazetteer.size(entity_type, language) > 0
-            except LookupError:
-                covered = False
-            if not covered:
-                missing.append((entity_type, language))
+    for entity_type, language in sorted(needed):
+        try:
+            covered = gazetteer.size(entity_type, language) > 0
+        except LookupError:
+            covered = False
+        if not covered:
+            missing.append((entity_type, language))
     if not missing:
         notes["attested"] = "none needed — the gazetteers cover every type and language present"
         return gazetteer, notes

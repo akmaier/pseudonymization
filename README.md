@@ -85,9 +85,18 @@ McNemar by score kind, Benjamini-Hochberg within a task family, an effect size b
 the **original** text, so it cannot measure a loss.
 
 - **The detector's precision, not the pseudonymisation policy, is the dominant lever.** NER agreement
-  under condition B is 0.611 with a permissive union of all fifteen detectors and 0.973 with a
-  three-detector majority vote — same policy, same surrogates, same corpus. Over-detection destroys
+  under condition B is 0.611 with a permissive union of all fifteen detectors and 0.973 when the same
+  fifteen must reach a majority — same policy, same surrogates, same corpus. Over-detection destroys
   more utility than pseudonymisation does.
+- **…but "majority" over fifteen detectors means eight of them, and that removes whole identifier
+  classes rather than trimming recall evenly.** `DEMOGRAPHIC`, `MISC` and `QUANTITY` fall to **zero**
+  mentions on all three corpora scored so far, and `CODE` loses 94 % on TAB and 99 % on OntoNotes.
+  Eleven of the fifteen detectors emit thousands of demographic spans each; eight never overlap on
+  one, because the harmonised label collapses genuinely different categories — Presidio's
+  nationality/religion/politics, GLiNER's PII classes, and an open LLM vocabulary of age, ethnicity
+  and title. So the rule that makes medication IE statistically free is also the rule under which
+  every demographic identifier survives untouched into the released text. The utility gain and the
+  privacy loss have the same cause, and neither is visible in a token-recall column.
 - **Medication extraction is free under a precise rule, and only under one.** A vs B is significant
   under `union` (*q* = 5.6 × 10⁻³) and **not distinguishable from zero** under either three-detector
   ensemble (*q* = 0.94–0.99).
