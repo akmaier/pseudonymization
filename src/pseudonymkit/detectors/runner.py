@@ -82,6 +82,8 @@ def run_detector(
     prompt_version: str | None = None,
     batch_size: int | None = None,
     resume: bool = True,
+    retries: int = 2,
+    retry_wait: float = 2.0,
     progress: Callable[[str], None] | None = None,
 ) -> RunReport:
     """Detect over ``documents``, appending each result to ``cache``.
@@ -90,6 +92,9 @@ def run_detector(
     that raises records the error against **every** document in it and moves on: one document with
     pathological text must not take a whole corpus down with it, and the failed ones are retried on
     the next run because a record carrying an error does not count as done.
+
+    ``retries`` is attempted *in place* first, because the failures actually seen here were
+    transient GPU faults rather than bad documents — see :func:`attempt`.
     """
     docs = list(documents)
     started = time.time()
@@ -121,32 +126,52 @@ def run_detector(
         else:
             failed += 1
 
+    def attempt(call):
+        """Run ``call``, retrying a transient failure before recording one.
+
+        Most GPU failures here are not about the document.  Both privacy-tagger runs that failed on
+        this cluster died on ``NVML_SUCCESS == DriverAPI::get()->nvmlInit_v2_() INTERNAL ASSERT
+        FAILED`` inside torch's caching allocator, in bursts on consecutive documents, on a cluster
+        whose NVML is mismatched on every node.  A bare re-run recovered 8 of Enron's 24 failures and
+        lost 16 new ones to the same assertion, which is the signature of something intermittent
+        rather than of text the detector cannot handle.
+
+        Retrying in place is worth more than retrying the job: the failed documents are otherwise
+        scattered through a 58,636-document pass that has to be scheduled, reloaded and streamed
+        again to reach them.  The error string records how many attempts were made, so a record that
+        does end up as a failure says it was not a single unlucky call.
+        """
+        last = None
+        for index in range(retries + 1):
+            try:
+                return call(), None
+            except Exception as exc:                                   # noqa: BLE001 - recorded
+                last = exc
+                if index < retries:
+                    time.sleep(retry_wait * (index + 1))
+        return None, f"{type(last).__name__}: {last} [after {retries + 1} attempts]"
+
     batched = batch_size and isinstance(detector, BatchDetector)
     step = batch_size or 1
     for offset in range(0, len(todo), step):
         chunk = todo[offset : offset + step]
         t0 = time.time()
         if batched:
-            try:
-                outputs = detector.detect_many(chunk)  # type: ignore[attr-defined]
-            except Exception as exc:                                   # noqa: BLE001 - recorded
-                elapsed = (time.time() - t0) / max(len(chunk), 1)
+            outputs, error = attempt(
+                lambda: detector.detect_many(chunk))  # type: ignore[attr-defined]
+            elapsed = (time.time() - t0) / max(len(chunk), 1)
+            if error is not None:
                 for document in chunk:
-                    record(document.doc_id, None, f"{type(exc).__name__}: {exc}", elapsed)
+                    record(document.doc_id, None, error, elapsed)
             else:
-                elapsed = (time.time() - t0) / max(len(chunk), 1)
                 for document, output in zip(chunk, outputs):
                     record(document.doc_id, output, None, elapsed)
         else:
             for document in chunk:
                 t0 = time.time()
-                try:
-                    output = detector.detect(document)
-                except Exception as exc:                               # noqa: BLE001 - recorded
-                    record(document.doc_id, None, f"{type(exc).__name__}: {exc}",
-                           time.time() - t0)
-                else:
-                    record(document.doc_id, output, None, time.time() - t0)
+                output, error = attempt(lambda doc=document: detector.detect(doc))
+                record(document.doc_id, output if error is None else None, error,
+                       time.time() - t0)
         if progress and (offset // step) % 25 == 24:
             progress(f"  {cache.corpus} / {detector.name}: {written + failed}/{len(todo)}")
 
