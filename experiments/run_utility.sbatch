@@ -20,13 +20,20 @@ mkdir -p "$R/logs"
 cd "$R"
 
 CORPUS="${CORPUS:-cardiode}"
-RULE="${RULE:-union}"
+# **Sequentially, not one job per rule.** Every rule's patch set is scored by the same frozen models
+# through the same gateway, so four parallel jobs would contend for one deployment and finish no
+# sooner in total -- while making each one's throughput, and therefore its ETA, unreadable.
+RULES="${RULES:-${RULE:-union}}"
 
 echo "host      $(hostname)"
-echo "corpus    ${CORPUS}  rule ${RULE}"
+echo "corpus    ${CORPUS}  rules ${RULES}"
 echo "started   $(date -Is)"
 
-PYTHONPATH=src "$R/.venv/bin/python" experiments/run_utility.py \
-    --corpus "${CORPUS}" --rule "${RULE}"
+for RULE in $RULES; do
+    echo
+    echo "=== rule ${RULE} === $(date -Is)"
+    PYTHONPATH=src "$R/.venv/bin/python" experiments/run_utility.py \
+        --corpus "${CORPUS}" --rule "${RULE}"
+done
 
 echo "finished  $(date -Is)"

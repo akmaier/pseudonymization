@@ -24,6 +24,9 @@
 #     V100 (Volta 7.0)          torch.cuda.is_available()  True
 #     Quadro RTX 8000 (7.5)     True
 #     Quadro RTX 6000 (7.5)     True
+#     RTX A6000 (Ampere 8.6)    True  -- added 2026-09-19, and the one to reach for: it is the
+#                               least contended type here, so a small repair job starts at once
+#                               instead of queueing behind the q8000 pair for hours
 #     GTX 1080 Ti / Titan Xp    FALSE — "CUDA error 804: forward compatibility was attempted on
 #                               non supported HW"; the node driver does not match torch 2.5.1+cu121
 #
