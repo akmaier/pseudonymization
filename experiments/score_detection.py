@@ -28,7 +28,13 @@ from pathlib import Path
 from pseudonymkit.detectors.base import DetectorOutput
 from pseudonymkit.detectors.cache import DetectorCache, text_digest
 from pseudonymkit.detectors.combinators import COMBINATORS
-from pseudonymkit.metrics.detection import frequency_weight, prepare, score_prepared, tokenise
+from pseudonymkit.metrics.detection import (
+    ScoringIndex,
+    frequency_weight,
+    prepare,
+    score_prepared,
+    tokenise,
+)
 from pseudonymkit.paths import cardiode_a, condition_a_dir
 from pseudonymkit.serialisation import iter_documents
 from pseudonymkit.taxonomy import Harmoniser, source_for
@@ -83,7 +89,14 @@ def subsets(detectors: list[str], max_size: int):
 
 
 def combine(pool: dict, names: tuple[str, ...], rule: str, kwargs: dict, doc_ids) -> dict:
-    """One span set per document for this subset under this rule."""
+    """One span set per document for this subset under this rule.
+
+    ``doc_ids`` must be documents **every** member covers — see :func:`shared_documents`.  Combining
+    over a document a member is missing does not produce a slightly worse version of the same
+    ensemble, it produces a different operator: ``vote(k=2)`` over a pair present out of three is an
+    intersection, and ``vote(k=3)`` over two is empty.  A row labelled with three detectors would
+    then be measured with two over part of the corpus.
+    """
     if len(names) == 1 and rule == "union":
         return pool[names[0]]                       # the singleton case needs no combinator
     combinator = COMBINATORS.create(rule, **kwargs)
@@ -99,6 +112,26 @@ def combine(pool: dict, names: tuple[str, ...], rule: str, kwargs: dict, doc_ids
     return out
 
 
+def shared_documents(pool: dict, names: tuple[str, ...]) -> set[str]:
+    """Documents every member of the subset actually covers."""
+    return set.intersection(*(set(pool[name]) for name in names))
+
+
+def restrict(index: ScoringIndex, keep: set[str]) -> ScoringIndex:
+    """The same prepared index over a subset of its documents.
+
+    Needed because :func:`score_prepared` walks the index, so a document the subset does not cover
+    would contribute its whole gold to the denominator with no predictions against it — scoring the
+    ensemble down for a detector that was never run rather than for anything it got wrong.
+    """
+    return ScoringIndex(
+        corpus=index.corpus,
+        documents=tuple(d for d in index.documents if d.doc_id in keep),
+        weight_model=index.weight_model,
+        any_coref=index.any_coref,
+    )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -110,6 +143,11 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0, help="cap documents, for a smoke run")
     ap.add_argument("--weight", choices=["uniform", "frequency"], default="frequency",
                     help="token weighting for information-weighted precision; recorded in every row")
+    ap.add_argument("--detectors", nargs="+", default=None,
+                    help="restrict the pool; default every detector in the cache")
+    ap.add_argument("--min-coverage", type=float, default=0.99,
+                    help="skip a subset whose members jointly cover less than this fraction of the "
+                         "corpus, rather than scoring a row that is mostly a smaller ensemble")
     ap.add_argument("--restart", action="store_true",
                     help="discard an existing file instead of resuming from it")
     args = ap.parse_args()
@@ -141,8 +179,18 @@ def main() -> int:
 
     cache = DetectorCache(args.cache, args.corpus)
     pool = load_pool(cache, args.corpus, texts)
+    if args.detectors:
+        missing = [d for d in args.detectors if d not in pool]
+        if missing:
+            raise SystemExit(f"not in the cache for {args.corpus}: {missing}")
+        pool = {d: pool[d] for d in args.detectors}
     detectors = sorted(pool)
     log(f"  detectors: {len(detectors)}")
+    for name in detectors:
+        covered = len(pool[name])
+        if covered < len(documents):
+            log(f"    PARTIAL {name}: {covered}/{len(documents)} documents "
+                f"({covered / len(documents):.1%})")
 
     # gold is a level of axis D (§7) and is the perfect-detection ceiling
     pool["gold"] = {d.doc_id: tuple(m.span for m in d.mentions) for d in documents}
@@ -166,6 +214,17 @@ def main() -> int:
 
     written = len(done)
     started = time.time()
+    skipped: list[tuple[str, int]] = []
+    _indices: dict[frozenset, ScoringIndex] = {}
+
+    def sub_index(keep: set[str]) -> ScoringIndex:
+        """Restricted indices are memoised: subsets sharing an incomplete detector share a coverage
+        set, so on Enron this builds a handful rather than one per row."""
+        key = frozenset(keep)
+        if key not in _indices:
+            _indices[key] = restrict(index, keep)
+        return _indices[key]
+
     with destination.open("a" if done else "w", encoding="utf-8", buffering=1) as handle:
         if "gold" not in done:
             row = score_prepared(index, pool["gold"], detector="gold").as_dict()
@@ -183,11 +242,20 @@ def main() -> int:
                 label = f"{'+'.join(names)}|{rule}{k if k else ''}"
                 if label in done:
                     continue
-                spans = combine(pool, names, rule, kwargs, texts)
-                score = score_prepared(index, spans, detector=label)
+                shared = shared_documents(pool, names)
+                fraction = len(shared) / max(len(documents), 1)
+                if fraction < args.min_coverage:
+                    skipped.append((label, len(shared)))
+                    continue
+                # Score over what the whole subset covers, and say so. Full coverage is the common
+                # case and costs nothing; a partial one is scored honestly on its own denominator
+                # instead of being penalised for documents a member never saw.
+                scoring = index if len(shared) == len(documents) else sub_index(shared)
+                spans = combine(pool, names, rule, kwargs, shared)
+                score = score_prepared(scoring, spans, detector=label)
                 out = score.as_dict()
                 out.update(ensemble=list(names), rule=rule if len(names) > 1 else "single",
-                           k=k, size=len(names))
+                           k=k, size=len(names), coverage=fraction)
                 handle.write(json.dumps(out) + "\n")
                 os.fsync(handle.fileno())
                 written += 1
@@ -196,6 +264,14 @@ def main() -> int:
                 log(f"  {written} span sources scored  {rate:.1f}/s")
 
     log(f"wrote {written} rows to {destination}")
+    if skipped:
+        log(f"  SKIPPED {len(skipped)} span sources below --min-coverage {args.min_coverage}:")
+        for label, n in skipped[:10]:
+            log(f"    {label}  {n}/{len(documents)} documents shared")
+        if len(skipped) > 10:
+            log(f"    ... and {len(skipped) - 10} more")
+        log("  these are not dropped cells: finish detection for the members named above and "
+            "re-run, and the resume will add exactly these rows (§1).")
     return 0
 
 
