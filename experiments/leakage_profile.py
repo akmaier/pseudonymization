@@ -1,0 +1,178 @@
+"""How often an identifier survives — per document, per case, and per entity.
+
+"Sensitivity 0.985" is a token rate over a whole corpus, and it is the least informative way to state
+what a pseudonymisation run left behind.  Three other denominators matter more, and they disagree:
+
+**per entity**   An entity is *protected* only when **every** one of its mentions was caught.  One
+                 missed occurrence of a name puts that person back in the clear however many other
+                 mentions were replaced, so entity exposure is always worse than token recall and
+                 sometimes far worse.
+
+**per document** A released document either does or does not still contain an identifier.  This is
+                 what a reviewer checks and what a data-protection officer asks about, and a corpus
+                 rate of 1.5 % can still mean most documents carry something.
+
+**per case**     Where the corpus has cross-document identity — CARDIO:DE's patients (§12.1),
+                 Enron's mailbox owners — a *case* is the person, not the file.  A case is exposed if
+                 **any** of its documents leaks any of its identifiers, so the rate compounds over a
+                 patient's letters.  TAB and OntoNotes have no cross-document identity (§8.2), so a
+                 case is a document there and the column is reported as such rather than faked.
+
+The sweep aggregates all of this away, so it is recomputed here for the chosen operating points only.
+
+    python experiments/leakage_profile.py --corpus cardiode
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import statistics
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from score_detection import CORPORA, combine, load_pool  # noqa: E402
+
+from pseudonymkit.detectors.cache import DetectorCache  # noqa: E402
+from pseudonymkit.metrics.detection import covered_tokens, tokenise  # noqa: E402
+from pseudonymkit.paths import work_dir  # noqa: E402
+from pseudonymkit.serialisation import iter_documents  # noqa: E402
+
+
+PATIENT_ROLES = frozenset({"patient", "patient_body"})
+"""CARDIO:DE marks who a PERSON mention is: `patient` and `patient_body` against `signature` and
+`referring` for the physicians. The patient is the case."""
+
+
+def case_of(document, corpus: str) -> tuple[str, bool]:
+    """``(case id, is a real case)`` for one document.
+
+    Enron supplies the mailbox owner in ``subject_id``. CARDIO:DE does not use ``subject_id`` at all
+    — §12.1's constructed identity lives in the co-reference chain — so the case is the gold entity
+    of the PERSON mention the corpus marks as the patient. TAB and OntoNotes have no cross-document
+    identity (§8.2), so a case is a document and the caller is told so rather than shown a number
+    that pretends otherwise.
+    """
+    if corpus == "cardiode":
+        for mention in document.mentions:
+            if mention.type == "PERSON" and (mention.attributes or {}).get("role") in PATIENT_ROLES:
+                if mention.gold_entity_id:
+                    return mention.gold_entity_id, True
+        return document.doc_id, False
+    if document.subject_id:
+        return document.subject_id, True
+    return document.doc_id, False
+
+
+def profile(documents, spans_by_doc, corpus: str) -> dict:
+    """Exposure at three denominators for one span source."""
+    per_doc_tokens: list[int] = []
+    docs_exposed = 0
+    entities_total = entities_exposed = 0
+    case_leaks: dict[str, int] = defaultdict(int)
+    cases_seen: set[str] = set()
+    corpus_cases = True
+
+    for document in documents:
+        case, real = case_of(document, corpus)
+        if not real:
+            corpus_cases = False
+        cases_seen.add(case)
+
+        tokens = list(tokenise(document.text))
+        caught = covered_tokens(tokens, spans_by_doc.get(document.doc_id, ()))
+        gold_by_entity: dict[str, set[int]] = defaultdict(set)
+        gold_all: set[int] = set()
+        for mention in document.mentions:
+            indices = covered_tokens(tokens, (mention.span,))
+            gold_all |= indices
+            gold_by_entity[mention.gold_entity_id or mention.mention_id] |= indices
+
+        missed = gold_all - caught
+        per_doc_tokens.append(len(missed))
+        if missed:
+            docs_exposed += 1
+            case_leaks[case] += len(missed)
+        for indices in gold_by_entity.values():
+            if not indices:
+                continue
+            entities_total += 1
+            if indices - caught:
+                entities_exposed += 1
+
+    documents_n = max(len(documents), 1)
+    cases_n = max(len(cases_seen), 1)
+    return {
+        "documents": len(documents),
+        "tokens_leaked": sum(per_doc_tokens),
+        "tokens_per_document_mean": statistics.fmean(per_doc_tokens) if per_doc_tokens else 0.0,
+        "tokens_per_document_median": statistics.median(per_doc_tokens) if per_doc_tokens else 0.0,
+        "documents_exposed": docs_exposed,
+        "documents_exposed_rate": docs_exposed / documents_n,
+        "entities": entities_total,
+        "entities_exposed": entities_exposed,
+        "entities_exposed_rate": entities_exposed / max(entities_total, 1),
+        "cases": len(cases_seen),
+        "cases_are_documents": not corpus_cases,
+        "cases_exposed": len(case_leaks),
+        "cases_exposed_rate": len(case_leaks) / cases_n,
+        "tokens_per_case_mean": (sum(case_leaks.values()) / cases_n) if cases_n else 0.0,
+    }
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--corpus", required=True, choices=sorted(CORPORA))
+    ap.add_argument("--points", type=Path, default=None)
+    ap.add_argument("--cache", type=Path, default=Path("results/detector_cache"))
+    ap.add_argument("--out", type=Path, default=None)
+    args = ap.parse_args()
+
+    points_path = args.points or (work_dir() / "results" / "detection"
+                                  / f"{args.corpus}_operating_points.json")
+    chosen = json.loads(points_path.read_text(encoding="utf-8"))["points"]
+
+    documents = list(iter_documents(CORPORA[args.corpus]()))
+    texts = {d.doc_id: d.text for d in documents}
+    pool = load_pool(DetectorCache(args.cache, args.corpus), args.corpus, texts)
+    print(f"=== {args.corpus}: {len(documents)} documents ===\n")
+
+    out = {}
+    for name, point in chosen.items():
+        rule = point["rule"]
+        kwargs = {"k": 2} if rule == "vote" else {}
+        names = tuple(point["ensemble"])
+        spans = (pool[names[0]] if len(names) == 1
+                 else combine(pool, names, rule if rule != "single" else "union", kwargs, texts))
+        got = profile(documents, spans, args.corpus)
+        out[name] = got | {"ensemble": list(names), "rule": rule,
+                           "sensitivity": point["sensitivity"],
+                           "specificity": point["specificity"]}
+        unit = "documents (no cross-document identity)" if got["cases_are_documents"] else "cases"
+        print(f"{name}  (sensitivity {point['sensitivity']:.3f})")
+        print(f"  per document : {got['tokens_per_document_mean']:6.2f} identifier tokens left "
+              f"(median {got['tokens_per_document_median']:.0f}); "
+              f"{got['documents_exposed']:,}/{got['documents']:,} documents "
+              f"({got['documents_exposed_rate']:.1%}) still carry at least one")
+        print(f"  per case     : {got['cases_exposed']:,}/{got['cases']:,} {unit} "
+              f"({got['cases_exposed_rate']:.1%}) exposed, "
+              f"{got['tokens_per_case_mean']:.2f} tokens each")
+        print(f"  per entity   : {got['entities_exposed']:,}/{got['entities']:,} "
+              f"({got['entities_exposed_rate']:.1%}) keep a mention in the clear\n")
+
+    if args.out:
+        args.out.mkdir(parents=True, exist_ok=True)
+        dest = args.out / f"{args.corpus}_leakage_profile.json"
+        dest.write_text(json.dumps({"corpus": args.corpus, "points": out}, indent=2),
+                        encoding="utf-8")
+        print(f"wrote {dest}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -77,6 +77,32 @@ BAND = 0.10
 """How far below the achievable maximum a "fast" candidate may fall (AM, 2026-09-20)."""
 
 
+def leakage(row: dict) -> dict:
+    """What escapes into the released text at this operating point.
+
+    Sensitivity is a rate; this is the count behind it, and the entity view beside it.  The two say
+    different things and the second is the one that matters for re-identification: an entity counts
+    as *protected* only when **every** one of its mentions was caught, so a single missed occurrence
+    of a name puts that person back in the clear no matter how many other mentions were replaced.
+    Token recall of 0.98 can still leave a fifth of the people in a corpus identifiable.
+    """
+    gold_tokens = row.get("gold_tokens") or 0
+    missed_tokens = gold_tokens - (row.get("true_positive_tokens") or 0)
+    gold_entities = row.get("gold_entities") or 0
+    exposed = gold_entities - (row.get("protected_entities") or 0)
+    documents = row.get("documents") or 1
+    return {
+        "gold_tokens": gold_tokens,
+        "tokens": missed_tokens,
+        "token_rate": missed_tokens / max(gold_tokens, 1),
+        "tokens_per_document": missed_tokens / max(documents, 1),
+        "gold_entities": gold_entities,
+        "entities": exposed,
+        "entity_rate": exposed / max(gold_entities, 1),
+        "entities_per_document": exposed / max(documents, 1),
+    }
+
+
 def select(candidates: list[dict], metric: str) -> dict[str, dict]:
     """The maximum-quality and the fastest-within-band ensemble for one metric.
 
@@ -147,6 +173,11 @@ def main() -> int:
             print(f"  {cell.upper():<4} {r['cost_parallel_s']:7.3f}s  "
                   f"sens {r['token_recall']:.3f}  spec {r['specificity']:.5f}  "
                   f"iwP {r['information_weighted_precision']:.3f}  {r['rule']:<13} {members}")
+            leak = leakage(r)
+            print(f"       leaks {leak['tokens']:,} of {leak['gold_tokens']:,} identifier tokens "
+                  f"({leak['token_rate']:.2%}), {leak['tokens_per_document']:.2f}/document; "
+                  f"{leak['entities']:,} of {leak['gold_entities']:,} entities keep at least one "
+                  f"mention in the clear ({leak['entity_rate']:.2%})")
         print()
 
     if args.out:
@@ -163,7 +194,8 @@ def main() -> int:
                            "cost_serial_s": r["cost_serial_s"],
                            "sensitivity": r["token_recall"], "specificity": r["specificity"],
                            "precision": r["precision"],
-                           "information_weighted_precision": r["information_weighted_precision"]}
+                           "information_weighted_precision": r["information_weighted_precision"],
+                           "leakage": leakage(r)}
                        for n, r in chosen.items()},
         }, indent=2), encoding="utf-8")
         print(f"wrote {destination}")
