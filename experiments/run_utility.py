@@ -25,6 +25,7 @@ import json
 import os
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from pseudonymkit.conditions import Unmodified
@@ -110,6 +111,10 @@ def main() -> int:
     ap.add_argument("--config", type=Path, default=Path("config/llm_api.toml"))
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--out", type=Path, default=Path("results/utility"))
+    ap.add_argument("--concurrency", type=int, default=1,
+                    help="gateway calls in flight at once. Enron is 58,636 documents x 3 "
+                         "conditions per rule; sequentially that is ~11 days a rule, which is not "
+                         "a measurement limit but a driver one")
     ap.add_argument("--restart", action="store_true",
                     help="discard an existing file instead of resuming from it")
     args = ap.parse_args()
@@ -136,39 +141,74 @@ def main() -> int:
     if done:
         log(f"resuming: {len(done)} (condition, task, document) results already on disk")
 
+    def score_one(name, one, result, condition, instrument):
+        """One document through one task. Returns ``(doc_id, vectors, error)`` — never raises.
+
+        Run on a worker thread, so it must not touch ``handle``: every write stays on the main
+        thread.  That is not fastidiousness — the detector cache lost four records to two processes
+        appending 13 KB lines at once, and a single writer is the cheap way not to repeat it.
+        """
+        single = PseudonymisedCorpus(documents=(one,), mapping=result.mapping)
+        try:
+            return one.document.doc_id, _run(name, single, condition, instrument), None
+        except Exception as exc:              # reported, never silently skipped (§1)
+            return one.document.doc_id, None, f"{type(exc).__name__}: {exc}"
+
     with destination.open("a" if done else "w", encoding="utf-8", buffering=1) as handle:
         for name in wanted:
             log(f"=== {name} ===")
+            instrument = _build(name, args)     # once per task, not once per document
             for condition, result in corpora.items():
                 started = time.time()
                 scored = failed = 0
-                for one in result.documents:
-                    key = (condition, name, one.document.doc_id)
-                    if key in done:
-                        continue
-                    single = PseudonymisedCorpus(documents=(one,), mapping=result.mapping)
-                    try:
-                        vectors = _run(name, single, condition, args)
-                    except Exception as exc:          # reported, never silently skipped (§1)
+                todo = [one for one in result.documents
+                        if (condition, name, one.document.doc_id) not in done]
+
+                def emit(doc_id, vectors, error):
+                    """Write one document's result. Main thread only."""
+                    nonlocal rows, failed, scored
+                    if error is not None:
                         failed += 1
                         handle.write(json.dumps({
                             "corpus": args.corpus, "rule": args.rule, "condition": condition,
-                            "task": name, "doc_id": one.document.doc_id,
-                            "error": f"{type(exc).__name__}: {exc}",
+                            "task": name, "doc_id": doc_id, "error": error,
                         }) + "\n")
                         os.fsync(handle.fileno())
                         rows += 1
-                        continue
+                        return
                     for task_key, vector in vectors.items():
-                        for doc_id, score in zip(vector.doc_ids, vector.scores):
+                        for scored_id, score in zip(vector.doc_ids, vector.scores):
                             handle.write(json.dumps({
                                 "corpus": args.corpus, "rule": args.rule, "condition": condition,
-                                "task": task_key, "doc_id": doc_id, "score": score,
+                                "task": task_key, "doc_id": scored_id, "score": score,
                                 "model": args.model,
                             }) + "\n")
                             rows += 1
                     os.fsync(handle.fileno())
                     scored += 1
+
+                # **Chunked, so the corpus is never held whole.** Enron is 58,636 documents per
+                # condition; submitting them all at once would pin every PseudonymisedDocument and
+                # every pending result for the life of the pass. At most `concurrency * 4` are in
+                # flight, which is what the gateway detector already does for the same reason.
+                if args.concurrency > 1:
+                    with ThreadPoolExecutor(max_workers=args.concurrency,
+                                            thread_name_prefix="utility") as pool:
+                        for start in range(0, len(todo), args.concurrency * 4):
+                            chunk = todo[start : start + args.concurrency * 4]
+                            futures = [pool.submit(score_one, name, one, result,
+                                                   condition, instrument)
+                                       for one in chunk]
+                            for future in futures:
+                                emit(*future.result())
+                            rate = scored / max(time.time() - started, 1e-9)
+                            left = (len(todo) - scored) / rate if rate else float("inf")
+                            log(f"  {condition}/{name}: {scored}/{len(todo)}  "
+                                f"{rate * 3600:.0f}/h  eta {left / 3600:.1f}h  failed {failed}")
+                    continue
+
+                for one in todo:
+                    emit(*score_one(name, one, result, condition, instrument))
                     if scored % 25 == 0:
                         rate = scored / max(time.time() - started, 1e-9)
                         left = (len(result.documents) - scored) / rate if rate else float("inf")
@@ -180,23 +220,44 @@ def main() -> int:
     return 0
 
 
-def _run(name: str, result, condition: str, args) -> dict:
-    """One task over one condition.  Returns task key -> ScoreVector."""
+def _build(name: str, args):
+    """The frozen instrument for one task, built **once**.
+
+    This used to live inside :func:`_run`, which is called per document, so ``ner_agreement``
+    constructed a ``PresidioDetector`` and loaded its spaCy pipeline for every document in the
+    corpus. Measured on TAB: 9.6 s per document, of which Presidio's own detection is 0.27 s — the
+    other 9.3 s was rebuilding the model. Over Enron's 58,636 documents times three conditions that
+    is eleven days a rule of pure setup, and it is why concurrency made things *slower* rather than
+    faster: eight threads each building their own spaCy pipeline contend for CPU and for the GIL,
+    and there was no I/O for them to overlap.
+
+    The instrument must be identical across conditions for §8.3's comparison to mean anything, so
+    building it once is not only faster, it is the thing the protocol actually asks for.
+    """
     from pseudonymkit.tasks.models import LlmSingleLabelClassifier, LlmSpanExtractor
 
     if name == "medication_ie":
-        model = LlmSpanExtractor(model=args.model, config_path=args.config)
-        return medication_ie(result, model, condition=condition)
+        return LlmSpanExtractor(model=args.model, config_path=args.config)
     if name == "section_classification":
-        model = LlmSingleLabelClassifier(model=args.model, config_path=args.config)
-        return {"section_classification": section_classification(result, model,
-                                                                 condition=condition)}
+        return LlmSingleLabelClassifier(model=args.model, config_path=args.config)
     if name == "ner_agreement":
         from pseudonymkit.detectors.rule import PresidioDetector
 
         detector = PresidioDetector()
         detector.load()
-        return {"ner_agreement": ner_agreement(result, detector, condition=condition)}
+        return detector
+    raise SystemExit(f"unknown task {name!r}")
+
+
+def _run(name: str, result, condition: str, instrument) -> dict:
+    """One task over one condition, using the instrument :func:`_build` already made."""
+    if name == "medication_ie":
+        return medication_ie(result, instrument, condition=condition)
+    if name == "section_classification":
+        return {"section_classification": section_classification(result, instrument,
+                                                                 condition=condition)}
+    if name == "ner_agreement":
+        return {"ner_agreement": ner_agreement(result, instrument, condition=condition)}
     raise SystemExit(f"unknown task {name!r}")
 
 
