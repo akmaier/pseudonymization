@@ -82,29 +82,42 @@ Three parts of that decision matter and are recorded here because none is infera
   nothing. Maximising it unconstrained selects the emptiest candidate available. The floor (0.5 token
   recall) is reported with every selection.
 
-**Within the 10 % band, fast is one to two orders of magnitude cheaper.**
+**Both error rates are shown for every point.** Reading one alone hides the cost of the other, which
+is the whole reason for choosing sensitivity and specificity as the pair.
 
-| corpus | MAX-sensitivity | FAST-sensitivity | speed-up | sensitivity given up |
-|---|---|---|---|---|
-| CARDIO:DE | 0.985 @ 116.9 s | 0.908 @ **0.263 s** | 444× | 0.077 |
-| TAB | 0.895 @ 14.2 s | 0.826 @ **0.219 s** | 65× | 0.069 |
-| OntoNotes | 0.613 @ 9.45 s | 0.559 @ **5.01 s** | 1.9× | 0.054 |
-| Enron | 0.971 @ 25.6 s | 0.881 @ **0.057 s** | 448× | 0.090 |
+| corpus | operating point | cost | sensitivity | specificity | ensemble |
+|---|---|---:|---:|---:|---|
+| CARDIO:DE | MAX sensitivity | 116.875 s | 0.985 | 0.9751 | deid-roberta + gpt-oss-120b + privacy-tagger (∪) |
+| | **FAST sensitivity** | **0.263 s** | 0.908 | 0.9862 | Stanford |
+| | MAX specificity | 0.694 s | 0.776 | **0.9999** | Stanford + presidio + privacy-tagger (∩) |
+| | FAST specificity | 0.263 s | 0.908 | 0.9862 | Stanford |
+| TAB | MAX sensitivity | 14.210 s | 0.895 | 0.8999 | GLiNER-PII + Mistral-Small + presidio (∪) |
+| | **FAST sensitivity** | **0.219 s** | 0.826 | 0.9303 | GLiNER-v2.1 + xlm-r-ner + Stanford (∪) |
+| | MAX specificity | 29.677 s | 0.505 | 0.9976 | GLiNER-v2.1 + gemma-4-31B + privacy-tagger (vote) |
+| | **FAST specificity** | **0.117 s** | 0.595 | 0.9934 | Stanford |
+| OntoNotes | MAX sensitivity | 9.450 s | 0.613 | 0.9685 | Mistral-Small + gemma-4-31B + presidio (∪) |
+| | FAST sensitivity | 5.009 s | 0.559 | 0.9757 | xlm-r-ner + Magistral-Small + presidio (∪) |
+| | MAX specificity | 9.450 s | 0.506 | 0.9873 | xlm-r-ner + deid-roberta + gemma-4-31B (∪) |
+| | **FAST specificity** | **0.103 s** | 0.515 | 0.9740 | GLiNER-v2.1 + xlm-r-ner + presidio (∪) |
+| Enron | MAX sensitivity | 25.557 s | 0.971 | **0.7721** | Mistral-Small + gpt-oss-120b + presidio (∪) |
+| | **FAST sensitivity** | **0.057 s** | 0.881 | 0.7522 | xlm-r-ner + Stanford + deid-roberta (∪) |
+| | MAX specificity | 20.931 s | 0.588 | 0.9428 | Magistral-Small + gemma-4-31B + gemma-4-E4B (∩) |
+| | FAST specificity | 0.026 s | 0.674 | 0.8787 | Stanford |
 
-| corpus | MAX-specificity | FAST-specificity | speed-up |
-|---|---|---|---|
-| CARDIO:DE | 0.99990 @ 0.694 s | 0.98622 @ **0.263 s** | 2.6× |
-| TAB | 0.99755 @ 29.7 s | 0.99338 @ **0.117 s** | 254× |
-| OntoNotes | 0.98729 @ 9.45 s | 0.97404 @ **0.103 s** | 92× |
-| Enron | 0.94281 @ 20.9 s | 0.87872 @ **0.026 s** | 805× |
+Three things only become visible with both columns present:
 
-**The band binds very differently on the two qualities, and that is itself a result.** Sensitivity
-spans 0.50–0.99 and the 10 % band admits 32–414 of the candidates, so it is a real constraint.
-Specificity spans only 0.86–0.9999 on three corpora — identifiers are a small minority of any text —
-so the band admits *all* of them and FAST-specificity degenerates to "cheapest ensemble above the
-floor". Enron is the exception: 15.5 M tokens and specificity down to 0.70, where the band admits
-330 of 742 and the cell means something. A specificity criterion only discriminates on a corpus
-dense enough in identifiers to move it.
+- **The fast cell is usually not the worse cell.** On CARDIO:DE, FAST sensitivity gives up 0.077
+  sensitivity but is *more* specific than the maximum (0.9862 against 0.9751) and 444× cheaper — it
+  is not a compromise, it is better on one axis and cheaper on both. TAB behaves the same way
+  (0.9303 against 0.8999). Catching the last few identifiers means over-detecting, and over-detection
+  is what the specificity column measures.
+- **On TAB the maximum-specificity cell is dominated.** FAST specificity is 254× cheaper *and* more
+  sensitive (0.595 against 0.505), for 0.0042 of specificity. A criterion optimised in isolation can
+  select an ensemble that nothing else recommends.
+- **Enron's maximum sensitivity costs 23 % of the corpus.** Specificity 0.7721 means nearly a quarter
+  of the non-identifier tokens were replaced too. Catching 97.1 % of identifiers on real e-mail is
+  possible, and the price is a text with a quarter of its ordinary words overwritten — which the
+  sensitivity column alone reports as a triumph.
 
 ## What CARDIO:DE says about utility
 
