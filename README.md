@@ -59,23 +59,36 @@ of any kind reaches 0.985 at 118 s/document — 0.003 recall for 84× the cost. 
 floor of 0.80, the best information-weighted precision is 0.854 using Qwen3.6 at 98.7 s/document,
 against 0.844 all-classical at 0.57 s/document — 0.010 precision for 174×.
 
-So three operating points are named, each chosen **per corpus from that corpus's own sweep** by a
+So **four** operating points are named, each chosen **per corpus from that corpus's own sweep** by a
 stated rule, not by reading a table:
 
 | name | rule | why it exists |
 |---|---|---|
-| **FAST** | best token recall among ensembles costing under 2 s/document | what is deployable on a 58,636-document corpus |
-| **PRECISE** | best information-weighted precision at that corpus's recall floor, cheapest tie-break | over-detection is what destroys utility (below), so this is the utility-preserving choice |
-| **CEILING** | best token recall at any cost | the de-identification reflex, and the number the other two are read against |
+| **FAST** | cheapest ensemble clearing the recall floor | what is deployable on a 58,636-document corpus |
+| **SPECIFIC** | highest specificity — the share of *non*-identifier tokens left alone | the direct measure of how much text pseudonymisation did not touch |
+| **PRECISE** | highest information-weighted precision, cheapest tie-break | a rare identifier counts for more than a common token |
+| **FAST+PRECISE** | most information-weighted precision per second of detection | the joint optimum, where cost is a first-class term |
 
-**The ensembles themselves do not transfer between corpora — only the criteria do.** This was worth
-checking and the answer was the opposite of the expectation. CARDIO:DE's PRECISE point
-(GLiNER-v2.1 + Stanford + privacy-tagger under `vote`) scores token recall 0.910 there and **0.505**
-on TAB; its FAST point falls from 0.982 to 0.693. No size-3 ensemble reaches 0.90 recall on TAB at
-all — the best is 0.895, and unlike CARDIO:DE's it needs an LLM. The reason is in the gold: 85 % of
-CARDIO:DE's replaced tokens are dates, which Presidio and the de-identification encoders catch
-almost for free, while TAB's are eight annotated types in legal prose. An operating point picked on
-one corpus and applied to another would have halved recall without saying so.
+**Specificity is not precision, but on three of the four corpora it selects the same ensemble.**
+Precision asks what share of the *flagged* tokens were identifiers; specificity asks what share of
+the *non*-identifier tokens were correctly left alone. Both are monotone in the false-positive count
+over one candidate set, so they rank it identically unless the negatives are few enough for
+specificity to move. Identifiers are 13.6 % of CARDIO:DE's tokens and less elsewhere, so specificity
+is compressed into 0.974–0.9999 and discriminates weakly. Enron is the exception and the informative
+one: with 15.5 M tokens and the lowest specificities in the study (0.88–0.94) the two criteria
+separate, choosing an intersection of three LLMs against a vote including Presidio.
+
+**FAST and FAST+PRECISE coincide everywhere.** Detection cost spans three orders of magnitude while
+information-weighted precision spans less than two-fold, so any precision-per-second ratio is decided
+by the denominator. That is a finding about the ratio, not a coincidence: cost dominates so
+completely that asking for "precision per second" is asking for "cheap".
+
+| corpus | FAST | SPECIFIC | PRECISE | FAST+PRECISE |
+|---|---|---|---|---|
+| CARDIO:DE | Stanford, 0.263 s, spec 0.986 | Stanford+presidio+privacy-tagger ∩, 1.57 s, spec **0.9999** | = SPECIFIC | = FAST |
+| TAB | Stanford, 0.117 s, spec 0.993 | GLiNER-v2.1+gemma-4-31B+privacy-tagger vote, 30.2 s, spec 0.998 | = SPECIFIC | = FAST |
+| OntoNotes | GLiNER-v2.1+xlm-r-ner+presidio ∪, 0.288 s, spec 0.974 | xlm-r-ner+deid-roberta+gemma-4-31B ∪, 9.65 s, spec 0.987 | = SPECIFIC | = FAST |
+| Enron | Stanford, 0.026 s, spec 0.879 | Magistral+gemma-4-31B+gemma-4-E4B ∩, 35.8 s, spec 0.943 | Mistral-Small+gemma-4-E4B+presidio vote, 25.4 s, iwP 0.725 | = FAST |
 
 ## What CARDIO:DE says about utility
 
