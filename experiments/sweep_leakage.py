@@ -128,6 +128,10 @@ def main() -> int:
                     default=Path.home() / ".config" / "pseudonymkit" / "hmac.key")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--min-coverage", type=float, default=0.99,
+                    help="skip a span source whose members jointly cover less than this fraction "
+                         "of the corpus, rather than attacking a condition built by a different "
+                         "operator on part of it")
     ap.add_argument("--restart", action="store_true")
     args = ap.parse_args()
 
@@ -169,6 +173,17 @@ def main() -> int:
     detectors = sorted(p.stem.replace("__", "/") for p in cache.root.glob("*.jsonl"))
     log(f"  detectors {len(detectors)} ({sum(1 for d in detectors if is_llm(d))} LLM)")
 
+    # **The same coverage floor the detection sweep uses, for the same reason.** A subset is scored
+    # over the documents its members jointly cover; where a member has no record the combinator
+    # silently drops it, so `vote(k=2)` over the two present out of three becomes an intersection
+    # and the row is labelled with an ensemble it was not measured with. On Enron that would be
+    # every subset containing Qwen3.6, which is still detecting.
+    covered = {name: set(cache.digests(name)) for name in detectors}
+    for name, ids in sorted(covered.items()):
+        if len(ids) < len(documents):
+            log(f"    PARTIAL {name}: {len(ids)}/{len(documents)} documents "
+                f"({len(ids) / max(len(documents), 1):.1%})")
+
     args.out.mkdir(parents=True, exist_ok=True)
     destination = args.out / f"{args.corpus}_{args.entity_type}.jsonl"
     done: set[str] = set()
@@ -181,6 +196,7 @@ def main() -> int:
         log(f"  resuming: {len(done)} span sources already done")
 
     written = 0
+    skipped: list[tuple[str, int]] = []
     started = time.time()
     with destination.open("a" if done else "w", encoding="utf-8", buffering=1) as handle:
         for names in subsets(detectors, args.max_size):
@@ -192,6 +208,11 @@ def main() -> int:
                     continue
                 label = f"{'+'.join(names)}|{rule}{k or ''}"
                 if label in done:
+                    continue
+                shared = set.intersection(*(covered[n] for n in names))
+                fraction = len(shared) / max(len(documents), 1)
+                if fraction < args.min_coverage:
+                    skipped.append((label, len(shared)))
                     continue
                 try:
                     row = _one(names, rule, kwargs, label, documents, cache, index, inventory,
@@ -213,6 +234,14 @@ def main() -> int:
                     rate = written / max(time.time() - started, 1e-9)
                     log(f"  {written} sources  {rate * 3600:.0f}/h")
     log(f"wrote {written} rows to {destination}")
+    if skipped:
+        log(f"  SKIPPED {len(skipped)} span sources below --min-coverage {args.min_coverage}:")
+        for label, n in skipped[:10]:
+            log(f"    {label}  {n}/{len(documents)} documents shared")
+        if len(skipped) > 10:
+            log(f"    ... and {len(skipped) - 10} more")
+        log("  not dropped cells: finish detection for the members above and re-run; the resume "
+            "adds exactly these rows (§1).")
     return 0
 
 
