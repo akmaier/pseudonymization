@@ -50,8 +50,38 @@ class Cluster:
         return len(self.voters)
 
     def widest(self) -> Span:
-        """The longest span, earliest on ties — the recall-maximising representative."""
+        """The longest span, earliest on ties."""
         return max(self.spans, key=lambda s: (s.length, -s.start))
+
+    def envelope(self) -> Span:
+        """Everything the cluster's members cover, as one span — the true recall-maximising choice.
+
+        :meth:`widest` was used for this and is not the same thing.  It returns the longest single
+        member, so ``A(0,10)`` with ``B(8,20)`` yielded ``(8,20)`` and the eight characters only A
+        flagged were dropped — a "union" that could *lose* coverage a member had, and a rule that was
+        therefore non-monotone in its detectors.
+
+        The envelope is exactly the set-union here, not an over-approximation, because a cluster is
+        contiguous by construction: :func:`cluster_spans` admits a span only when it starts before
+        the running maximum end, so the members' ranges cannot leave a gap.  The surface is spliced
+        from the members rather than re-sliced from a document, so no document text is needed and the
+        result is exact whenever each member's ``text`` matches its own offsets.
+        """
+        members = sorted(self.spans, key=lambda s: (s.start, s.end))
+        start, end = members[0].start, max(s.end for s in members)
+        parts: list[str] = []
+        cursor = start
+        for span in members:
+            if span.end <= cursor:
+                continue
+            if len(span.text) != span.end - span.start:
+                # A span whose text does not match its offsets cannot be spliced; fall back to the
+                # widest member rather than fabricate a surface.
+                return self.widest()
+            parts.append(span.text[cursor - span.start:])
+            cursor = span.end
+        return Span(start, end, "".join(parts), self.entity_type,
+                    source=members[0].source, type_src=members[0].type_src)
 
     def narrowest(self) -> Span:
         """The shortest span — the precision-maximising representative."""
@@ -165,7 +195,7 @@ class Union(_RuleBase):
     """
 
     name = "union"
-    _representative = staticmethod(Cluster.widest)
+    _representative = staticmethod(Cluster.envelope)
 
     def _keep(self, cluster: Cluster, n_detectors: int) -> bool:
         return True
