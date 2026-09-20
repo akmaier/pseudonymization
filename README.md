@@ -59,36 +59,52 @@ of any kind reaches 0.985 at 118 s/document — 0.003 recall for 84× the cost. 
 floor of 0.80, the best information-weighted precision is 0.854 using Qwen3.6 at 98.7 s/document,
 against 0.844 all-classical at 0.57 s/document — 0.010 precision for 174×.
 
-So **four** operating points are named, each chosen **per corpus from that corpus's own sweep** by a
-stated rule, not by reading a table:
+So four operating points are named — **fast against maximum, on specificity and sensitivity**
+(AM, 2026-09-20) — each chosen per corpus from that corpus's own sweep by a stated rule:
 
-| name | rule | why it exists |
+| | **sensitivity** (identifier tokens caught) | **specificity** (non-identifier tokens left alone) |
 |---|---|---|
-| **FAST** | cheapest ensemble clearing the recall floor | what is deployable on a 58,636-document corpus |
-| **SPECIFIC** | highest specificity — the share of *non*-identifier tokens left alone | the direct measure of how much text pseudonymisation did not touch |
-| **PRECISE** | highest information-weighted precision, cheapest tie-break | a rare identifier counts for more than a common token |
-| **FAST+PRECISE** | most information-weighted precision per second of detection | the joint optimum, where cost is a first-class term |
+| **maximum** | the most caught, at any cost | the most left alone, at any cost |
+| **fast** | the cheapest ensemble still within 10 % of that maximum | the cheapest ensemble still within 10 % of that maximum |
 
-**Specificity is not precision, but on three of the four corpora it selects the same ensemble.**
-Precision asks what share of the *flagged* tokens were identifiers; specificity asks what share of
-the *non*-identifier tokens were correctly left alone. Both are monotone in the false-positive count
-over one candidate set, so they rank it identically unless the negatives are few enough for
-specificity to move. Identifiers are 13.6 % of CARDIO:DE's tokens and less elsewhere, so specificity
-is compressed into 0.974–0.9999 and discriminates weakly. Enron is the exception and the informative
-one: with 15.5 M tokens and the lowest specificities in the study (0.88–0.94) the two criteria
-separate, choosing an intersection of three LLMs against a vote including Presidio.
+Three parts of that decision matter and are recorded here because none is inferable from the numbers:
 
-**FAST and FAST+PRECISE coincide everywhere.** Detection cost spans three orders of magnitude while
-information-weighted precision spans less than two-fold, so any precision-per-second ratio is decided
-by the denominator. That is a finding about the ratio, not a coincidence: cost dominates so
-completely that asking for "precision per second" is asking for "cheap".
+- **Sensitivity and specificity, not precision.** They are the detector's two error rates read
+  against their own denominators, and between them they say what pseudonymisation did and did not
+  touch. Precision mixes the denominators; it is reported beside them, not optimised for.
+- **Cost is the slowest member, not the sum** (AM, 2026-09-20: *"as we can run methods in parallel
+  fast should be the max of the three methods considered"*). The detectors are independent passes
+  over the same text, so adding a cheap detector to a slow one is free — and summing would punish an
+  ensemble for exactly the members that cost nothing. On CARDIO:DE this halves the maximum-specificity
+  ensemble's cost from 1.57 s to 0.69 s without changing the ensemble.
+- **A sensitivity floor is kept, and is not optional.** Specificity is `1 − FP/negatives`, so an
+  ensemble that predicts nothing has no false positives and scores a perfect 1.0 while catching
+  nothing. Maximising it unconstrained selects the emptiest candidate available. The floor (0.5 token
+  recall) is reported with every selection.
 
-| corpus | FAST | SPECIFIC | PRECISE | FAST+PRECISE |
+**Within the 10 % band, fast is one to two orders of magnitude cheaper.**
+
+| corpus | MAX-sensitivity | FAST-sensitivity | speed-up | sensitivity given up |
 |---|---|---|---|---|
-| CARDIO:DE | Stanford, 0.263 s, spec 0.986 | Stanford+presidio+privacy-tagger ∩, 1.57 s, spec **0.9999** | = SPECIFIC | = FAST |
-| TAB | Stanford, 0.117 s, spec 0.993 | GLiNER-v2.1+gemma-4-31B+privacy-tagger vote, 30.2 s, spec 0.998 | = SPECIFIC | = FAST |
-| OntoNotes | GLiNER-v2.1+xlm-r-ner+presidio ∪, 0.288 s, spec 0.974 | xlm-r-ner+deid-roberta+gemma-4-31B ∪, 9.65 s, spec 0.987 | = SPECIFIC | = FAST |
-| Enron | Stanford, 0.026 s, spec 0.879 | Magistral+gemma-4-31B+gemma-4-E4B ∩, 35.8 s, spec 0.943 | Mistral-Small+gemma-4-E4B+presidio vote, 25.4 s, iwP 0.725 | = FAST |
+| CARDIO:DE | 0.985 @ 116.9 s | 0.908 @ **0.263 s** | 444× | 0.077 |
+| TAB | 0.895 @ 14.2 s | 0.826 @ **0.219 s** | 65× | 0.069 |
+| OntoNotes | 0.613 @ 9.45 s | 0.559 @ **5.01 s** | 1.9× | 0.054 |
+| Enron | 0.971 @ 25.6 s | 0.881 @ **0.057 s** | 448× | 0.090 |
+
+| corpus | MAX-specificity | FAST-specificity | speed-up |
+|---|---|---|---|
+| CARDIO:DE | 0.99990 @ 0.694 s | 0.98622 @ **0.263 s** | 2.6× |
+| TAB | 0.99755 @ 29.7 s | 0.99338 @ **0.117 s** | 254× |
+| OntoNotes | 0.98729 @ 9.45 s | 0.97404 @ **0.103 s** | 92× |
+| Enron | 0.94281 @ 20.9 s | 0.87872 @ **0.026 s** | 805× |
+
+**The band binds very differently on the two qualities, and that is itself a result.** Sensitivity
+spans 0.50–0.99 and the 10 % band admits 32–414 of the candidates, so it is a real constraint.
+Specificity spans only 0.86–0.9999 on three corpora — identifiers are a small minority of any text —
+so the band admits *all* of them and FAST-specificity degenerates to "cheapest ensemble above the
+floor". Enron is the exception: 15.5 M tokens and specificity down to 0.70, where the band admits
+330 of 742 and the cell means something. A specificity criterion only discriminates on a corpus
+dense enough in identifiers to move it.
 
 ## What CARDIO:DE says about utility
 

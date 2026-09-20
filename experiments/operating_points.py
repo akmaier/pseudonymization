@@ -1,27 +1,40 @@
-"""The four operating points — fast, specific, precise, and fast-and-precise.
+"""The four operating points: fast against maximum, on specificity and sensitivity.
 
-AM asked which ensembles maximise *fast and precise / specific*, and which maximise *precise / fast*.
-That is four points, and an earlier pass recorded three: it kept FAST and PRECISE, invented a CEILING
-(highest recall at any cost) that had not been asked for, and dropped SPECIFIC entirely — which was
-the one requiring a metric the sweep did not carry.
+AM, 2026-09-20: *"Want fast vs. Maximum on specificity and sensitivity. As we can run methods in
+parallel fast should be the max of the three methods considered. For fast, we exclude solutions that
+are not within 10% of the max."*
 
-**Specificity is not precision.**  Precision asks what share of the tokens the detector *flagged*
-really were identifiers.  Specificity asks what share of the tokens that were *not* identifiers the
-detector correctly left alone.  They answer different questions and they diverge exactly where it
-matters here: identifiers are a small minority of any corpus, so a detector can be mediocre at
-precision and still excellent at specificity, and a permissive ensemble that wrecks utility shows
-that damage far more sharply in specificity than in precision.  Specificity is, in this study, the
-direct measure of how much of the text pseudonymisation left untouched — which is the quantity §8.3's
-utility tasks are indirectly reacting to.
+Two qualities, two cost regimes, four cells:
 
-    specificity = TN / (TN + FP),  over tokens
-                = (negatives - FP) / negatives
-    negatives   = corpus tokens - gold tokens
-    FP          = predicted tokens - true positive tokens
+=================  ======================================  ==================================
+                   **sensitivity** (token recall)          **specificity**
+=================  ======================================  ==================================
+**maximum**        the most identifiers caught, at any     the most non-identifier text left
+                   cost                                    alone, at any cost
+**fast**           the cheapest ensemble still within      the cheapest ensemble still within
+                   10 % of that maximum                    10 % of that maximum
+=================  ======================================  ==================================
 
-Computed post hoc from what the sweep already records, so no sweep is re-run: `gold_tokens`,
-`predicted_tokens` and `true_positive_tokens` are per row, and the corpus token total is a single
-number per corpus.
+**Sensitivity and specificity, not precision.**  They are the two error rates of the detector read
+against their own denominators — sensitivity over the identifier tokens, specificity over everything
+else — and between them they say what a pseudonymisation pipeline did and did not touch.  Precision
+mixes the two denominators and is reported alongside, not optimised for.
+
+**Cost is the *maximum* over the ensemble's members, not their sum.**  The detectors are independent
+passes over the same text and nothing in this pipeline makes one wait for another, so an ensemble run
+in parallel costs what its slowest member costs.  That changes the ranking substantially: summing
+punishes a three-detector ensemble for its two cheap members, and the whole point of the fast cells
+is that adding a fast detector to a slow one is free.
+
+**The 10 % band is relative to the achievable maximum**, so a candidate qualifies when its score is
+at least 0.9 x the best score any candidate reaches.  How much that binds depends on the spread of
+the quality being banded, and the two differ sharply — see the note the driver prints.
+
+**A recall floor is kept for the specificity cells and is not optional.**  Specificity is
+``1 - FP/negatives``; an ensemble that predicts nothing has no false positives and scores a perfect
+1.0 while catching nothing at all.  Maximising specificity without a sensitivity constraint therefore
+selects the emptiest ensemble available, which is not an operating point but a degenerate solution.
+The floor is reported with every selection.
 
     python experiments/operating_points.py --corpus cardiode
 """
@@ -60,24 +73,26 @@ def specificity(row: dict, total_tokens: int) -> float | None:
     return max(0.0, (negatives - false_positives)) / negatives
 
 
-POINTS = {
-    "FAST": {
-        "why": "cheapest ensemble that still clears the recall floor — what is deployable at scale",
-        "key": lambda r: (-r["cost_serial_s"], r["token_recall"]),
-    },
-    "SPECIFIC": {
-        "why": "leaves the most non-identifier text untouched — the direct utility-preserving choice",
-        "key": lambda r: (r["specificity"], -r["cost_serial_s"]),
-    },
-    "PRECISE": {
-        "why": "most of what it replaced deserved replacing — information-weighted, so a rare "
-               "identifier counts for more than a common token",
-        "key": lambda r: (r["information_weighted_precision"], -r["cost_serial_s"]),
-    },
-    "FAST+PRECISE": {
-        "why": "the joint optimum: information-weighted precision bought per second of detection",
-        "key": lambda r: (r["information_weighted_precision"] / max(r["cost_serial_s"], 1e-9),),
-    },
+BAND = 0.10
+"""How far below the achievable maximum a "fast" candidate may fall (AM, 2026-09-20)."""
+
+
+def select(candidates: list[dict], metric: str) -> dict[str, dict]:
+    """The maximum-quality and the fastest-within-band ensemble for one metric.
+
+    Ties on cost are broken by quality, so the fast cell never prefers a worse ensemble that happens
+    to cost the same.
+    """
+    best = max(candidates, key=lambda r: (r[metric], -r["cost_parallel_s"]))
+    threshold = best[metric] * (1.0 - BAND)
+    within = [r for r in candidates if r[metric] >= threshold]
+    fastest = min(within, key=lambda r: (r["cost_parallel_s"], -r[metric]))
+    return {"max": best, "fast": fastest, "threshold": threshold, "within": len(within)}
+
+
+METRICS = {
+    "sensitivity": ("token_recall", "identifier tokens caught"),
+    "specificity": ("specificity", "non-identifier tokens left alone"),
 }
 
 
@@ -104,6 +119,8 @@ def main() -> int:
             continue
         if any(m not in timing for m in row["ensemble"]):
             continue
+        # Parallel: the ensemble costs what its slowest member costs (AM, 2026-09-20).
+        row["cost_parallel_s"] = max(timing[m]["mean_s"] for m in row["ensemble"])
         row["cost_serial_s"] = sum(timing[m]["mean_s"] for m in row["ensemble"])
         row["specificity"] = specificity(row, total)
         if row["specificity"] is None:
@@ -112,32 +129,41 @@ def main() -> int:
     if not candidates:
         raise SystemExit(f"no ensemble clears recall {args.floor} on {args.corpus}")
 
-    print(f"=== {args.corpus}: {len(candidates)} ensembles at token recall >= {args.floor}, "
-          f"{total:,} corpus tokens ===\n")
-    chosen = {}
-    for name, spec in POINTS.items():
-        best = max(candidates, key=spec["key"])
-        chosen[name] = best
-        members = "+".join(m.replace("llm:", "").replace("hf:", "").replace("gliner:", "")
-                           for m in best["ensemble"])
-        print(f"{name}")
-        print(f"  {spec['why']}")
-        print(f"  {best['cost_serial_s']:7.3f}s/doc  tokR {best['token_recall']:.3f}  "
-              f"spec {best['specificity']:.5f}  iwP {best['information_weighted_precision']:.3f}  "
-              f"P {best['precision']:.3f}  rule {best['rule']}")
-        print(f"  {members}\n")
+    print(f"=== {args.corpus}: {len(candidates)} ensembles, {total:,} tokens, "
+          f"sensitivity floor {args.floor} ===")
+    print("cost is the slowest member, not the sum — the detectors run in parallel\n")
+
+    chosen: dict[str, dict] = {}
+    for label, (metric, gloss) in METRICS.items():
+        picked = select(candidates, metric)
+        spread = (min(r[metric] for r in candidates), max(r[metric] for r in candidates))
+        print(f"--- {label} ({gloss}) — observed {spread[0]:.4f} to {spread[1]:.4f}, "
+              f"10 % band admits {picked['within']} of {len(candidates)} ---")
+        for cell in ("max", "fast"):
+            r = picked[cell]
+            members = "+".join(m.replace("llm:", "").replace("hf:", "").replace("gliner:", "")
+                               for m in r["ensemble"])
+            chosen[f"{cell.upper()}-{label.upper()}"] = r
+            print(f"  {cell.upper():<4} {r['cost_parallel_s']:7.3f}s  "
+                  f"sens {r['token_recall']:.3f}  spec {r['specificity']:.5f}  "
+                  f"iwP {r['information_weighted_precision']:.3f}  {r['rule']:<13} {members}")
+        print()
 
     if args.out:
         args.out.mkdir(parents=True, exist_ok=True)
         destination = args.out / f"{args.corpus}_operating_points.json"
         destination.write_text(json.dumps({
-            "corpus": args.corpus, "corpus_tokens": total, "recall_floor": args.floor,
+            "corpus": args.corpus, "corpus_tokens": total, "sensitivity_floor": args.floor,
+            "band": BAND, "cost_model": "parallel: max over members",
+            "decision": "AM, 2026-09-20: fast vs maximum on specificity and sensitivity; "
+                        "parallel cost; fast excludes anything not within 10% of the max",
             "candidates": len(candidates),
             "points": {n: {"ensemble": r["ensemble"], "rule": r["rule"],
-                           "cost_serial_s": r["cost_serial_s"], "token_recall": r["token_recall"],
-                           "specificity": r["specificity"], "precision": r["precision"],
-                           "information_weighted_precision": r["information_weighted_precision"],
-                           "why": POINTS[n]["why"]}
+                           "cost_parallel_s": r["cost_parallel_s"],
+                           "cost_serial_s": r["cost_serial_s"],
+                           "sensitivity": r["token_recall"], "specificity": r["specificity"],
+                           "precision": r["precision"],
+                           "information_weighted_precision": r["information_weighted_precision"]}
                        for n, r in chosen.items()},
         }, indent=2), encoding="utf-8")
         print(f"wrote {destination}")
