@@ -128,6 +128,8 @@ def main() -> int:
                     default=Path.home() / ".config" / "pseudonymkit" / "hmac.key")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--fail-fast", type=int, default=25,
+                    help="abort if the first N span sources all fail; 0 disables")
     ap.add_argument("--min-coverage", type=float, default=0.99,
                     help="skip a span source whose members jointly cover less than this fraction "
                          "of the corpus, rather than attacking a condition built by a different "
@@ -209,6 +211,7 @@ def main() -> int:
         log(f"  resuming: {len(done)} span sources already done")
 
     written = 0
+    errored = 0
     skipped: list[tuple[str, int]] = []
     started = time.time()
     with destination.open("a" if done else "w", encoding="utf-8", buffering=1) as handle:
@@ -243,6 +246,20 @@ def main() -> int:
                 handle.write(json.dumps(row) + "\n")
                 os.fsync(handle.fileno())
                 written += 1
+                errored += "error" in row
+                # **Stop if nothing is working.** Enron's first run wrote 336 rows over four hours
+                # and every one of them was the same LookupError, because the surrogate inventory
+                # was missing a pool the detectors needed. The driver's own progress lines looked
+                # healthy throughout — they count rows, and an error is a row. A sweep whose first
+                # `--fail-fast` results are *all* failures is misconfigured, not unlucky, and the
+                # cheapest thing it can do is say so before spending the allocation.
+                if args.fail_fast and written >= args.fail_fast and errored == written:
+                    raise SystemExit(
+                        f"aborting: all {written} span sources so far failed. Last error: "
+                        f"{row.get('error')}\nThis is a configuration fault, not a run of bad "
+                        f"luck — fix it and restart with --restart, since an error row carries a "
+                        f"source and would otherwise count as done on resume."
+                    )
                 if written % 20 == 0:
                     rate = written / max(time.time() - started, 1e-9)
                     log(f"  {written} sources  {rate * 3600:.0f}/h")
