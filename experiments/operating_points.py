@@ -53,6 +53,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ensemble_cost import latencies, rows  # noqa: E402
 from score_detection import CORPORA  # noqa: E402
 
+from pseudonymkit.conditions import CONSTRUCTED, POOLED, UNCHANGED  # noqa: E402
 from pseudonymkit.detectors.cache import DetectorCache  # noqa: E402
 from pseudonymkit.metrics.detection import tokenise  # noqa: E402
 from pseudonymkit.paths import work_dir  # noqa: E402
@@ -62,6 +63,31 @@ from pseudonymkit.serialisation import iter_documents  # noqa: E402
 def corpus_tokens(corpus: str) -> int:
     """Total tokens, counted the way the scorer counts them."""
     return sum(len(list(tokenise(d.text))) for d in iter_documents(CORPORA[corpus]()))
+
+
+REPLACED = frozenset(POOLED) | frozenset(CONSTRUCTED)
+"""The types condition B replaces. Sensitivity is scored over these and no others."""
+
+
+def sensitivity(row: dict) -> float | None:
+    """Recall over the identifiers condition B actually replaces.
+
+    ``token_recall`` in the sweep is over *every* gold token, and ``UNCHANGED`` — DATETIME, QUANTITY,
+    MISC — is passed through by design (AM, 2026-09-13). That is 84.7 % of CARDIO:DE's gold tokens,
+    45.1 % of TAB's and 35.6 % of OntoNotes'. Selecting an operating point on it means selecting
+    largely on dates nobody intends to replace, and it does not merely blur the ranking — it changes
+    the winner. On CARDIO:DE the all-gold maximum reaches 0.9849 while scoring **0.9328** on the
+    identifiers that matter, where a different ensemble reaches 0.9887 on those. Five and a half
+    points of real sensitivity were being handed over to a metric dominated by dates.
+
+    Specificity needs no such correction: a flagged DATETIME token is routed to ``PassThrough`` and
+    left unchanged, so it costs nothing and is already counted as a true positive rather than a false
+    one.
+    """
+    per_type = row.get("per_type") or {}
+    gold = sum(v[0] for t, v in per_type.items() if t in REPLACED)
+    hit = sum(v[2] for t, v in per_type.items() if t in REPLACED)
+    return (hit / gold) if gold else None
 
 
 def specificity(row: dict, total_tokens: int) -> float | None:
@@ -117,7 +143,7 @@ def select(candidates: list[dict], metric: str) -> dict[str, dict]:
 
 
 METRICS = {
-    "sensitivity": ("token_recall", "identifier tokens caught"),
+    "sensitivity": ("sensitivity", "identifier tokens caught, over the types B replaces"),
     "specificity": ("specificity", "non-identifier tokens left alone"),
 }
 
@@ -141,9 +167,12 @@ def main() -> int:
 
     candidates = []
     for row in rows(path, args.corpus):
-        if row.get("size", 0) > args.max_size or (row.get("token_recall") or 0) < args.floor:
+        if row.get("size", 0) > args.max_size:
             continue
         if any(m not in timing for m in row["ensemble"]):
+            continue
+        row["sensitivity"] = sensitivity(row)
+        if row["sensitivity"] is None or row["sensitivity"] < args.floor:
             continue
         # Parallel: the ensemble costs what its slowest member costs (AM, 2026-09-20).
         row["cost_parallel_s"] = max(timing[m]["mean_s"] for m in row["ensemble"])
@@ -171,7 +200,7 @@ def main() -> int:
                                for m in r["ensemble"])
             chosen[f"{cell.upper()}-{label.upper()}"] = r
             print(f"  {cell.upper():<4} {r['cost_parallel_s']:7.3f}s  "
-                  f"sens {r['token_recall']:.3f}  spec {r['specificity']:.5f}  "
+                  f"sens {r['sensitivity']:.3f}  spec {r['specificity']:.5f}  "
                   f"iwP {r['information_weighted_precision']:.3f}  {r['rule']:<13} {members}")
             leak = leakage(r)
             print(f"       leaks {leak['tokens']:,} of {leak['gold_tokens']:,} identifier tokens "
@@ -185,6 +214,8 @@ def main() -> int:
         destination = args.out / f"{args.corpus}_operating_points.json"
         destination.write_text(json.dumps({
             "corpus": args.corpus, "corpus_tokens": total, "sensitivity_floor": args.floor,
+            "sensitivity_scored_over": sorted(REPLACED),
+            "types_retained_by_design": sorted(UNCHANGED),
             "band": BAND, "cost_model": "parallel: max over members",
             "decision": "AM, 2026-09-20: fast vs maximum on specificity and sensitivity; "
                         "parallel cost; fast excludes anything not within 10% of the max",
@@ -192,7 +223,9 @@ def main() -> int:
             "points": {n: {"ensemble": r["ensemble"], "rule": r["rule"],
                            "cost_parallel_s": r["cost_parallel_s"],
                            "cost_serial_s": r["cost_serial_s"],
-                           "sensitivity": r["token_recall"], "specificity": r["specificity"],
+                           "sensitivity": r["sensitivity"],
+                           "token_recall_all_gold": r["token_recall"],
+                           "specificity": r["specificity"],
                            "precision": r["precision"],
                            "information_weighted_precision": r["information_weighted_precision"],
                            "leakage": leakage(r)}
