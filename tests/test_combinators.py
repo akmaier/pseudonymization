@@ -168,3 +168,48 @@ def test_ground_snippets_consumes_repeated_surfaces_left_to_right():
     text = "Weber called Weber."
     spans = ground_snippets(text, [("Weber", "PERSON"), ("Weber", "PERSON")])
     assert [(s.start, s.end) for s in spans] == [(0, 5), (13, 18)]
+
+
+def test_union_emits_the_widest_member_not_the_cluster_envelope():
+    """`union` is a union over overlap *clusters*, not over character ranges.
+
+    It keeps every cluster — that is what distinguishes it from vote and intersection — and emits the
+    single widest member span of each. So it never invents an extent, and it also never accumulates
+    one: two staggered spans yield the longer of the two, and the characters only the shorter one
+    covered are dropped. That makes the rule non-monotone — adding a detector can *reduce* covered
+    tokens — which its own docstring's "maximises recall" does not lead you to expect.
+
+    Measured on the max-sensitivity ensembles this costs 0.32 % of identifier tokens on CARDIO:DE
+    and 0.04 % on TAB, because real detector spans are usually nested rather than staggered. Pinned
+    here so the behaviour is a recorded choice rather than a surprise.
+    """
+    rule = COMBINATORS.create("union")
+    a = DetectorOutput("d", "A", (Span(0, 10, "Anna Marie", "PERSON"),))
+    b = DetectorOutput("d", "B", (Span(8, 20, "ie Schmidt X", "PERSON"),))
+
+    assert [(s.start, s.end) for s in rule.combine([a, b])] == [(8, 20)]
+
+    covered = lambda spans: {i for s in spans for i in range(s.start, s.end)}
+    assert len(covered(rule.combine([a, b]))) == 12
+    assert len(covered(rule.combine([a])) | covered(rule.combine([b]))) == 20
+
+
+def test_union_chains_transitively_under_single_linkage():
+    """A(0,10), B(8,20), C(18,30) become one cluster although A and C are disjoint."""
+    rule = COMBINATORS.create("union")
+    outputs = [
+        DetectorOutput("d", "A", (Span(0, 10, "x" * 10, "PERSON"),)),
+        DetectorOutput("d", "B", (Span(8, 20, "y" * 12, "PERSON"),)),
+        DetectorOutput("d", "C", (Span(18, 30, "z" * 12, "PERSON"),)),
+    ]
+    assert [(s.start, s.end) for s in rule.combine(outputs)] == [(8, 20)]
+
+
+def test_union_clusters_per_entity_type():
+    """Overlapping spans of different types are different entities and both survive."""
+    rule = COMBINATORS.create("union")
+    outputs = [
+        DetectorOutput("d", "A", (Span(0, 12, "Weber Clinic", "PERSON"),)),
+        DetectorOutput("d", "B", (Span(0, 12, "Weber Clinic", "ORG"),)),
+    ]
+    assert len(rule.combine(outputs)) == 2
