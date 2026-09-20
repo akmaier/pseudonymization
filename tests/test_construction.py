@@ -266,3 +266,61 @@ def test_a_complete_pool_carries_no_warning(tmp_path):
     _, summary = detected_documents(documents, cache, ["d1", "d2", "d3"], "vote")
     assert summary["pool_size_histogram"] == {3: 2}
     assert "WARNING_vote_threshold_varies" not in summary
+
+
+def test_pairs_to_cover_prefers_what_the_caller_states(tmp_path, monkeypatch):
+    """The pools needed are the ones the *replaced spans* use, not the ones the gold happens to have.
+
+    Enron's leakage sweep holds the gold-bearing originals but replaces whatever each detector subset
+    found. Enron's gold is header-derived and carries no ORG, so inferring from it compiled no ORG/en
+    pool, and every detector that found an organisation raised LookupError — 334 of the first 336
+    rows were that one error and nothing else.
+    """
+    import sys
+    from pathlib import Path
+
+    monkeypatch.setenv("PSEUDONYMKIT_DUA", str(tmp_path))   # resolved at import, never guessed
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "experiments"))
+    from build_BC import pairs_to_cover
+
+    gold = [Document("d", "Anna wrote to Globex.", "en",
+                     (Mention("d", "m0", Span(0, 4, "Anna", "PERSON")),))]
+
+    inferred = pairs_to_cover(gold, None, {"en"})
+    assert inferred == {("PERSON", "en")}, "the gold knows nothing about ORG"
+
+    stated = pairs_to_cover(gold, {("PERSON", "en"), ("ORG", "en")}, {"en"})
+    assert ("ORG", "en") in stated, "the caller said a detector will produce ORG spans"
+
+
+def test_pairs_to_cover_falls_back_to_the_cross_product(tmp_path, monkeypatch):
+    """With neither documents nor a stated cover, demand everything the corpus could contain."""
+    import sys
+    from pathlib import Path
+
+    monkeypatch.setenv("PSEUDONYMKIT_DUA", str(tmp_path))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "experiments"))
+    from build_BC import pairs_to_cover
+
+    from pseudonymkit.conditions import POOLED
+
+    every = pairs_to_cover(None, None, {"en", "zh"})
+    assert every == {(t, lang) for t in POOLED for lang in ("en", "zh")}
+
+
+def test_pairs_to_cover_ignores_types_with_no_pool(tmp_path, monkeypatch):
+    """DATETIME and QUANTITY are passed through unchanged, so they never need a surrogate pool."""
+    import sys
+    from pathlib import Path
+
+    monkeypatch.setenv("PSEUDONYMKIT_DUA", str(tmp_path))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "experiments"))
+    from build_BC import pairs_to_cover
+
+    docs = [Document("d", "On 2020-01-01 Anna paid 5 EUR.", "en", (
+        Mention("d", "m0", Span(3, 13, "2020-01-01", "DATETIME")),
+        Mention("d", "m1", Span(14, 18, "Anna", "PERSON")),
+        Mention("d", "m2", Span(24, 29, "5 EUR", "QUANTITY")),
+    ))]
+    assert pairs_to_cover(docs, None, {"en"}) == {("PERSON", "en")}
+    assert pairs_to_cover(None, {("DATETIME", "en"), ("PERSON", "en")}, {"en"}) == {("PERSON", "en")}

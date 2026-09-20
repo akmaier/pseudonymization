@@ -143,9 +143,22 @@ def main() -> int:
         documents = documents[: args.limit]
     corpus = Corpus(args.corpus, tuple(documents))
     key = read_key(args.key_file)
+    cache_for_inventory = DetectorCache(args.cache, args.corpus)
+    detectors_all = sorted(path.stem.replace("__", "/")
+                           for path in cache_for_inventory.root.glob("*.jsonl"))
     log(f"{args.corpus}: {len(documents)} documents, entity type {args.entity_type}")
 
-    inventory, _ = inventory_for({d.language for d in documents}, documents=documents)
+    # **The inventory must cover what any span source might replace, not what the gold contains.**
+    # The sweep builds condition B for every subset of the pool, so the union over all detectors is
+    # the superset of everything that can turn up. The gold is not: on Enron it is header-derived and
+    # carries no ORG at all, which is how 334 of the first 336 rows came back as
+    # ``LookupError: no surrogates for type='ORG'``. Compiling from the union-detected documents also
+    # gives the attested pools the richest evidence available, and costs one extra combine.
+    union_detected, _ = detected_documents(documents, cache_for_inventory, detectors_all, "union")
+    cover = {(m.type, d.language) for d in union_detected for m in d.mentions}
+    log(f"  inventory must cover {len(cover)} (type, language) pairs seen under union")
+    inventory, _ = inventory_for({d.language for d in documents},
+                                 documents=union_detected, cover=cover)
     index = prepare(documents, corpus=args.corpus)
     gallery_docs, query_docs = disjoint_document_split(corpus, seed=args.seed)
     gallery = build_gallery(corpus, args.entity_type, documents=gallery_docs)

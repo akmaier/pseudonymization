@@ -103,7 +103,41 @@ def read_key(path: Path) -> bytes:
     return key
 
 
-def inventory_for(languages: set[str], documents=None):
+
+def pairs_to_cover(documents, cover, languages) -> set[tuple[str, str]]:
+    """The ``(type, language)`` pairs an inventory has to supply surrogates for.
+
+    Three sources, in order of how much the caller actually knows:
+
+    ``cover`` given
+        The caller states them.  Use this whenever the spans that will be replaced are not the
+        mentions on ``documents`` — the leakage sweep is the case: it holds the gold-bearing
+        originals but replaces whatever each detector subset found.
+
+    ``documents`` given
+        Inferred from their mentions.  Right when ``documents`` *are* the detected documents, which
+        is what :mod:`experiments/build_BC` passes.
+
+    neither
+        The full ``POOLED`` x ``languages`` cross product — safe, and what the corpus could contain.
+
+    Inferring from the wrong document set is not a hypothetical: Enron's leakage sweep passed the
+    gold-bearing originals, Enron's gold is header-derived and carries no ORG, so no ORG/en pool was
+    compiled and every detector that found an organisation raised ``LookupError``.  334 of the first
+    336 rows were that one error.
+    """
+    if cover is not None:
+        return {(t, lang) for t, lang in cover if t in POOLED}
+    if documents is None:
+        return {(t, lang) for t in POOLED for lang in languages}
+    return {
+        (mention.type, mention_language(mention, document.language))
+        for document in documents
+        for mention in document.mentions
+        if mention.type in POOLED
+    }
+
+def inventory_for(languages: set[str], documents=None, cover=None):
     """One inventory covering every language the corpus actually contains.
 
     §14's three gazetteers are English only, so a corpus in another language needs its own pool
@@ -154,14 +188,15 @@ def inventory_for(languages: set[str], documents=None):
     # want of DEMOGRAPHIC surrogates in three languages and Arabic ORG — none of which it had a
     # single mention of, because no two detectors agreed on one.  A surrogate is never needed for a
     # mention that does not exist, and demanding it turns a buildable cell into a refused one.
-    needed = {
-        (mention.type, mention_language(mention, document.language))
-        for document in (documents or ())
-        for mention in document.mentions
-        if mention.type in POOLED
-    }
-    if documents is None:                     # no corpus in hand: fall back to the full cross product
-        needed = {(t, lang) for t in POOLED for lang in languages}
+    #
+    # ``documents`` must be the documents carrying *the spans that will be replaced*, not the
+    # corpus's gold. Getting that wrong broke Enron's leakage sweep for four hours: it passed the
+    # gold-bearing originals, Enron's gold is header-derived and carries no ORG, so no ORG/en pool
+    # was compiled and every detector that found an organisation then raised
+    # ``LookupError: no surrogates for type='ORG'``. 334 of its first 336 rows were that error and
+    # nothing else. ``cover`` lets a caller state the pairs it needs outright rather than leave them
+    # inferred from whichever document set was at hand.
+    needed = pairs_to_cover(documents, cover, languages)
     missing = []
     for entity_type, language in sorted(needed):
         try:
