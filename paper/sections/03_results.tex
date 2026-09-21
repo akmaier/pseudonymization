@@ -68,27 +68,31 @@ the detector spans change. TAB and OntoNotes reproduce this ordering in paired p
 Hence, detector precision dominates replacement policy for this measure.
 
 \begin{table}[t]
-  \caption{Utility depends first on which spans are replaced; surrogate form matters chiefly for
-  token-level tasks.}\label{tab:utility}
+  \caption{CARDIO:DE utility. The combination rule moves the scores far more than the choice between
+  surrogates and placeholders does, and the direction of that choice reverses between the
+  token-level and the document-level task.}\label{tab:utility}
   \centering\small
-  \begin{tabular}{@{}llS[table-format=1.3]@{}}
+  \begin{tabular}{@{}l S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3]@{}}
     \toprule
-    Task level & Condition or detector rule & {Score} \\
+    & {original} & \multicolumn{2}{c}{surrogates} & \multicolumn{2}{c}{placeholders} \\
+    \cmidrule(lr){3-4}\cmidrule(lr){5-6}
+    Task & {A} & {permissive} & {precise} & {permissive} & {precise} \\
     \midrule
-    NER agreement & B, permissive union & 0.611 \\
-    NER agreement & B, precise rule & 0.973 \\
-    Token & C, typed placeholder & 0.004 \\
-    Document & B, realistic surrogate & 0.677 \\
-    Document & C, typed placeholder & 0.711 \\
+    Entity agreement (token)      & 1.000 & 0.611 & 0.973 & 0.004 & 0.674 \\
+    Section classification (doc.) & 0.749 & 0.677 & 0.709 & 0.711 & 0.718 \\
+    Medication extraction         & 0.367 & 0.346 & 0.364 & 0.314 & 0.381 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-Surrogates do matter when the output depends on the individual tokens. Typed placeholders collapse
-to 0.004 on the token-level task, whereas realistic replacements preserve syntactic and semantic
-shape. At document level the advantage disappears: the score is 0.677 under surrogates and 0.711
-under placeholders. Replacing a name by another name may help a tagger, but it adds nothing when a
-classifier needs only the surrounding clinical or topical content.
+Surrogates matter when the output depends on the individual tokens. Typed placeholders collapse
+entity agreement to 0.004 under the permissive rule, because every person becomes the same string
+and the tagger has nothing left to align. Yet at document level the advantage disappears, and in
+fact reverses: section classification scores 0.677 under surrogates and 0.711 under placeholders.
+Note that a classifier reading a whole letter does not care which name stood where, so the machinery
+that constructs a realistic replacement buys nothing there. Medication extraction is the clearest
+case of the same point: under the precise rule the difference from the original text is not
+statistically distinguishable from zero.
 
 There is an important caveat to the high agreement. Under the precise rule,
 \SI{98.3}{\percent} of Arabic identifiers and \SI{93.3}{\percent} of Chinese identifiers are never
