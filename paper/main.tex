@@ -1,11 +1,17 @@
-% TrustFMI @ ACCV 2026 — submission 2026-09-25.
+% TrustFMI @ ACCV 2026 — "Trustworthy Foundation Models in Medical Imaging", workshop W01.
+% Submission 2026-09-25. Full paper: 6-8 pages, references excluded.
 %
-% Springer LNCS, from TeX Live's own llncs bundle rather than a downloaded copy: the class and
-% splncs04.bst are already installed, so there is nothing to vendor and nothing to keep in step with
-% upstream. **The page limit and any workshop-specific deviation are NOT yet verified against the
-% call** — README records 6-8 pages full / 4 short, LNCS, via OpenReview, and that is what this is
-% set up for, but the workshop site has not been read. See paper/FORMAT.md.
+% The style files are the official ACCV 2026 author kit
+% (https://accv2026.org/wp-content/uploads/2026/04/ACCV_2026_template.zip), not plain LNCS: accv.sty
+% raises a hard error if the class is not llncs, and refuses to load without `runningheads`.
+%
+% `review` mode is what the submission needs, and it does three things by itself:
+%   * anonymises — it overrides \author, \titlerunning, \authorrunning and \institute, so the author
+%     block is NOT hand-edited and AUTHORS.md stays out of the submission;
+%   * turns on line numbers, which ACCV requires for review and removes at camera-ready;
+%   * prints the paper ID on every page, which is mandatory — replace ***** once OpenReview issues it.
 \documentclass[runningheads]{llncs}
+\usepackage[review,year=2026,ID=*****]{accv}
 
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -14,14 +20,15 @@
 \usepackage{amsmath}
 \usepackage{siunitx}
 \usepackage{microtype}
-\usepackage[hidelinks]{hyperref}
+% pagebackref is recommended for the review version and explicitly not for camera-ready.
+\usepackage[pagebackref,breaklinks,colorlinks,citecolor=blue]{hyperref}
 
 \begin{document}
 
 \title{Pseudonymisation of Text, Evaluated End to End}
-\subtitle{Detection, Utility and Leakage Under One Design}
 
-\author{}                 % AUTHORS.md — middle order unsettled, do not guess
+% Anonymised automatically by accv.sty in `review` mode — do not fill these in for the submission.
+\author{}
 \institute{}
 
 \maketitle
@@ -30,7 +37,9 @@
 % Written last, once the paper is otherwise finished (AM, 2026-09-21).
 \end{abstract}
 
-\keywords{pseudonymisation \and de-identification \and privacy \and evaluation}
+\begin{keywords}
+pseudonymisation \and de-identification \and clinical text \and privacy evaluation
+\end{keywords}
 
 \input{sections/01_introduction}
 \input{sections/02_related_work}
@@ -42,6 +51,8 @@
 \input{sections/08_leakage}
 \input{sections/09_discussion}
 \input{sections/10_limitations}
+
+% No acknowledgements in the review copy: ACCV requires them omitted for anonymity.
 
 \bibliographystyle{splncs04}
 \bibliography{references}
