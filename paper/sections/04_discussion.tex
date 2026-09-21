@@ -1,13 +1,19 @@
 \section{Discussion}\label{sec:discussion}
 
 The strongest result is practical. A cheap ensemble is already a credible deployment on German
-clinical letters. The fast operating point detects \SI{90.8}{\percent} of the identifiers we
-placed, leaves \SI{73.2}{\percent} of letters without a surviving finding, and takes
-\SI{0.25}{s} per document. It is 444 times cheaper than the best ensemble of any kind, which buys
-7.7 percentage points of sensitivity. Under a precise detector, realistic pseudonymisation also
-keeps clinical information extraction statistically indistinguishable from the original text. This
-is the combination a hospital needs: measurable protection without destroying the task for which
-the data are shared.
+clinical letters. The fast operating point detects \SI{89.5}{\percent} of the identifiers we placed
+in \SI{0.30}{s} per document, is \emph{more} specific than the maximum---0.977 against
+0.967---and is 191 times cheaper, which buys the maximum 9.7 percentage points of sensitivity.
+Under a precise detector, realistic pseudonymisation also keeps clinical information extraction
+statistically indistinguishable from the original text. This is the combination a hospital needs:
+measurable protection without destroying the task for which the data are shared.
+
+Yet, the two error rates do not settle the choice. At the maximum point \SI{73.2}{\percent} of
+letters leave with no surviving finding at all; at the fast point only \SI{6.5}{\percent} do, and
+the median letter retains three. Note that this is the same pair of systems that differ by only
+0.097 in sensitivity. Document-level exposure separates them where sensitivity and specificity
+barely do, which is precisely the argument for reporting the denominator a release is actually
+judged on.
 
 The strongest language-model attacker falls from near-perfect ranking to chance in a ten-candidate
 closed world. Yet, frequency matching and context linkage move in opposite directions with recall:
