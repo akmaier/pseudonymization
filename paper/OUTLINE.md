@@ -1,19 +1,36 @@
 # Outline — TrustFMI @ ACCV 2026
 
-Six to eight pages is tight for a study with four corpora and three measurement families, so this
-outline is written against a **budget**: what earns its space, and what gets cut to the repository.
-Section lengths are targets, and they sum to eight.
+**8 pages of content, references free** (verified 2026-09-21 — the call says "excluding
+references"). Only full papers enter the proceedings, so this is a full paper. Section lengths are
+targets and they sum to eight.
+
+**The audience is "Trustworthy Foundation Models in Medical Imaging."** This is a text paper at an
+imaging workshop, and the framing has to carry that rather than hope. Two things make it land:
+
+* The workshop's own concern is **aggregate metrics against patient-level risk** — that is the title
+  of the invited talk on the programme. It is also, exactly, our strongest result: 98.5 % token
+  recall left 94.8 % of patients with an identifier in the clear before the corrections, and 26.8 %
+  of letters and 7.0 % of patients after. **Lead on the denominator, not on "end to end."**
+* CARDIO:DE is the anchor — German cardiology letters, a clinical corpus under a DUA — and the other
+  three corpora are generalisation evidence, not equal partners. Every headline number should be
+  stated on CARDIO:DE first and confirmed elsewhere.
 
 The **abstract is written last** (AM, 2026-09-21) and is not drafted here.
 
 ---
 
-## 1. Introduction — 0.75 p
+## 1. Introduction — 1 p
+
+**Open on the denominator.** A clinical de-identification pipeline reporting 98.5 % token recall
+sounds finished. On 400 cardiology letters that same pipeline left an identifier in the clear for
+**94.8 % of patients**, because a patient is named many times and it takes one survivor. Aggregate
+metrics and patient-level risk are different quantities, and the gap between them is where trust is
+lost.
 
 **The claim.** Text pseudonymisation is evaluated in halves — detection benchmarks measure recall,
 utility papers measure task loss, re-identification papers measure attacks — and almost never on the
-same documents. The consequence is that the field cannot say what a given pseudonymisation *policy*
-costs, because the three costs are never priced against one another.
+same documents. So the field cannot say what a given pseudonymisation *policy* costs, because the
+three costs are never priced against one another.
 
 **What this paper does.** Holds the corpus, the conditions and the statistics fixed, varies the
 pseudonymisation function and policy, and reports detection, utility and leakage from one design over
@@ -181,10 +198,22 @@ rather than all 1,743, chosen on the other corpora's scores.
 
 ---
 
-## What is cut to the repository
+## 11. Stability — 0.5 p  *(restored)*
 
-Stability (collision/fragmentation/drift) is a genuine first — §4.1 says nobody reports it on text —
-but it needs a page to do properly and there is not one. **Proposal: one paragraph in §6 with the
-Enron result** (PERSON drift 0.377, ORG collision 0.173 *and* drift 0.486 — N2 failing in both
-directions at once), and the full table in the repository. If we go to the 8-page limit rather than 6,
-this is the first thing that earns the extra space back.
+With references off the page count there is room, and this is a genuine first: §4.1 records that no
+published work reports collision, fragmentation or drift on text. Small table, three rates, two
+corpora with cross-document identity.
+
+The result that earns the space: **N2 fails in both directions at once on Enron** — ORG collides at
+17.3 % while drifting at 48.6 %, and PERSON drifts at 37.7 % against CARDIO:DE's 5.0 %. The key is
+computed from the surface form, so one person written "Kay Mann", "Mann", "Kay" and
+kay.mann@enron.com receives several surrogates. CARDIO:DE's low figure is an artefact of its
+constructed recurrence, and saying so is the honest reading. This is an argument for the key
+normaliser being a reported axis rather than a fixed default.
+
+## What is still cut to the repository
+
+The full 2,151-source detection sweep and the leakage sweep tables; the per-detector cost profile;
+the statistics protocol's per-family q-values; the corpus construction detail for CARDIO:DE's
+population model. All of it is in the released repository — **but the repository URL cannot appear in
+the submission**, since ACCV's double-blind rules ban external links. It goes in at camera-ready.
