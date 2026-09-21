@@ -40,9 +40,15 @@ def test_a_reasoning_model_gets_far_more_for_the_same_input():
     assert reasoning > 4 * plain
 
 
-def test_a_plain_model_gets_much_less_than_the_old_constant():
-    """Every plain-model truncation on the sweep was a runaway; a loose cap only pays for more of it."""
-    assert TokenBudget.for_model(PLAIN).max_tokens(6000) < 16384 / 4
+def test_a_plain_model_is_still_bounded_well_below_the_old_constant():
+    """The cap is looser than it was, and still far from the 16,384 it replaced.
+
+    The original reasoning — every plain-model truncation on the CARDIO:DE sweep was a runaway, so a
+    loose cap only pays for more of it — held while the only corpus was German clinical text. It did
+    not survive OntoNotes: Phi-4-mini, a plain model, truncated 55.9 % of documents at ratio 1.0, and
+    a truncated reply is discarded whole rather than kept short. Doubled to 2.0 (AM, 2026-09-21).
+    """
+    assert TokenBudget.for_model(PLAIN).max_tokens(6000) < 16384 / 2
 
 
 def test_the_window_is_what_the_family_can_actually_answer():

@@ -52,12 +52,19 @@ __all__ = ["Family", "CONTEXT", "RATIO", "REASONING_MODELS", "SCRIPT_CHARS_PER_T
 
 Family = str
 
-RATIO: Mapping[Family, float] = {"plain": 1.0, "reasoning": 6.0}
-"""Output tokens to allow per input token, by family — the measured p99 rounded up.
+RATIO: Mapping[Family, float] = {"plain": 2.0, "reasoning": 12.0}
+"""Output tokens to allow per input token, by family.
 
-Plain: p99 0.52, max 0.65 → 1.0 leaves 54 % headroom over anything observed.
-Reasoning: p99 4.82, max 5.02 → 6.0 leaves 20 %.
-"""
+Originally the p99 of a 1 % CARDIO:DE sweep rounded up — plain 1.0, reasoning 6.0 — and both were
+too low once a corpus that was not German clinical text arrived. Over OntoNotes, Qwen3.6's
+*completed* English replies run to a median of 6.86 and a maximum of 11.64, so the reasoning cap was
+below the ninetieth percentile of what the model needed and truncated 56.4 % of English documents.
+Phi-4-mini, a plain model at 1.0, truncated 55.9 %.
+
+Doubled to plain 2.0 and reasoning 12.0 (AM, 2026-09-21). The window shrinks in step —
+``p <= (L - reserve) / (1 + r)`` gives a reasoning model 2,442 prompt tokens rather than 4,534 — so
+long documents take more windows, which costs calls rather than content. A truncated reply costs the
+whole document."""
 
 REASONING_MODELS: frozenset[str] = frozenset({
     "gpt-oss-120b",
@@ -96,7 +103,7 @@ DEFAULT_CONTEXT = 32_768
 """Fallback for a model whose limit could not be probed. Conservative on purpose: assuming too much
 truncates, assuming too little only makes the window smaller."""
 
-SCRIPT_CHARS_PER_TOKEN: Mapping[str, float] = {"cjk": 1.0, "arabic": 1.5, "default": 2.5}
+SCRIPT_CHARS_PER_TOKEN: Mapping[str, float] = {"cjk": 1.0, "arabic": 1.0, "default": 2.5}
 """Characters per token **by script**, because one constant is wrong by a factor on two of them.
 
 Measured against what the gateway itself reports for prompt tokens, over OntoNotes:
@@ -114,8 +121,10 @@ replies are dropped entirely by the consumer, so its Chinese sensitivity read 0.
 the documents that survived. The one Chinese-developed model in the pool was being starved of output
 budget on Chinese.
 
-The values err low deliberately: too low only shrinks the window and raises the cap, and neither
-costs a document."""
+**Arabic is set to 1.0 rather than its measured 1.71** (AM, 2026-09-21). Erring low only shrinks the
+window and raises the cap, and both are the safe direction; the measured figure is a mean over
+documents that are 82.6 % diacritised and 31.1 % clitic-fragmented, so the worst case is well below
+it. One-to-one for both non-Latin scripts is the conservative reading of the same measurement."""
 
 
 def chars_per_token(text: str) -> float:
