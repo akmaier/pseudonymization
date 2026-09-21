@@ -26,33 +26,33 @@ The **abstract is written last** and is not drafted here.
 
 ## 1. Introduction — 1.25 p
 
-**1.1 Why this sits at an imaging workshop.**
-Large-scale sharing of clinical data is multimodal by nature: a chest radiograph travels with its
-report, a cardiology study with its discharge letter. Anonymising the pixels and anonymising the
-prose are *different* open problems — defacing and burned-in-text removal on one side, span detection
-and surrogate generation on the other — and solving either alone does not permit sharing. A database
-is releasable only when both halves are. AI is the reason either is now tractable at the scale a
-database needs, and it is also why the guarantees are harder to state: the systems are learned,
-their failures are distributional, and their errors are not uniform across languages or document
-types. Packhäuser et al. showed patients re-identifiable from de-identified chest X-rays; the text
-analogue is what we measure here.
+**No subsections** (AM, 2026-09-21) — short headlines eat space and break the argument into pieces
+that should flow. One continuous passage, in this order:
 
-**1.2 What is unknown.**
-Text anonymisation is evaluated in halves. Detection benchmarks report recall; utility papers report
-task loss; re-identification papers report attack success — almost never on the same documents. So
-nobody can say what a given policy *costs*, because the three costs are never priced against one
-another. And the reported numbers are aggregates: token recall over a corpus, which is not the
-quantity a data-protection officer needs.
+Clinical data is multimodal by nature: a chest radiograph travels with its report, a cardiology study
+with its discharge letter. Anonymising the pixels and anonymising the prose are different open
+problems — defacing and burned-in-text removal on one side, finding the identifiers in running text
+and replacing them on the other — and solving either alone does not permit sharing. A database is
+releasable only when both halves are. AI is the reason either is now tractable at the scale a
+database needs, and also why the guarantees are harder to state: the systems are learned, their
+failures are distributional, and their errors are not uniform across languages or document types.
+Packhäuser et al. re-identified patients from de-identified chest radiographs; this paper measures
+the text analogue.
 
-**1.3 Contribution.**
-One design, four corpora, four languages, three conditions; detection, utility and leakage measured
-on the same documents with the same statistics; the pseudonymisation function and policy as the
-independent variable. Stated as three claims:
+Then the gap: text anonymisation is evaluated in halves — detection benchmarks report recall, utility
+papers report task loss, re-identification papers report attack success, almost never on the same
+documents — so nobody can say what a given policy costs. And the numbers that are reported are
+aggregates over a corpus, which is not the quantity a data-protection officer needs.
+
+Then the contribution: one design, four corpora, four languages, three conditions, measured on the
+same documents with the same statistics. Two claims:
 
 1. The detector's **precision** dominates the pseudonymisation **policy** for utility.
-2. The attack families move in **opposite directions** with detection recall.
-3. Aggregate recall **systematically understates** patient-level exposure, and a consensus rule that
-   looks like a sensible default deletes whole identifier classes and whole languages.
+2. The re-identification attacks move in **opposite directions** with detection recall: better
+   detection protects against one and exposes to another.
+
+*(A third claim about consensus rules deleting identifier classes was removed — it is an observation
+from the results, not a hypothesis the study was designed to test. It stays in §3.1 as a finding.)*
 
 ---
 
@@ -86,11 +86,41 @@ the cheapest ensemble within 10 % of the maximum. A sensitivity floor is not opt
 maximised by detecting nothing.
 
 ### 2.5 Measurements — 0.45 p
-Detection (token and entity level, information-weighted precision); utility (frozen models, NER
-agreement plus two clinical tasks, Wilcoxon/McNemar with Benjamini–Hochberg within a task family);
-leakage (A2 frequency, A3 structural linkage, A4 LLM ranked-candidate, A5 learned relational), each
-with its threat model stated; stability (collision, fragmentation, drift). **Exposure is counted per
-document, per case and per entity**, not only per token.
+Detection (token and entity level, information-weighted precision) and utility (frozen models, NER
+agreement plus two clinical tasks, Wilcoxon or McNemar with Benjamini–Hochberg within a task family).
+**Exposure is counted per document, per case and per entity**, not only per token.
+
+### 2.6 The attacks — 0.5 p  *(expanded; no A-numbers)*
+**Named, not numbered** (AM, 2026-09-21). "A1–A5" is our shorthand and it is opaque to a reader
+meeting it once. Each gets a name, a plain sentence on what the adversary does, and — the part
+usually left out — **what the adversary must already know**:
+
+- **Frequency matching.** Counts how often each surrogate appears and lines that ranking up against
+  a reference distribution of real names. *Needs*: a reference distribution that matches the
+  population. It therefore transfers only where the name distribution is natural, which excludes
+  CARDIO:DE, whose names we placed.
+- **Context linkage.** Builds a profile of each person from the words around their mentions, then
+  matches a profile from the released documents against profiles built from *other* documents.
+  *Needs*: other documents about the same people, and an identity that spans documents at all —
+  which is why it is computable on Enron and CARDIO:DE and not on TAB or OntoNotes.
+- **LLM candidate ranking.** Shows a language model one marked mention in the released document plus
+  a numbered list of ten candidate names, and asks it to rank them. *Needs*: the candidate
+  population, and in one arm a snippet of other text about each candidate. This is a closed world —
+  chance is one in ten — and the paper says so rather than letting 8.7 % read as "8.7 % of people
+  re-identified".
+- **Learned linkage.** The same task as context linkage, but with a model *trained* on part of the
+  data instead of a fixed similarity. *Needs*: everything context linkage needs, plus training
+  examples. The gap between the two measures what learning buys the adversary.
+- A **dictionary lookup** attack is defined in the design and **not run**: there is no unkeyed
+  condition for it to work against.
+
+### 2.7 Stability, and the key normaliser — 0.25 p
+Collision (two people receiving one surrogate), fragmentation (one person receiving several within a
+document) and drift (one person receiving several across documents). These need a name for the rule
+that decides when two mentions are "the same" — we call it the **key normaliser** rather than N0–N4.
+The setting used throughout **casefolds, collapses whitespace, and removes titles and punctuation**,
+so *Dr. Weber* and *weber* agree while *Weber* and *Kay Weber* do not. Stating the rule matters
+because §3.4 shows it failing in both directions at once.
 
 ---
 
@@ -138,23 +168,39 @@ ways. CARDIO:DE's low figure is an artefact of its constructed recurrence, and w
 
 ## 4. Discussion — 1.0 p
 
-**What a practitioner should do.** Take the fast operating point — the expensive one is rarely
-better and never by much. Check what a consensus rule deletes before trusting it. Report per
-language. Report per patient, not only per token. Read Rank-5 as well as Rank-1. Measure specificity,
-because that is where utility is lost.
+**Strengths first** (AM, 2026-09-21), then the weaknesses.
+
+**What works, and works well.** A cheap ensemble is a genuinely good deployment: on German clinical
+letters the fast operating point catches 90.8 % of identifiers we placed, leaves 73.2 % of letters
+with nothing at all, and costs a quarter of a second a document — 444× less than the best ensemble of
+any kind, which buys 7.7 points of sensitivity for that. Pseudonymisation with realistic surrogates
+keeps clinical information extraction statistically indistinguishable from the original text under a
+precise rule, which is the result a hospital needs before it will release anything. And the attacks
+confirm the protection is real: the strongest language-model attacker drops from near-perfect on
+unmodified text to chance inside a ten-candidate closed world.
+
+**Where it is still open.** The **large ensemble is the most promising configuration we have and its
+results are not final.** On CARDIO:DE and TAB it looks strong on both error rates at once, which no
+small ensemble manages, and the runs are still going — the numbers in §3 for that cell are provisional
+and will be replaced before submission. We say which they are rather than leaving the reader to guess.
+
+**What a practitioner should do.** Take the fast operating point unless something specific demands
+more. Check what a consensus rule deletes before trusting it. Report per language. Report per
+patient, not per token. Read the top-five rate as well as the top-one. Measure specificity, because
+that is where utility is lost.
 
 **What this means for multimodal sharing.** The text half is not solved, and its failures are
-*structured* — by language, by identifier class, by document length — in ways an aggregate metric
-hides. A release pipeline that reports one recall number over a mixed-language database is reporting
-the average of results that differ by 40 points.
+*structured* — by language, by identifier class, by document length — in ways an aggregate hides. A
+release pipeline reporting one recall number over a mixed-language database is reporting the average
+of results that differ by 40 points.
 
-**Limitations, stated rather than hedged.** The token budget was mis-set for non-Latin script and the
-multilingual numbers were re-run because of it. The detection table scores truncated replies while
-the conditions drop them. The surrogate inventory depends on which detector found the spans.
-CARDIO:DE's identifiers are constructed, so its detection gold is complete in a way no natural corpus
-is. A3 and A5 are computable on two corpora only. Enron's sweep covers 263 sources chosen on the
-other corpora's scores rather than all 1,743. No corpus annotates public-figure status, so A4's
-stratification is unavailable.
+**Limitations.** The token budget was mis-set for non-Latin script and the multilingual numbers were
+re-run because of it. The detection table scores truncated model replies while the conditions drop
+them. The surrogate inventory depends on which detector found the spans. CARDIO:DE's identifiers are
+constructed, so its detection gold is complete in a way no natural corpus is. Context and learned
+linkage are computable on two corpora only. Enron's sweep covers 263 promising configurations rather
+than all 1,743, chosen on the other corpora's scores. No corpus annotates public-figure status, so
+the candidate-ranking attack cannot be stratified by it.
 
 ---
 
