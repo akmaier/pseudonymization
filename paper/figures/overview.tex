@@ -1,0 +1,58 @@
+\begin{figure}[t]
+  \centering
+  \begin{tikzpicture}[
+      x=1mm,y=1mm,
+      box/.style={draw=blue!55!black, fill=blue!6, rounded corners=1.5mm,
+                  line width=.45pt, align=center, inner sep=2.2mm,
+                  font=\scriptsize},
+      condition/.style={box, draw=teal!65!black, fill=teal!7},
+      measure/.style={box, draw=orange!70!black, fill=orange!8},
+      flow/.style={-{Latex[length=1.8mm]}, line width=.5pt, draw=black!70},
+      bus/.style={line width=.5pt, draw=black!70}
+    ]
+    % Explicit coordinates so nodes are easy to nudge.
+    \coordinate (docc)  at (8,32);
+    \coordinate (detc)  at (38,32);
+    \coordinate (conda) at (72,49);
+    \coordinate (condb) at (72,32);
+    \coordinate (condc) at (72,15);
+    \coordinate (measa) at (116,49);
+    \coordinate (measb) at (116,32);
+    \coordinate (measc) at (116,15);
+    \def\busx{95}   % the vertical rail every condition joins and every measure leaves
+
+    \node[box, minimum width=17mm, minimum height=15mm] (doc) at (docc)
+      {clinical or\\general text};
+    \node[box, minimum width=28mm, minimum height=19mm] (det) at (detc)
+      {detector pool\\\scriptsize rules, encoders, LLMs\\[-.4mm]
+       \scriptsize union / vote / intersection};
+
+    \node[condition, minimum width=25mm] (a) at (conda) {A: unmodified};
+    \node[condition, minimum width=25mm] (b) at (condb) {B: surrogates};
+    \node[condition, minimum width=25mm] (c) at (condc) {C: placeholders};
+
+    \node[measure, minimum width=26mm] (m1) at (measa) {detection\\and exposure};
+    \node[measure, minimum width=26mm] (m2) at (measb) {downstream\\utility};
+    \node[measure, minimum width=26mm] (m3) at (measc) {attacks and\\stability};
+
+    \draw[flow] (doc.east)  -- (det.west);
+    \draw[flow] (det.east) -- (b.west);
+    \draw[flow] (det.east) -- (a.west);
+    \draw[flow] (det.east) -- (c.west);
+
+    % **A bus, not nine crossing arrows.** Every condition is measured by every family, which as
+    % point-to-point edges is a nine-way tangle that says nothing a rail does not say more clearly.
+    \draw[bus] (a.east) -- (\busx,49);
+    \draw[bus] (b.east) -- (\busx,32);
+    \draw[bus] (c.east) -- (\busx,15);
+    \draw[bus] (\busx,15) -- (\busx,49);
+    \fill[black!70] (\busx,32) circle (.6mm);
+    \draw[flow] (\busx,49) -- (m1.west);
+    \draw[flow] (\busx,32) -- (m2.west);
+    \draw[flow] (\busx,15) -- (m3.west);
+  \end{tikzpicture}
+  \caption{One set of detector spans generates three release conditions. Each condition is put
+  through every measurement family on the same documents, so privacy, utility and mapping failures
+  are directly comparable.}
+  \label{fig:overview}
+\end{figure}

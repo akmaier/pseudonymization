@@ -1,8 +1,7 @@
 % TrustFMI @ ACCV 2026 — "Trustworthy Foundation Models in Medical Imaging", workshop W01.
 % Submission 2026-09-25. Full paper: 6-8 pages, references excluded.
 %
-% The style files are the official ACCV 2026 author kit
-% (https://accv2026.org/wp-content/uploads/2026/04/ACCV_2026_template.zip), not plain LNCS: accv.sty
+% The style files are the official ACCV 2026 author kit, not plain LNCS: accv.sty
 % raises a hard error if the class is not llncs, and refuses to load without `runningheads`.
 %
 % `review` mode is what the submission needs, and it does three things by itself:
@@ -19,9 +18,18 @@
 \usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage{siunitx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
 \usepackage{microtype}
 % pagebackref is recommended for the review version and explicitly not for camera-ready.
 \usepackage[pagebackref,breaklinks,colorlinks,citecolor=blue]{hyperref}
+
+% Draft-only marker: every result that is not final must remain conspicuous.
+\newcommand{\provisional}[1]{%
+  \begingroup\setlength{\fboxsep}{1pt}%
+  \colorbox{yellow!35}{\textcolor{red!70!black}{#1}}%
+  \endgroup}
 
 \begin{document}
 

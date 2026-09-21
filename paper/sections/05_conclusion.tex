@@ -1,4 +1,14 @@
 \section{Conclusion}\label{sec:conclusion}
 
-% 0.5 p — both modalities must be anonymised for a database to be releasable; AI makes either
-% possible at scale; for text, the three costs priced against one another on the same documents.
+Safe sharing of clinical databases requires both modalities to be anonymised. A protected image
+does not compensate for a report that names the patient, and a protected report does not remove
+identity from the image. Artificial intelligence makes both tasks possible at scale, but learned
+failures must be measured at the level at which data are released.
+
+For text, we price detection, utility, and re-identification on the same documents. Detector
+precision governs utility more strongly than the choice between realistic surrogates and typed
+placeholders. Better detection protects against context linkage while strengthening the frequency
+signal available to another attacker. Aggregate token recall, in turn, understates exposure at the
+document and patient levels. Hence, there is no single anonymisation score. A release should state
+its operating point, language-specific errors, surviving cases, attack model, and stability. The
+operating points and the measurements behind them will be released with the paper.

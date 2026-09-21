@@ -1,4 +1,34 @@
 \section{Discussion}\label{sec:discussion}
 
-% 1.0 p — what a practitioner should do; what it means for multimodal sharing (failures are
-% structured, not uniform); limitations stated rather than hedged.
+The strongest result is practical. A cheap ensemble is already a credible deployment on German
+clinical letters. The fast operating point detects \SI{90.8}{\percent} of the identifiers we
+placed, leaves \SI{73.2}{\percent} of letters without a surviving finding, and takes
+\SI{0.25}{s} per document. It is 444 times cheaper than the best ensemble of any kind, which buys
+7.7 percentage points of sensitivity. Under a precise detector, realistic pseudonymisation also
+keeps clinical information extraction statistically indistinguishable from the original text. This
+is the combination a hospital needs: measurable protection without destroying the task for which
+the data are shared.
+
+The strongest language-model attacker falls from near-perfect ranking to chance in a ten-candidate
+closed world. Yet, frequency matching and context linkage move in opposite directions with recall:
+stable surrogates remove names but make detected identities easier to count and follow.
+
+The large ensemble is promising but not final. On CARDIO:DE and TAB it appears strong on both error
+rates, which no small ensemble achieves. Its Table~\ref{tab:operating-points} entries are explicitly
+\provisional{provisional}; no quantitative claim relies on them.
+
+For practice, use the fast point unless a release requires more. Audit consensus by identifier
+class, split results by language, and report per patient. Rank-5 should accompany Rank-1, and
+specificity should accompany sensitivity. Note that this requires better denominators, not a new
+model.
+
+Protecting images does not repair a report, or vice versa. Text failures are structured by language,
+class, and document length. A mixed-language recall averages results differing by more than 40
+percentage points and is unsuitable as a release criterion.
+
+Limitations narrow the claim. We repeated multilingual runs after an inadequate non-Latin token
+budget, but detection scoring retains truncated replies that the conditions drop. Surrogates depend
+on detected spans, and CARDIO:DE's constructed gold lacks natural variation. Linkage runs on two
+corpora only. Enron covers 263 promising configurations, selected elsewhere, rather than all 1,743.
+No corpus marks public figures for stratified candidate ranking. These limits define where
+replication is needed.

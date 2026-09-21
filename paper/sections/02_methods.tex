@@ -1,19 +1,115 @@
 \section{Material and Methods}\label{sec:methods}
 
 \subsection{Corpora}\label{sec:corpora}
-% 0.6 p — table, plus the one caveat per corpus that changes how its results read.
+
+Table~\ref{tab:corpora} states each gold standard's provenance because their recall denominators are
+not interchangeable. TAB provides manually annotated identifiers and document-scoped
+co-reference~\cite{pilan2022tab}. OntoNotes covers three languages, but was annotated for
+linguistics, not privacy. A \emph{named entity} is a mention classified as a person, organisation,
+location, or another predefined type. Enron's header-derived gold carries genuine cross-document
+identity. CARDIO:DE is the clinical anchor; its gold identifiers were inserted into an already
+de-identified release.
+
+\begin{table}[t]
+  \caption{The corpora separate domain, language, and gold provenance; missing token statistics
+  remain visible rather than being estimated.}\label{tab:corpora}
+  \centering\small
+  \begin{tabular}{@{}lS[table-format=5.0]S[table-format=7.0]S[table-format=2.1]lll@{}}
+    \toprule
+    Corpus & {Docs} & {Tokens} & {Ment./doc} & Lang. & Gold & Role \\
+    \midrule
+    CARDIO:DE & 400 & 885\,059 & 78.3 & de & constructed & clinical \\
+    TAB & 1268 & 1\,844\,804 & 81.2 & en & manual & legal \\
+    OntoNotes & 5994 & 4\,726\,594 & 45.5 & en/zh/ar & linguistic & multi-genre \\
+    Enron & 58636 & 15\,507\,925 & 14.4 & en & header-derived & e-mail \\
+    \bottomrule
+  \end{tabular}
+
+\end{table}
+
+Each corpus has one limit that changes how its results should be read. In CARDIO:DE, the gold is
+complete only for the identifiers inserted by our construction; moreover, \SI{84.7}{\percent} of
+gold tokens are dates that the transformation does not replace. In TAB, the applicant is typically
+named once but subsequently occurs as ``the applicant'', with a median of 17 role mentions. We
+report OntoNotes separately by language and never pool it. Enron alone provides natural
+cross-document identity.
 
 \subsection{Conditions}\label{sec:conditions}
-% 0.3 p — A/B/C; B and C differ in exactly one axis level.
+
+Condition A is unmodified text. In B, each detected identifier becomes a realistic surrogate that
+remains stable throughout the corpus. Its index comes from HMAC-SHA256, a \emph{keyed hash}: a
+one-way digest that cannot be recomputed without the secret key. In C, the same span becomes an
+unindexed typed placeholder such as \texttt{[PERSON]}. B and C therefore differ only in replacement
+form. The policy follows European guidance~\cite{enisa2021pseudonymisation} and prior e-mail
+pseudonymisation~\cite{eder2019emails}.
+
+Before hashing, we casefold each mention, collapse whitespace, and remove titles and punctuation.
+Thus, \emph{Dr. Weber} and \emph{weber} agree, while \emph{Weber} and \emph{Kay Weber} do not. We
+hold this rule fixed and examine its failures in Sect.~\ref{sec:results-stability}.
+
+Figure~\ref{fig:overview} shows the resulting end-to-end design and matters because every release
+condition is evaluated with all three measurement families on the same documents.
+\input{figures/overview}
 
 \subsection{Detectors and Ensembles}\label{sec:detectors}
-% 0.5 p — fifteen detectors, combination rules, sizes 1-3, and the token budget: script-dependent,
-% and fixed rather than proportional for a reasoning model.
+
+We evaluate 15 frozen detectors: rules, zero-shot and fine-tuned encoders, multilingual and German
+clinical recognisers, and eight gateway language models. Cached spans are combined by union,
+intersection, or a vote of at least $k$ members over single detectors, pairs, and triples.
+
+Output-token limits require particular care. The cost of a model reply depends on script because
+the same visible text may require different numbers of subword tokens. For a reasoning model, much
+of that budget is fixed rather than proportional to input length. A proportional budget truncated
+\SI{92}{\percent} of Chinese replies. We corrected it and repeated the runs because this otherwise
+resembles a detector failure.
 
 \subsection{Operating Points}\label{sec:operating-points}
-% 0.4 p — fast against maximum on sensitivity and specificity; parallel cost; the 10 % band; why a
-% sensitivity floor is not optional.
+
+For each corpus we select a fast and a maximum operating point on sensitivity and specificity.
+Sensitivity is the fraction of gold identifier tokens detected; specificity is the fraction of
+non-identifier tokens left untouched. The rates use separate denominators. Parallel ensemble cost
+is the slowest member's time. The maximum is the best non-dominated configuration; fast is the
+cheapest ensemble within \SI{10}{\percent} of it. A sensitivity floor is mandatory, since detecting
+nothing maximises specificity.
 
 \subsection{Measurements}\label{sec:measurements}
-% 0.45 p — detection, utility, leakage A2-A5 with threat models, stability. Exposure per document,
-% per case and per entity.
+
+Detection is scored at token and entity level. An entity is protected only when every mention in
+its co-reference chain is replaced. We additionally use information-weighted precision, which gives
+more penalty to masking a token that conveyed information not predictable from its remaining
+context. This complements recall. Exposure is counted per document, case, and entity; few leaked
+tokens can still expose many people.
+
+For utility, frozen models analyse all three conditions. We measure named-entity-recognition
+agreement, i.e. span F1 between a model's output on original and transformed text, and two clinical
+tasks: medication information extraction and section classification. Continuous paired scores use
+the Wilcoxon signed-rank test; binary correctness uses McNemar's test. We control the false-discovery
+rate with Benjamini--Hochberg correction within each task family. Original-text performance is
+always reported beside it.
+
+Stability has three denominators. A collision occurs when distinct gold entities receive one
+surrogate. Fragmentation occurs when one entity receives several surrogates within a document.
+Drift occurs when its surrogate changes between documents. These metrics apply to condition B,
+where a mapping exists, rather than to a placeholder that deliberately merges all entities of one
+type.
+
+\subsection{The Attacks}\label{sec:attacks}
+
+\emph{Frequency matching} aligns surrogate and real-name frequency ranks. It requires a matching
+population reference, which CARDIO:DE lacks because we placed its names. \emph{Context linkage}
+matches profiles built from words around a person's mentions. It requires other documents about
+the same cross-document identities, so it runs on Enron and CARDIO:DE, not TAB or OntoNotes.
+
+\emph{LLM candidate ranking} shows a model one marked mention and ten candidate names, with or
+without other text about each candidate. It needs that candidate population and, in the second arm,
+auxiliary text. This is a one-in-ten closed world, not a population re-identification rate.
+\emph{Learned linkage} trains the context-linkage task on entity-disjoint examples. It additionally
+needs labelled training data; its gap to fixed linkage measures the value of learning. Gallery and
+query documents are disjoint. A \emph{dictionary lookup} would hash candidate names, but is defined
+and not run because no condition is unkeyed.
+
+\subsection{Stability and the Key Normaliser}\label{sec:key-normaliser}
+
+The fixed rule deciding whether surface mentions denote one entity casefolds, collapses whitespace,
+and removes titles and punctuation. Note that distinct people may collapse to one key while initials
+and full names remain separate. Section~\ref{sec:results-stability} reports both effects.

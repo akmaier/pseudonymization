@@ -1,16 +1,144 @@
 \section{Results}\label{sec:results}
 
 \subsection{Detection}\label{sec:results-detection}
-% 0.9 p — cost/quality front; the fast cell is usually not the worse cell; nothing transfers;
-% language is not a detail; consensus deletes classes.
+
+Table~\ref{tab:operating-points} is the cost--quality front. It retains all four operating points
+for each corpus so that an inexpensive system is not compared with a maximum-quality system from a
+different denominator. The incomplete cells also show exactly which cluster summaries are still
+needed for the submission draft. All large-ensemble entries are provisional because those runs are
+still in progress.
+
+\begin{table}[t]
+  \caption{Fast and maximum operating points show that cost changes much more than detection
+  quality; highlighted cells are missing or provisional.}\label{tab:operating-points}
+  \centering\scriptsize
+  \begin{tabular}{@{}llccc@{}}
+    \toprule
+    Corpus & Operating point & Sens. & Spec. & Cost (s/doc) \\
+    \midrule
+    CARDIO:DE & fast & 0.908 & \provisional{TBD} & 0.25 \\
+              & maximum & 0.985 & \provisional{TBD} & \provisional{TBD} \\
+              & large-fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+              & large-maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+    TAB       & fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+              & maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+              & large-fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+              & large-maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+    OntoNotes & fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+              & maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+              & large-fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+              & large-maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+    Enron     & fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+              & maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+              & large-fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+              & large-maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+    \bottomrule
+  \end{tabular}
+  % Missing: final operating-point export with sensitivity, specificity and wall-clock cost.
+\end{table}
+
+The fast cell is usually not the worse cell. On CARDIO:DE it gives up 0.077 sensitivity, but is more
+specific than the maximum and 444 times cheaper. It detects \SI{90.8}{\percent} of placed
+identifiers in \SI{0.25}{s} per letter. Across the full comparison, cost spans three orders of
+magnitude while quality changes by less than a factor of two. Moreover, a different ensemble wins
+on each corpus. Thus, there is no detector recipe that transfers unchanged.
+
+Language is not a detail. OntoNotes token sensitivity is 0.983 for English, 0.710 for Chinese, and
+0.549 for Arabic. The pooled value, 0.747, describes none of them. Arabic supplies
+\SI{45}{\percent} of the gold tokens although it supplies only \SI{7}{\percent} of the documents.
+This imbalance makes a pooled score both numerically dominated and operationally misleading.
+
+Consensus also removes whole classes. When eight votes out of 15 are required, DEMOGRAPHIC, MISC,
+and QUANTITY fall
+to zero on all three applicable corpora. CODE loses \SIrange{94}{99}{\percent}, and Arabic
+detection falls to \SI{1.7}{\percent}. The apparent precision gain is therefore not a uniformly
+better detector. It is a decision to stop detecting difficult classes.
 
 \subsection{Utility}\label{sec:results-utility}
-% 0.8 p — precision not policy; surrogates against placeholders; the multilingual caveat, which
-% belongs here rather than in the discussion.
+
+Table~\ref{tab:utility} collects the comparisons that distinguish detector precision from
+replacement policy. Under realistic surrogates, named-entity agreement is 0.611 with the permissive
+union but 0.973 with the precise rule. The condition and surrogate inventory are identical. Only
+the detector spans change. TAB and OntoNotes reproduce this ordering in paired per-document scores.
+Hence, detector precision dominates replacement policy for this measure.
+
+\begin{table}[t]
+  \caption{Utility depends first on which spans are replaced; surrogate form matters chiefly for
+  token-level tasks.}\label{tab:utility}
+  \centering\small
+  \begin{tabular}{@{}llS[table-format=1.3]@{}}
+    \toprule
+    Task level & Condition or detector rule & {Score} \\
+    \midrule
+    NER agreement & B, permissive union & 0.611 \\
+    NER agreement & B, precise rule & 0.973 \\
+    Token & C, typed placeholder & 0.004 \\
+    Document & B, realistic surrogate & 0.677 \\
+    Document & C, typed placeholder & 0.711 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Surrogates do matter when the output depends on the individual tokens. Typed placeholders collapse
+to 0.004 on the token-level task, whereas realistic replacements preserve syntactic and semantic
+shape. At document level the advantage disappears: the score is 0.677 under surrogates and 0.711
+under placeholders. Replacing a name by another name may help a tagger, but it adds nothing when a
+classifier needs only the surrounding clinical or topical content.
+
+There is an important caveat to the high agreement. Under the precise rule,
+\SI{98.3}{\percent} of Arabic identifiers and \SI{93.3}{\percent} of Chinese identifiers are never
+replaced. The downstream model therefore sees nearly the original text. Calling this utility
+``preserved'' without the paired detection result would reward a privacy system for doing little.
 
 \subsection{Leakage}\label{sec:results-leakage}
-% 0.9 p — leakage at each recall level with the denominator held constant; the attacks disagree;
-% A4 and why Rank-1 misleads; what actually survives, per document, per case, per entity.
+
+Recall changes the population available to an attacker. For frequency matching, raw top-1 accuracy
+falls as detection recall rises because the candidate pool grows. When we divide by the chance rate
+for that pool, the trend reverses: lift rises monotonically from 31 to 75 on TAB and from 48 to 91
+on OntoNotes. The denominator must therefore be held constant before attributing a privacy gain to
+recall.
+
+The attacks nevertheless disagree, as Table~\ref{tab:leakage} shows. On Enron, context linkage
+falls from 0.172 to 0.051 as recall rises, whereas the lift of frequency matching holds. The
+unmodified-text ceiling for context linkage is 0.706. Learned linkage is approximately twice as
+successful as fixed context linkage throughout, quantifying what training buys the adversary.
+
+\begin{table}[t]
+  \caption{Leakage measures move in opposite directions with recall and must be read against their
+  own baselines.}\label{tab:leakage}
+  \centering\small
+  \begin{tabular}{@{}llcc@{}}
+    \toprule
+    Corpus & Attack and measure & Low recall & High recall \\
+    \midrule
+    TAB & frequency-matching lift & 31 & 75 \\
+    OntoNotes & frequency-matching lift & 48 & 91 \\
+    Enron & context-linkage Rank-1 & 0.172 & 0.051 \\
+    TAB & LLM Rank-1, A $\rightarrow$ B & 0.999 & 0.087 \\
+    TAB & LLM Rank-5, condition B & \multicolumn{2}{c}{0.514} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Rank-1 alone can also overstate protection. On TAB, LLM candidate ranking drops from 0.999 on
+unmodified text to 0.087 after pseudonymisation. Yet, Rank-5 remains 0.514. With ten candidates,
+chance Rank-1 is 0.100 and chance Rank-5 is 0.500. Condition B therefore reduces this attacker to
+guessing inside the stated closed world; it does not establish anonymity outside that world.
+
+Finally, token leakage understates what survives. At maximum sensitivity on CARDIO:DE,
+\SI{26.8}{\percent} of letters still carry at least one finding and \SI{73.2}{\percent} are clean.
+At patient level, \SI{7.0}{\percent} retain a name in the clear. These denominators answer different
+questions: one leaked token, one affected letter, and one exposed patient are not interchangeable.
+The full report therefore retains the distribution of surviving findings per document, because one
+residual mention and seven give an attacker different evidence.
 
 \subsection{Stability}\label{sec:results-stability}
-% 0.4 p — first collision, fragmentation and drift on text; N2 failing in both directions at once.
+
+The stability metrics expose simultaneous under- and over-merging by the key normaliser. On Enron,
+ORGANISATION surrogates collide at \SI{17.3}{\percent} while drifting at
+\SI{48.6}{\percent}. PERSON surrogates drift at \SI{37.7}{\percent}, compared with
+\SI{5.0}{\percent} on CARDIO:DE. The surface-form rule collapses unrelated organisations that share
+a short name, yet separates one person written with a full name, surname, title, or initials.
+CARDIO:DE's low drift is not evidence that the rule generalises. Its recurrence was constructed and
+has fewer natural variants. These collision, fragmentation, and drift measurements therefore need
+the provenance of the identity layer beside them.
