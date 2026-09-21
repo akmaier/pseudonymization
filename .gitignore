@@ -49,3 +49,15 @@ __pycache__/
 .venv/
 *.egg-info/
 .pytest_cache/
+
+# LaTeX build artefacts — main.pdf is derived; a binary in the history makes every diff worse.
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.out
+paper/*.pdf
+paper/*.synctex.gz
+paper/*.toc

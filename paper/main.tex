@@ -1,0 +1,49 @@
+% TrustFMI @ ACCV 2026 — submission 2026-09-25.
+%
+% Springer LNCS, from TeX Live's own llncs bundle rather than a downloaded copy: the class and
+% splncs04.bst are already installed, so there is nothing to vendor and nothing to keep in step with
+% upstream. **The page limit and any workshop-specific deviation are NOT yet verified against the
+% call** — README records 6-8 pages full / 4 short, LNCS, via OpenReview, and that is what this is
+% set up for, but the workshop site has not been read. See paper/FORMAT.md.
+\documentclass[runningheads]{llncs}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{siunitx}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\begin{document}
+
+\title{Pseudonymisation of Text, Evaluated End to End}
+\subtitle{Detection, Utility and Leakage Under One Design}
+
+\author{}                 % AUTHORS.md — middle order unsettled, do not guess
+\institute{}
+
+\maketitle
+
+\begin{abstract}
+% Written last, once the paper is otherwise finished (AM, 2026-09-21).
+\end{abstract}
+
+\keywords{pseudonymisation \and de-identification \and privacy \and evaluation}
+
+\input{sections/01_introduction}
+\input{sections/02_related_work}
+\input{sections/03_design}
+\input{sections/04_corpora}
+\input{sections/05_methods}
+\input{sections/06_detection}
+\input{sections/07_utility}
+\input{sections/08_leakage}
+\input{sections/09_discussion}
+\input{sections/10_limitations}
+
+\bibliographystyle{splncs04}
+\bibliography{references}
+
+\end{document}
