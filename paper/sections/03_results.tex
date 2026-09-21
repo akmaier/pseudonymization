@@ -3,45 +3,50 @@
 \subsection{Detection}\label{sec:results-detection}
 
 Table~\ref{tab:operating-points} is the cost--quality front. It retains all four operating points
-for each corpus so that an inexpensive system is not compared with a maximum-quality system from a
-different denominator. The incomplete cells also show exactly which cluster summaries are still
-needed for the submission draft. All large-ensemble entries are provisional because those runs are
-still in progress.
+for each corpus so that an inexpensive system is never compared with a maximum-quality system from a
+different denominator. Enron's entries are provisional: its detection sweep is being repeated after
+a correction to the combination rule, and the ensembles it selects may change.
 
 \begin{table}[t]
-  \caption{Fast and maximum operating points show that cost changes much more than detection
-  quality; highlighted cells are missing or provisional.}\label{tab:operating-points}
+  \caption{Fast and maximum operating points on both error rates. Cost varies by three orders of
+  magnitude while quality varies by less than a factor of two; Enron's row is provisional because its
+  detection sweep is still being repeated.}\label{tab:operating-points}
   \centering\scriptsize
-  \begin{tabular}{@{}llccc@{}}
+  \begin{tabular}{@{}ll S[table-format=1.3] S[table-format=1.4] S[table-format=3.3] l@{}}
     \toprule
-    Corpus & Operating point & Sens. & Spec. & Cost (s/doc) \\
+    Corpus & Operating point & {Sens.} & {Spec.} & {Cost (s/doc)} & Rule \\
     \midrule
-    CARDIO:DE & fast & 0.908 & \provisional{TBD} & 0.25 \\
-              & maximum & 0.985 & \provisional{TBD} & \provisional{TBD} \\
-              & large-fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
-              & large-maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
-    TAB       & fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
-              & maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
-              & large-fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
-              & large-maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
-    OntoNotes & fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
-              & maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
-              & large-fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
-              & large-maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
-    Enron     & fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
-              & maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
-              & large-fast & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
-              & large-maximum & \provisional{TBD} & \provisional{TBD} & \provisional{TBD} \\
+    CARDIO:DE & maximum sensitivity  & 0.992 & 0.9670 & 57.633 & union \\
+              & fast sensitivity     & 0.895 & 0.9769 & 0.301 & union \\
+              & maximum specificity  & 0.523 & 0.9997 & 116.875 & vote \\
+              & fast specificity     & 0.781 & 0.9862 & 0.263 & single \\
+    \addlinespace
+    TAB       & maximum sensitivity  & 0.925 & 0.8986 & 14.210 & union \\
+              & fast sensitivity     & 0.893 & 0.9242 & 0.219 & union \\
+              & maximum specificity  & 0.501 & 0.9959 & 98.110 & vote \\
+              & fast specificity     & 0.520 & 0.9934 & 0.117 & single \\
+    \addlinespace
+    OntoNotes & maximum sensitivity  & 0.747 & 0.9763 & 9.450 & union \\
+              & fast sensitivity     & 0.684 & 0.9731 & 5.376 & union \\
+              & maximum specificity  & 0.503 & 0.9960 & 0.103 & union \\
+              & fast specificity     & 0.503 & 0.9960 & 0.103 & union \\
+    \addlinespace
+    Enron     & maximum sensitivity  & 0.971 & 0.7721 & 25.557 & union \\
+              & fast sensitivity     & 0.881 & 0.7522 & 0.057 & union \\
+              & maximum specificity  & 0.588 & 0.9428 & 20.931 & intersection \\
+              & fast specificity     & 0.674 & 0.8787 & 0.026 & single \\
     \bottomrule
   \end{tabular}
-  % Missing: final operating-point export with sensitivity, specificity and wall-clock cost.
 \end{table}
 
-The fast cell is usually not the worse cell. On CARDIO:DE it gives up 0.077 sensitivity, but is more
-specific than the maximum and 444 times cheaper. It detects \SI{90.8}{\percent} of placed
-identifiers in \SI{0.25}{s} per letter. Across the full comparison, cost spans three orders of
-magnitude while quality changes by less than a factor of two. Moreover, a different ensemble wins
-on each corpus. Thus, there is no detector recipe that transfers unchanged.
+The fast cell is usually not the worse cell. On CARDIO:DE it gives up 0.097 sensitivity, yet it is
+\emph{more} specific than the maximum---0.977 against 0.967---and 191 times cheaper, detecting
+\SI{89.5}{\percent} of the placed identifiers in \SI{0.30}{s} per letter. Note that the maximum buys
+its last points of recall by over-detecting, and the specificity column is where that cost appears.
+On Enron the same pattern is starker still: \SI{0.06}{s} per message against \SI{25.6}{s}, for 0.09
+of sensitivity. Across the comparison, cost spans three orders of magnitude while quality changes by
+less than a factor of two. Yet a different ensemble wins on each corpus, so no detector recipe
+transfers unchanged.
 
 Language is not a detail. OntoNotes token sensitivity is 0.983 for English, 0.710 for Chinese, and
 0.549 for Arabic. The pooled value, 0.747, describes none of them. Arabic supplies

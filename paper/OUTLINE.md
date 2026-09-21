@@ -171,9 +171,9 @@ ways. CARDIO:DE's low figure is an artefact of its constructed recurrence, and w
 **Strengths first** (AM, 2026-09-21), then the weaknesses.
 
 **What works, and works well.** A cheap ensemble is a genuinely good deployment: on German clinical
-letters the fast operating point catches 90.8 % of identifiers we placed, leaves 73.2 % of letters
-with nothing at all, and costs a quarter of a second a document — 444× less than the best ensemble of
-any kind, which buys 7.7 points of sensitivity for that. Pseudonymisation with realistic surrogates
+letters the fast operating point catches 89.5 % of identifiers we placed and costs three tenths of a
+second a document — 191× less than the best ensemble of any kind, which buys 9.7 points of
+sensitivity for that. Pseudonymisation with realistic surrogates
 keeps clinical information extraction statistically indistinguishable from the original text under a
 precise rule, which is the result a hospital needs before it will release anything. And the attacks
 confirm the protection is real: the strongest language-model attacker drops from near-perfect on
