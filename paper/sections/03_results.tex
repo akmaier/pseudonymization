@@ -4,8 +4,8 @@
 
 Table~\ref{tab:operating-points} is the cost--quality front. It retains all four operating points
 for each corpus so that an inexpensive system is never compared with a maximum-quality system from a
-different denominator. Enron's entries are provisional: its detection sweep is being repeated after
-a correction to the combination rule, and the ensembles it selects may change.
+different denominator. Note that the winning ensemble differs on every corpus, so the table is a set of
+four separate answers rather than one recipe.
 
 \begin{table}[t]
   \caption{Fast and maximum operating points on both error rates. Cost varies by three orders of
@@ -31,8 +31,8 @@ a correction to the combination rule, and the ensembles it selects may change.
               & maximum specificity  & 0.503 & 0.9960 & 0.103 & union \\
               & fast specificity     & 0.503 & 0.9960 & 0.103 & union \\
     \addlinespace
-    Enron     & maximum sensitivity  & 0.971 & 0.7721 & 25.557 & union \\
-              & fast sensitivity     & 0.881 & 0.7522 & 0.057 & union \\
+    Enron     & maximum sensitivity  & 0.973 & 0.7720 & 25.557 & union \\
+              & fast sensitivity     & 0.899 & 0.7419 & 0.057 & union \\
               & maximum specificity  & 0.588 & 0.9428 & 20.931 & intersection \\
               & fast specificity     & 0.674 & 0.8787 & 0.026 & single \\
     \bottomrule
@@ -43,7 +43,7 @@ The fast cell is usually not the worse cell. On CARDIO:DE it gives up 0.097 sens
 \emph{more} specific than the maximum---0.977 against 0.967---and 191 times cheaper, detecting
 \SI{89.5}{\percent} of the placed identifiers in \SI{0.30}{s} per letter. Note that the maximum buys
 its last points of recall by over-detecting, and the specificity column is where that cost appears.
-On Enron the same pattern is starker still: \SI{0.06}{s} per message against \SI{25.6}{s}, for 0.09
+On Enron the same pattern is starker still: \SI{0.06}{s} per message against \SI{25.6}{s}, for 0.074
 of sensitivity. Across the comparison, cost spans three orders of magnitude while quality changes by
 less than a factor of two. Yet a different ensemble wins on each corpus, so no detector recipe
 transfers unchanged.
