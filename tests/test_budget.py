@@ -145,7 +145,8 @@ def test_a_chinese_document_is_not_starved_of_output_budget():
     from pseudonymkit.detectors.budget import TokenBudget
 
     budget = TokenBudget.for_model("Qwen/Qwen3.6-35B-A3B-FP8")
-    chinese = "被告人张伟于二零零三年在北京市海淀区" * 40      # ~720 CJK characters
+    # Long enough that the ratio decides rather than the reasoning floor, which now covers both.
+    chinese = "被告人张伟于二零零三年在北京市海淀区" * 84      # ~1,500 CJK characters
     blind = budget.max_tokens(len(chinese))
     aware = budget.max_tokens(len(chinese), chinese)
     assert aware > blind * 2, (blind, aware)
@@ -175,3 +176,34 @@ def test_phi_4_mini_is_budgeted_as_a_reasoning_model():
     budget = TokenBudget.for_model("Microsoft/Phi-4-mini-instruct")
     plain_cap = int(len(chinese) * RATIO["plain"]) + 512
     assert budget.max_tokens(len(chinese), chinese) > plain_cap * 2
+
+
+def test_a_reasoning_model_gets_a_floor_not_just_a_ratio():
+    """A short document must not starve a model whose thinking is fixed cost.
+
+    Qwen3.6 emits a mean of 4,708 completion tokens on OntoNotes Chinese whether the document is 400
+    characters or 1,400 — most of the answer is reasoning, which does not scale with the question. A
+    ratio-only budget therefore starved exactly the short documents, and 68.8 % of Chinese replies
+    truncated even after the ratio was doubled and the character rate corrected.
+    """
+    from pseudonymkit.detectors.budget import FAMILY_FLOOR, TokenBudget
+
+    budget = TokenBudget.for_model(REASONING)
+    short_chinese = "被告人张伟于二零零三年" * 36          # ~400 CJK characters
+    assert budget.max_tokens(len(short_chinese), short_chinese) >= FAMILY_FLOOR["reasoning"]
+
+
+def test_the_floor_does_not_shrink_a_larger_ratio_grant():
+    """It is a floor, not a grant: a long document still gets ratio x prompt."""
+    from pseudonymkit.detectors.budget import TokenBudget
+
+    budget = TokenBudget.for_model(REASONING)
+    long_latin = "The applicant lived in Bonn and worked for the ministry. " * 60
+    assert budget.max_tokens(len(long_latin), long_latin) > 8192
+
+
+def test_a_plain_model_keeps_the_small_floor():
+    """Only reasoning models pay for thinking; a plain model on a stub still asks for very little."""
+    from pseudonymkit.detectors.budget import FLOOR, TokenBudget
+
+    assert TokenBudget.for_model(PLAIN).max_tokens(80, "a short note") < FLOOR * 4

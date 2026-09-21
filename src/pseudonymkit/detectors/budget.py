@@ -48,7 +48,7 @@ from pathlib import Path
 from typing import Iterable, Mapping
 
 __all__ = ["Family", "CONTEXT", "RATIO", "REASONING_MODELS", "SCRIPT_CHARS_PER_TOKEN",
-           "TokenBudget", "chars_per_token", "family_of", "fit_ratio"]
+           "FAMILY_FLOOR", "TokenBudget", "chars_per_token", "family_of", "fit_ratio"]
 
 Family = str
 
@@ -167,7 +167,21 @@ shrinks the window.
 """
 
 FLOOR = 512
-"""Smallest cap worth issuing. A one-line Enron stub still needs room for the JSON scaffolding."""
+"""Smallest cap worth issuing for a plain model. A one-line Enron stub still needs room for the JSON
+scaffolding."""
+
+FAMILY_FLOOR: Mapping[Family, int] = {"plain": FLOOR, "reasoning": 8192}
+"""Smallest cap by family — and for a reasoning model it is the knob that matters, not the ratio.
+
+A ratio assumes the answer scales with the question. For a reasoning model most of the answer is
+*thinking*, and that is close to fixed cost: measured on OntoNotes Chinese, Qwen3.6 emits a mean of
+4,708 completion tokens whether the document is 400 characters or 1,400. Scaling the cap with the
+input therefore starves exactly the short documents, which is why 68.8 % of Chinese replies still
+truncated after the ratio was doubled to 12.0 and the character rate corrected — the ratio was right
+and the floor was two orders of magnitude too low.
+
+8,192 covers the observed reasoning cost with headroom. It is a floor, not a grant: `max_tokens`
+still takes the larger of it and ``ratio x prompt``, and still clips to the context that is left."""
 
 
 def family_of(model: str) -> Family:
@@ -221,7 +235,8 @@ class TokenBudget:
         """
         rate = chars_per_token(text) if text is not None else CHARS_PER_TOKEN
         prompt_tokens = max(1, math.ceil(prompt_chars / rate))
-        want = math.ceil(prompt_tokens * self.ratio) + FLOOR
+        floor = FAMILY_FLOOR.get(self.family, FLOOR)
+        want = max(floor, math.ceil(prompt_tokens * self.ratio) + FLOOR)
         headroom = self.context - self.reserve - prompt_tokens
         return max(FLOOR, min(want, headroom))
 
