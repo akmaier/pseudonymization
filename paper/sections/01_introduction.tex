@@ -19,11 +19,15 @@ by a \emph{surrogate}, i.e. a realistic substitute such as another name. \emph{A
 to prevent a person from being singled out or linked at all. This distinction matters because a
 stable pseudonym preserves longitudinal utility, but it also gives an adversary a handle that
 persists across records. European guidance makes this trade-off explicit and regards keyed message
-authentication codes as a robust pseudonymisation technique~\cite{enisa2021pseudonymisation}.
+authentication codes as a robust pseudonymisation
+technique~\cite{enisa2021pseudonymisation}; the health-informatics standard is
+revised accordingly~\cite{din25237}.
 
 Existing evaluation is split. Detection benchmarks report whether an identifying
-\emph{span}---a contiguous sequence of tokens---was found. Utility studies report the change in a
-downstream task. Re-identification studies report whether an attacker succeeds. These quantities
+\emph{span}---a contiguous sequence of tokens---was found, and they are now
+numerous~\cite{vats2026redact,jha2026piibench,uppala2026privacyfilter}. Utility studies report the change in a downstream
+task~\cite{vakili2022utility,berg2020impact}, and a related line measures information loss
+directly~\cite{trienes2024infolossqa}. Re-identification studies report whether an attacker succeeds. These quantities
 are rarely measured together, although evaluation frameworks argue that
 technical performance, information loss, and an intruder test belong together
 ~\cite{mozes2021nointruder}. Surrogate systems and masking benchmarks study important pieces
