@@ -1,35 +1,75 @@
-% Entries are limited to metadata recorded in references/; no missing fields were guessed.
+% Every entry below was retrieved from the publisher's own record on 2026-09-21 — Crossref for the
+% two with a DOI, the arXiv API for the preprints, the ACL Anthology's own BibTeX for Eder et al.
+% Nothing is guessed: where a field is absent from the record it is absent here (CLAUDE.md §2).
+%
+% The provenance recorded in references/ is kept: an entry marked there as title-level only must be
+% opened before it is relied on, and none of those are cited yet.
 
-@misc{enisa2021pseudonymisation,
+@article{packhauser2022reid,
+  author  = {Packh{\"a}user, Kai and G{\"u}ndel, Sebastian and M{\"u}nster, Nicolas
+             and Syben, Christopher and Christlein, Vincent and Maier, Andreas},
+  title   = {Deep learning-based patient re-identification is able to exploit the
+             biometric nature of medical chest {X}-ray data},
+  journal = {Scientific Reports},
+  year    = {2022},
+  volume  = {12},
+  number  = {1},
+  pages   = {14851},
+  doi     = {10.1038/s41598-022-19045-3}
+}
+
+@article{pilan2022tab,
+  author  = {Pil{\'a}n, Ildik{\'o} and Lison, Pierre and {\O}vrelid, Lilja and
+             Papadopoulou, Anthi and S{\'a}nchez, David and Batet, Montserrat},
+  title   = {The Text Anonymization Benchmark ({TAB}): A Dedicated Corpus and
+             Evaluation Framework for Text Anonymization},
+  journal = {Computational Linguistics},
+  year    = {2022},
+  volume  = {48},
+  number  = {4},
+  pages   = {1053--1101},
+  doi     = {10.1162/coli_a_00458}
+}
+
+@inproceedings{eder2019emails,
+  author    = {Eder, Elisabeth and Krieg-Holz, Ulrike and Hahn, Udo},
+  title     = {De-Identification of Emails: Pseudonymizing Privacy-Sensitive Data
+               in a {G}erman Email Corpus},
+  booktitle = {Proceedings of the International Conference on Recent Advances in
+               Natural Language Processing (RANLP 2019)},
+  year      = {2019},
+  month     = sep,
+  address   = {Varna, Bulgaria},
+  publisher = {INCOMA Ltd.},
+  pages     = {259--269},
+  doi       = {10.26615/978-954-452-056-4_030}
+}
+
+@misc{osborne2022bratsynthetic,
+  author       = {Osborne, John D. and O'Leary, Tobias and Nadimpalli, Akhil and
+                  Aly, Salma M. and Kennedy, Richard E.},
+  title        = {{BRATsynthetic}: Text De-identification using a Markov Chain
+                  Replacement Strategy for Surrogate Personal Identifying Information},
+  year         = {2022},
+  eprint       = {2210.16125},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL}
+}
+
+@misc{mozes2021nointruder,
+  author       = {Mozes, Maximilian and Kleinberg, Bennett},
+  title        = {No Intruder, no Validity: Evaluation Criteria for
+                  Privacy-Preserving Text Anonymization},
+  year         = {2021},
+  eprint       = {2103.09263},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL}
+}
+
+% Corporate author, no DOI; downloaded and read (references/standards.md).
+@techreport{enisa2021pseudonymisation,
   author      = {{European Union Agency for Cybersecurity}},
   title       = {Data Pseudonymisation: Advanced Techniques and Use Cases},
+  institution = {ENISA},
   year        = {2021}
-}
-
-@misc{pilan2022tab,
-  author      = {Pil{\'a}n and others},
-  title       = {{TAB}: The Text Anonymization Benchmark},
-  year        = {2022},
-  note        = {doi: 10.1162/coli\_a\_00458}
-}
-
-@misc{eder2019emails,
-  author      = {Eder and Krieg-Holz and Hahn},
-  title       = {De-Identification of Emails: Pseudonymizing Privacy-Sensitive Data in a German Email Corpus},
-  year        = {2019},
-  note        = {ACL Anthology R19-1030}
-}
-
-@misc{nointruder2021,
-  key         = {No Intruder},
-  title       = {No Intruder, no Validity: Evaluation Criteria for Privacy-Preserving Text Anonymization},
-  year        = {2021},
-  note        = {arXiv:2103.09263}
-}
-
-@misc{bratsynthetic2022,
-  key         = {BRATsynthetic},
-  title       = {{BRATsynthetic}: Text De-identification Using a Markov Chain Replacement Strategy for Surrogate Personal Identifiers},
-  year        = {2022},
-  note        = {arXiv:2210.16125}
 }

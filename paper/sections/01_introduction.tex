@@ -9,8 +9,8 @@ releasable only when both halves are protected.
 Artificial intelligence makes both tasks tractable at database scale. Yet, it also makes their
 guarantees harder to state. Learned systems fail according to the distribution on which they are
 used, and their errors need not be uniform across languages, scripts, document types, or identifier
-classes. Packh\"auser et al. demonstrated the imaging version of this problem by re-identifying
-patients from de-identified chest radiographs. Here, we measure its text analogue: whether identity
+classes. Packh\"auser et al.~\cite{packhauser2022reid} demonstrated the imaging version of this problem by
+re-identifying patients from de-identified chest radiographs. Here, we measure its text analogue: whether identity
 can still be recovered after the explicit identifiers have been transformed.
 
 We use \emph{de-identification} as the broad process of reducing identifying information.
@@ -26,8 +26,8 @@ Existing evaluation is split. Detection benchmarks report whether an identifying
 downstream task. Re-identification studies report whether an attacker succeeds. These quantities
 are rarely measured together, although evaluation frameworks argue that
 technical performance, information loss, and an intruder test belong together
-~\cite{nointruder2021}. Surrogate systems and masking benchmarks study important pieces
-~\cite{eder2019emails,pilan2022tab,bratsynthetic2022}, but not all three costs in one design. We
+~\cite{mozes2021nointruder}. Surrogate systems and masking benchmarks study important pieces
+~\cite{eder2019emails,pilan2022tab,osborne2022bratsynthetic}, but not all three costs in one design. We
 therefore cannot say what a protection policy buys or costs.
 
 Aggregate corpus scores create a second gap. A data-protection officer does not release an average
