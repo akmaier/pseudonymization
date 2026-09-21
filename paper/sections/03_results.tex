@@ -113,18 +113,17 @@ unmodified-text ceiling for context linkage is 0.706. Learned linkage is approxi
 successful as fixed context linkage throughout, quantifying what training buys the adversary.
 
 \begin{table}[t]
-  \caption{Leakage measures move in opposite directions with recall and must be read against their
-  own baselines.}\label{tab:leakage}
+  \caption{The two attack families respond to detection recall in opposite directions. Frequency
+  matching is reported as lift over the chance rate for its own candidate pool, because that pool
+  grows with recall and the raw rate therefore falls while the attack strengthens.}\label{tab:leakage}
   \centering\small
-  \begin{tabular}{@{}llcc@{}}
+  \begin{tabular}{@{}ll S[table-format=2.3] S[table-format=2.3] c@{}}
     \toprule
-    Corpus & Attack and measure & Low recall & High recall \\
+    Corpus & Attack & {low recall} & {high recall} & direction \\
     \midrule
-    TAB & frequency-matching lift & 31 & 75 \\
-    OntoNotes & frequency-matching lift & 48 & 91 \\
-    Enron & context-linkage Rank-1 & 0.172 & 0.051 \\
-    TAB & LLM Rank-1, A $\rightarrow$ B & 0.999 & 0.087 \\
-    TAB & LLM Rank-5, condition B & \multicolumn{2}{c}{0.514} \\
+    TAB       & frequency matching (lift) & 31 & 75 & worsens \\
+    OntoNotes & frequency matching (lift) & 48 & 91 & worsens \\
+    Enron     & context linkage (Rank-1)  & 0.172 & 0.051 & improves \\
     \bottomrule
   \end{tabular}
 \end{table}
