@@ -48,6 +48,16 @@ SOURCES = {
               lambda: work_dir() / "results/conditions"),
 }
 
+GATEWAY_TASKS = frozenset({"medication_ie", "section_classification"})
+"""Tasks whose work is a network call, and which therefore *gain* from concurrency.
+
+`ner_agreement` does not: it runs Presidio locally, so it is CPU- and GIL-bound and threads make it
+slower — measured 46 s sequential against 164 s at four threads for the same 24 documents. The two
+gateway tasks are the opposite case, and badly so when the gateway is shared: CARDIO:DE's
+medication_ie fell to 45 documents an hour while A4 was running against the same model, against ~533
+an hour with the gateway to itself. Applying one concurrency setting to both tasks would have to pick
+which one to punish, so the setting is applied per task instead."""
+
 TASKS_FOR = {
     "cardiode": ("medication_ie", "section_classification", "ner_agreement"),
     "tab": ("ner_agreement",),
@@ -112,9 +122,8 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--out", type=Path, default=Path("results/utility"))
     ap.add_argument("--concurrency", type=int, default=1,
-                    help="gateway calls in flight at once. Enron is 58,636 documents x 3 "
-                         "conditions per rule; sequentially that is ~11 days a rule, which is not "
-                         "a measurement limit but a driver one")
+                    help="gateway calls in flight at once, applied only to the tasks that make "
+                         "them (see GATEWAY_TASKS); ner_agreement is CPU-bound and stays sequential")
     ap.add_argument("--restart", action="store_true",
                     help="discard an existing file instead of resuming from it")
     args = ap.parse_args()
@@ -191,7 +200,7 @@ def main() -> int:
                 # condition; submitting them all at once would pin every PseudonymisedDocument and
                 # every pending result for the life of the pass. At most `concurrency * 4` are in
                 # flight, which is what the gateway detector already does for the same reason.
-                if args.concurrency > 1:
+                if args.concurrency > 1 and name in GATEWAY_TASKS:
                     with ThreadPoolExecutor(max_workers=args.concurrency,
                                             thread_name_prefix="utility") as pool:
                         for start in range(0, len(todo), args.concurrency * 4):

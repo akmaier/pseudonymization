@@ -39,6 +39,6 @@ for name, p in pts.items():
 PY
 ); do
     echo; echo "--- utility on $TAG --- $(date -Is)"
-    .venv/bin/python experiments/run_utility.py --corpus "$CORPUS" --rule "$TAG"
+    .venv/bin/python experiments/run_utility.py --corpus "$CORPUS" --rule "$TAG" --concurrency "${CONCURRENCY:-8}"
 done
 echo; echo "=== done === $(date -Is)"
