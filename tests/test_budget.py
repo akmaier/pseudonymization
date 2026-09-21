@@ -158,3 +158,20 @@ def test_latin_text_is_unchanged_by_the_script_awareness():
     budget = TokenBudget.for_model("Qwen/Qwen3.6-35B-A3B-FP8")
     german = "Der Patient wurde am 3. Januar in der Klinik aufgenommen. " * 20
     assert budget.max_tokens(len(german), german) == budget.max_tokens(len(german))
+
+
+def test_phi_4_mini_is_budgeted_as_a_reasoning_model():
+    """Classified by what it emits, not by what it is called (AM, 2026-09-21).
+
+    Phi-4-mini is not marketed as a reasoning model and was budgeted as plain. It truncated 55.9 % of
+    OntoNotes and 78.2 % of CARDIO:DE — the worst in the pool — and 88.9 % of its first Chinese and
+    Arabic replies even after the plain ratio was doubled. `Family` is a budget class here, not an
+    architectural claim.
+    """
+    from pseudonymkit.detectors.budget import RATIO, TokenBudget, family_of
+
+    assert family_of("Microsoft/Phi-4-mini-instruct") == "reasoning"
+    chinese = "被告人张伟于二零零三年在北京市海淀区" * 75
+    budget = TokenBudget.for_model("Microsoft/Phi-4-mini-instruct")
+    plain_cap = int(len(chinese) * RATIO["plain"]) + 512
+    assert budget.max_tokens(len(chinese), chinese) > plain_cap * 2

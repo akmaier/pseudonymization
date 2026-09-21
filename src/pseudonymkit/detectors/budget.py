@@ -69,6 +69,13 @@ whole document."""
 REASONING_MODELS: frozenset[str] = frozenset({
     "gpt-oss-120b",
     "Qwen/Qwen3.6-35B-A3B-FP8",
+    # **Phi-4-mini is here by behaviour, not by architecture** (AM, 2026-09-21). It is not marketed
+    # as a reasoning model, and it was classified `plain` on that basis. Its output says otherwise:
+    # at the plain ratio it truncated 55.9 % of OntoNotes and 78.2 % of CARDIO:DE, the highest rates
+    # of any model in the pool, and 88.9 % of its first Chinese and Arabic replies under the doubled
+    # plain ratio of 2.0. Whatever it emits before the span list, it emits a great deal of it, and
+    # the family here is a budget class rather than a claim about the architecture.
+    "Microsoft/Phi-4-mini-instruct",
     "deepseek-ai/DeepSeek-V4-Flash-0731",
 })
 """Models that return ``message.reasoning_content`` and spend the budget before answering.
