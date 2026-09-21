@@ -167,7 +167,7 @@ class LlmDetector:
             # against a normal 53.8 — so a loose cap buys nothing there and merely pays for more of
             # the runaway before cutting it.  Tight for plain, generous for reasoning, both scaled
             # by the input.
-            "max_tokens": self._fixed_max_tokens or self._budget.max_tokens(len(text)),
+            "max_tokens": self._fixed_max_tokens or self._budget.max_tokens(len(text), text),
         }
         delay = 10.0
         last = ""

@@ -113,3 +113,42 @@ def test_an_explicit_max_tokens_still_wins():
     from pseudonymkit.detectors.llm import LlmDetector
 
     assert "max_tokens" in LlmDetector.__init__.__annotations__
+
+
+def test_chars_per_token_follows_the_script():
+    """One constant is wrong by a factor on CJK and Arabic, and the cap is derived from it."""
+    from pseudonymkit.detectors.budget import chars_per_token
+
+    assert chars_per_token("The applicant lived in Bonn.") == pytest.approx(2.5)
+    assert chars_per_token("被告人张伟于二零零三年在北京") == pytest.approx(1.0, abs=0.2)
+    assert chars_per_token("المدعي يعيش في القاهرة") == pytest.approx(1.5, abs=0.3)
+    # Mixed scripts land between, weighted by how much of each is present.
+    mixed = chars_per_token("Beijing 北京 2003")
+    assert 1.0 < mixed < 2.5
+
+
+def test_a_chinese_document_is_not_starved_of_output_budget():
+    """The defect: a CJK document was costed at 2.5 chars/token and capped at a fraction of need.
+
+    Measured on OntoNotes, Chinese runs at 1.18 characters per token against the constant's 2.5, so a
+    1,341-character document was scored as 536 prompt tokens rather than 1,138 and received roughly
+    half the cap an English document of the same true size would get. 92.2 % of Qwen3.6's Chinese
+    replies truncated, on the *shortest* documents in the corpus, and a truncated reply is discarded
+    whole.
+    """
+    from pseudonymkit.detectors.budget import TokenBudget
+
+    budget = TokenBudget.for_model("Qwen/Qwen3.6-35B-A3B-FP8")
+    chinese = "被告人张伟于二零零三年在北京市海淀区" * 40      # ~720 CJK characters
+    blind = budget.max_tokens(len(chinese))
+    aware = budget.max_tokens(len(chinese), chinese)
+    assert aware > blind * 2, (blind, aware)
+
+
+def test_latin_text_is_unchanged_by_the_script_awareness():
+    """English and German must keep the cap they had — only CJK and Arabic were mis-costed."""
+    from pseudonymkit.detectors.budget import TokenBudget
+
+    budget = TokenBudget.for_model("Qwen/Qwen3.6-35B-A3B-FP8")
+    german = "Der Patient wurde am 3. Januar in der Klinik aufgenommen. " * 20
+    assert budget.max_tokens(len(german), german) == budget.max_tokens(len(german))

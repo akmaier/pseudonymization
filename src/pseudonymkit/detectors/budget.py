@@ -47,8 +47,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Mapping
 
-__all__ = ["Family", "CONTEXT", "RATIO", "REASONING_MODELS", "TokenBudget", "family_of",
-           "fit_ratio"]
+__all__ = ["Family", "CONTEXT", "RATIO", "REASONING_MODELS", "SCRIPT_CHARS_PER_TOKEN",
+           "TokenBudget", "chars_per_token", "family_of", "fit_ratio"]
 
 Family = str
 
@@ -96,8 +96,52 @@ DEFAULT_CONTEXT = 32_768
 """Fallback for a model whose limit could not be probed. Conservative on purpose: assuming too much
 truncates, assuming too little only makes the window smaller."""
 
+SCRIPT_CHARS_PER_TOKEN: Mapping[str, float] = {"cjk": 1.0, "arabic": 1.5, "default": 2.5}
+"""Characters per token **by script**, because one constant is wrong by a factor on two of them.
+
+Measured against what the gateway itself reports for prompt tokens, over OntoNotes:
+
+    English   3.81 chars/token     the 2.5 default is conservative, which is the safe direction
+    Arabic    1.71                 2.5 overstates it by 1.5x
+    Chinese   1.18                 2.5 overstates it by 2.1x
+
+Overestimating characters-per-token *under*estimates the prompt, and the cap is
+``prompt_tokens x ratio``, so it underestimates the cap by the same factor. A 1,341-character
+Chinese document was costed as 536 tokens when it is really 1,138, and received a 3,728-token cap
+where an English document of the same true size would have received about 7,800. **92.2 % of
+Qwen3.6's Chinese replies truncated** — on the shortest documents in the corpus — and truncated
+replies are dropped entirely by the consumer, so its Chinese sensitivity read 0.156 against 0.371 on
+the documents that survived. The one Chinese-developed model in the pool was being starved of output
+budget on Chinese.
+
+The values err low deliberately: too low only shrinks the window and raises the cap, and neither
+costs a document."""
+
+
+def chars_per_token(text: str) -> float:
+    """Characters per token for this text, from the scripts it is written in.
+
+    A weighted mean rather than a lookup, because real documents mix scripts — a Chinese newswire
+    article carries Latin digits and names, and an English one can carry a CJK quotation.
+    """
+    if not text:
+        return SCRIPT_CHARS_PER_TOKEN["default"]
+    cjk = arabic = 0
+    for ch in text:
+        code = ord(ch)
+        if 0x4E00 <= code <= 0x9FFF or 0x3400 <= code <= 0x4DBF or 0x3000 <= code <= 0x303F:
+            cjk += 1
+        elif 0x0600 <= code <= 0x06FF or 0x0750 <= code <= 0x077F or 0xFB50 <= code <= 0xFDFF:
+            arabic += 1
+    other = len(text) - cjk - arabic
+    total = float(len(text))
+    return (cjk * SCRIPT_CHARS_PER_TOKEN["cjk"]
+            + arabic * SCRIPT_CHARS_PER_TOKEN["arabic"]
+            + other * SCRIPT_CHARS_PER_TOKEN["default"]) / total
+
+
 CHARS_PER_TOKEN = 2.5
-"""Characters per token — **measured, and lower than it looks**.
+"""Fallback where no text is in hand — the window sizing, which predates a document.
 
 Phi-4-mini reports 369 prompt tokens for 1,000 characters of German clinical text: **2.71 characters
 per token**.  The earlier value of 3.5 was not conservative but optimistic, and in the direction that
@@ -148,14 +192,19 @@ class TokenBudget:
         """That window, in characters — what the detector actually slices on."""
         return int(self.max_prompt_tokens * CHARS_PER_TOKEN)
 
-    def max_tokens(self, prompt_chars: int) -> int:
+    def max_tokens(self, prompt_chars: int, text: str | None = None) -> int:
         """The cap for one request, from the input actually being sent.
 
         Scaling with the input is what makes this a budget rather than a constant: a 300-character
         Enron stub asks for the floor, a 20,000-character letter asks for its share, and neither is
         given the other's.
+
+        ``text`` lets the character-to-token rate come from the script actually present rather than
+        from a constant calibrated on German — see :func:`chars_per_token`. Without it the constant
+        is used, which is right for Latin script and starves CJK and Arabic.
         """
-        prompt_tokens = max(1, math.ceil(prompt_chars / CHARS_PER_TOKEN))
+        rate = chars_per_token(text) if text is not None else CHARS_PER_TOKEN
+        prompt_tokens = max(1, math.ceil(prompt_chars / rate))
         want = math.ceil(prompt_tokens * self.ratio) + FLOOR
         headroom = self.context - self.reserve - prompt_tokens
         return max(FLOOR, min(want, headroom))
