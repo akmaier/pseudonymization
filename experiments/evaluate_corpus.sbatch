@@ -83,7 +83,7 @@ fi
 
 if [[ " ${STEPS} " == *" leakage "* ]]; then
     say "5. leakage sweep over every span source"
-    "$PY" experiments/sweep_leakage.py --corpus "$CORPUS" --max-size "$MAXSIZE"
+    "$PY" experiments/sweep_leakage.py --corpus "$CORPUS" --max-size "$MAXSIZE" ${SOURCES:+--sources "$SOURCES"}
 fi
 
 say "done"

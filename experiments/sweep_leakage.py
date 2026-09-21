@@ -128,6 +128,10 @@ def main() -> int:
                     default=Path.home() / ".config" / "pseudonymkit" / "hmac.key")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--sources", type=Path, default=None,
+                    help="file of span-source labels to run, one per line; everything else is "
+                         "skipped. Enron uses this — the full enumeration is 1,743 sources at ~257 s "
+                         "each, and experiments/enron_candidates.py picks the promising ones")
     ap.add_argument("--fail-fast", type=int, default=25,
                     help="abort if the first N span sources all fail; 0 disables")
     ap.add_argument("--min-coverage", type=float, default=0.99,
@@ -210,6 +214,12 @@ def main() -> int:
                 continue
         log(f"  resuming: {len(done)} span sources already done")
 
+    wanted: set[str] | None = None
+    if args.sources:
+        wanted = {line.strip() for line in args.sources.read_text(encoding="utf-8").splitlines()
+                  if line.strip()}
+        log(f"  restricted to {len(wanted)} span sources from {args.sources}")
+
     written = 0
     errored = 0
     skipped: list[tuple[str, int]] = []
@@ -224,6 +234,8 @@ def main() -> int:
                     continue
                 label = f"{'+'.join(names)}|{rule}{k or ''}"
                 if label in done:
+                    continue
+                if wanted is not None and label not in wanted:
                     continue
                 shared = set.intersection(*(covered[n] for n in names))
                 fraction = len(shared) / max(len(documents), 1)
