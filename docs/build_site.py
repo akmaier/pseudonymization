@@ -368,51 +368,54 @@ def section_linkage():
 
 
 def section_exposure():
+    """Exposure as the release actually printed it, with the denominators kept apart."""
+    rel = DATA.get("exposure_from_release") or {}
     rows = []
     for c in CORPORA:
-        e = DATA["exposure"].get(c)
+        e = (rel.get(c) or {}).get("person")
         if not e:
             continue
-        rep, per = e["replaced"], e["person"]
-        unit = "documents" if rep.get("cases_are_documents") else "cases"
+        unit = "cases" if e["cases_are_real"] else "documents"
         rows.append([
             NICE[c],
-            f"{num(rep['documents_exposed'])} / {num(rep['documents'])} "
-            f"<b>({pct(rep['documents_exposed_rate'])})</b>",
-            f"{num(rep['cases_exposed'])} / {num(rep['cases'])} "
-            f"<b>({pct(rep['cases_exposed_rate'])})</b> <span class='sd'>{unit}</span>",
-            f"{num(rep['entities_exposed'])} / {num(rep['entities'])} "
-            f"<b>({pct(rep['entities_exposed_rate'])})</b>",
-            f"{num(per['cases_exposed'])} / {num(per['cases'])} "
-            f"<b>({pct(per['cases_exposed_rate'])})</b>",
-            f"{num(per['entities_exposed'])} / {num(per['entities'])} "
-            f"<b>({pct(per['entities_exposed_rate'])})</b>",
-            f"{rep['findings_per_document_mean']:.2f} <span class='sd'>± "
-            f"{rep['findings_per_document_sd']:.2f}</span>",
+            f"{num(e['distinct_people_exposed'])} / {num(e['distinct_people'])} "
+            f"<b>({pct(e['distinct_people_exposed'] / max(e['distinct_people'], 1))})</b>",
+            f"{num(e['entity_document_pairs_exposed'])} / {num(e['entity_document_pairs'])}",
+            f"{num(e['documents_exposed'])} / {num(e['documents'])} "
+            f"<b>({pct(e['documents_exposed'] / max(e['documents'], 1))})</b>",
+            f"{num(e['cases_exposed'])} / {num(e['cases'])} <span class='sd'>{unit}</span>",
+            num(e["exposed_mentions_never_found"]),
+            num(e["exposed_mentions_clipped"]),
         ])
-    t1 = table(["Corpus", "Documents with a finding", "Cases", "Entities",
-                "Patients / cases — people only", "Entities — people only",
-                "Findings per document"], rows,
-               note="An entity counts as exposed when <em>any</em> one of its mentions survives, and "
-                    "partial coverage counts: <em>Anna Müller</em> with only the given name replaced "
-                    "leaves a surname in the clear. The first three columns cover every identifier "
-                    "class the conditions replace; the next two cover people alone, which is what "
-                    "the attacks target. Enron has 16 mailbox owners, so its case column saturates.")
+    t1 = table(["Corpus", "People with a name in the clear", "Entity&ndash;document pairs",
+                "Documents", "Cases", "Mentions never found", "Mentions clipped"], rows,
+               note="Scored against the released patch sets, which is what the reader of the "
+                    "release sees, rather than against the union of detected spans. The two differ: "
+                    "the engine writes one span of any overlapping group and skips 16 to 22 % of "
+                    "detections, so where a short span wins over a longer one the rest of the name "
+                    "is published. Those are the <em>clipped</em> mentions, and no measure computed "
+                    "on detected spans can see them. A person and an entity&ndash;document pair are "
+                    "also kept apart: someone appearing in forty Enron messages is one person and "
+                    "forty pairs.")
 
     rows = []
     for c in CORPORA:
-        e = DATA["exposure"].get(c)
+        e = (rel.get(c) or {}).get("replaced")
         if not e:
             continue
-        per_type = e["replaced"].get("per_type") or {}
-        for i, (t, v) in enumerate(sorted(per_type.items())):
-            rows.append([f"<b>{NICE[c]}</b>" if i == 0 else "", t,
-                         num(v["leaked"]), num(v["gold"]), pct(v["rate"], 2)])
-    t2 = table(["Corpus", "Type", "Tokens left", "Gold tokens", "Rate"], rows,
-               note="Where the residue actually is, by identifier class. Dates, quantities and "
-                    "miscellaneous spans are passed through by design and are excluded; on "
-                    "CARDIO:DE that exclusion is 102,234 gold tokens, which is 84.7 % of its "
-                    "annotation, and a release that keeps them needs date shifting.")
+        rows.append([
+            NICE[c],
+            f"{num(e['distinct_people_exposed'])} / {num(e['distinct_people'])} "
+            f"<b>({pct(e['distinct_people_exposed'] / max(e['distinct_people'], 1))})</b>",
+            f"{num(e['documents_exposed'])} / {num(e['documents'])} "
+            f"<b>({pct(e['documents_exposed'] / max(e['documents'], 1))})</b>",
+            num(e["exposed_mentions_never_found"]), num(e["exposed_mentions_clipped"]),
+        ])
+    t2 = table(["Corpus", "Entities with something in the clear", "Documents",
+                "Mentions never found", "Mentions clipped"], rows,
+               note="The same accounting over every identifier class the conditions replace, not "
+                    "people alone. Dates, quantities and miscellaneous spans are passed through by "
+                    "design and are in neither denominator.")
     return t1, t2
 
 
