@@ -3,8 +3,8 @@
 
 The paper has eight pages and the study produced a great deal more than that. Everything cut for
 space lands here instead of being lost: the full operating-point front, the utility grid with its
-paired tests, every attack cell, the prior-quality sweep, exposure at three denominators, and the
-stability grid.
+paired tests, every attack cell, the prior-quality sweep, exposure on both routes and under every
+denominator, and the stability grid.
 
 **Nothing is typed by hand.** Every number is read from `data.json`, which
 `experiments/` writes from the result files on the cluster, so the page cannot drift from the
@@ -80,18 +80,33 @@ def section_detection():
                 f(p["precision"]), f(p["information_weighted_precision"]),
                 f(p["cost_parallel_s"], 3), f(p["cost_serial_s"], 3), len(p["ensemble"]),
             ])
+    # The recommended 13 lie outside a sweep over singles, pairs and triples, so say by how much
+    # they beat its "maximum" row rather than asserting where they do.
+    beats = []
+    for c in CORPORA:
+        top = (DATA["operating_points"].get(c) or {}).get("MAX-SENSITIVITY") or {}
+        rec = ((DATA.get("both_rates") or {}).get(c) or {}).get("union", {}).get("overall") or {}
+        if top.get("sensitivity") is not None and rec.get("sensitivity") is not None:
+            beats.append(f"{NICE[c]} {f(rec['sensitivity'])} against {f(top['sensitivity'])}")
+    enron_pts = DATA["operating_points"].get("enron") or {}
+    regold = next((p for p in enron_pts.values() if p.get("superseded")), None)
     t1 = table(["Corpus", "Operating point", "Rule", "Sens.", "Spec.", "Prec.", "IW prec.",
                 "Cost ∥ (s)", "Cost Σ (s)", "Members"], rows,
                note="Cost ∥ is the slowest member, which is what a parallel run pays; Cost Σ is the "
                     "sum, which is what a serial one pays. The paper reports only the first. "
                     "Information-weighted precision scales each masked token by how poorly its "
-                    "context predicts it. This search covers singles, pairs and triples only, so the "
-                    "recommended 13-detector ensemble lies outside it and can exceed the "
-                    "&ldquo;maximum&rdquo; row — it does on CARDIO:DE, at 0.998 against 0.992. "
-                    "<b>Enron's four rows are the one place on this page still scored against the "
-                    "uncorrected gold</b> — the correction is described under the next table. The "
-                    "ensembles themselves are unaffected; the rates given for them here have not "
-                    "yet been recomputed.")
+                    "context predicts it. This search covers singles, pairs and triples only, so "
+                    "the recommended 13-detector ensemble lies outside it and exceeds the "
+                    "&ldquo;maximum&rdquo; row on every corpus — " + "; ".join(beats) + ". "
+                    + ("<b>Enron's four rows are re-scored against the corrected gold</b> "
+                       "described under the next table. The <em>selection</em> was not re-run: "
+                       f"these triples were chosen by the {num(regold['sweep_sources'])}-source "
+                       "sweep as it scored on the superseded gold, so a fresh sweep could pick "
+                       "different members. The rows say what these ensembles achieve now, not "
+                       "that they would still win. Their information-weighted precision is left "
+                       "blank rather than filled, because it was "
+                       f"{escape(regold['information_weighted_precision_note'])}."
+                       if regold else ""))
 
     br = DATA.get("both_rates") or {}
     rows = []
@@ -134,8 +149,8 @@ def enron_correction_callout():
     body_was = was["header_split_person_sensitivity"]["body"]
     return (
         f"<div class='callout'><p><b>Enron's gold layer was corrected on "
-        f"{escape(block['corrected'])}.</b> Every Enron figure on this page is read against the "
-        f"corrected version, apart from the four rows of the cost&ndash;quality front above. "
+        f"{escape(block['corrected'])}.</b> Every Enron figure on this page, the cost&ndash;quality "
+        f"front above included, is read against the corrected version. "
         f"The corpus adapter matched a correspondent's display name as an "
         f"unanchored substring, so a short mailbox name was found inside ordinary English words "
         f"and role accounts — <code>info@</code>, <code>questions@</code>, <code>news@</code> — "
@@ -447,9 +462,16 @@ def section_linkage():
                       "unmodified text, which is what gives the protected numbers a scale.")
 
 
+def ratio(exposed, total):
+    """``n / N (p%)`` — the count and its rate, because neither reads without the other."""
+    return (f"{num(exposed)} / {num(total)} "
+            f"<b>({pct(exposed / max(total, 1), 2 if exposed / max(total, 1) < 0.01 else 1)})</b>")
+
+
 def section_exposure():
     """Exposure as the release actually printed it, with the denominators kept apart."""
     rel = DATA.get("exposure_from_release") or {}
+    skip = DATA.get("release_skip") or {}
     rows = []
     for c in CORPORA:
         e = (rel.get(c) or {}).get("person")
@@ -458,25 +480,54 @@ def section_exposure():
         unit = "cases" if e["cases_are_real"] else "documents"
         rows.append([
             NICE[c],
-            f"{num(e['distinct_people_exposed'])} / {num(e['distinct_people'])} "
-            f"<b>({pct(e['distinct_people_exposed'] / max(e['distinct_people'], 1))})</b>",
-            f"{num(e['entity_document_pairs_exposed'])} / {num(e['entity_document_pairs'])}",
-            f"{num(e['documents_exposed'])} / {num(e['documents'])} "
-            f"<b>({pct(e['documents_exposed'] / max(e['documents'], 1))})</b>",
+            ratio(e["distinct_people_exposed"], e["distinct_people"]),
+            ratio(e["entity_document_pairs_exposed"], e["entity_document_pairs"]),
+            ratio(e["documents_exposed"], e["documents"]),
             f"{num(e['cases_exposed'])} / {num(e['cases'])} <span class='sd'>{unit}</span>",
             num(e["exposed_mentions_never_found"]),
             num(e["exposed_mentions_clipped"]),
         ])
+    rates = sorted(v["skip_rate"] for v in skip.values() if v.get("skip_rate") is not None)
+    worst = max(skip, key=lambda c: skip[c]["skip_rate"]) if skip else None
+    mildest = min(skip, key=lambda c: skip[c]["skip_rate"]) if skip else None
     t1 = table(["Corpus", "People with a name in the clear", "Entity&ndash;document pairs",
                 "Documents", "Cases", "Mentions never found", "Mentions clipped"], rows,
-               note="Scored against the released patch sets, which is what the reader of the "
-                    "release sees, rather than against the union of detected spans. The two differ: "
-                    "the engine writes one span of any overlapping group and skips 16 to 22 % of "
-                    "detections, so where a short span wins over a longer one the rest of the name "
-                    "is published. Those are the <em>clipped</em> mentions, and no measure computed "
-                    "on detected spans can see them. A person and an entity&ndash;document pair are "
-                    "also kept apart: someone appearing in forty Enron messages is one person and "
-                    "forty pairs.")
+               note="<b>Route one: the released patch sets</b>, which is what the reader of the "
+                    "release sees, rather than the union of detected spans. The two differ because "
+                    "the engine writes one span of any overlapping group and skips the rest"
+                    + (f" — {pct(rates[0])} of resolved detections on {NICE.get(mildest, mildest)}"
+                       f" and {pct(rates[-1])} on {NICE.get(worst, worst)}" if rates else "") +
+                    ", so where a short span wins over a longer one the rest of the name is "
+                    "published. Those are the <em>clipped</em> mentions, and no measure computed "
+                    "on detected spans can see them. The two person denominators are also kept "
+                    "apart: someone appearing in forty Enron messages is one person and forty "
+                    "entity&ndash;document pairs. The paper's leakage table uses the pair "
+                    "denominator, but on the other route &mdash; the next table.")
+
+    den = DATA.get("exposure_denominators") or {}
+    rows = []
+    for c in CORPORA:
+        e = (den.get(c) or {}).get("person")
+        if not e:
+            continue
+        rows.append([
+            NICE[c],
+            ratio(e["distinct_entities_exposed"], e["distinct_entities"]),
+            ratio(e["entity_document_pairs_exposed"], e["entity_document_pairs"]),
+            ratio(e["documents_exposed"], e["documents"]),
+            f"{num(e['mentions_exposed'])} / {num(e['mentions'])}",
+        ])
+    t_det = table(["Corpus", "People with a name in the clear", "Entity&ndash;document pairs",
+                   "Documents", "Mentions"], rows,
+                  note="<b>Route two: the union of detected spans.</b> A mention counts as exposed "
+                       "only when no detector covered it, so a name that was found and then "
+                       "clipped by the overlap rule is counted as protected here and as exposed "
+                       "above. Both questions are legitimate and the answers are not "
+                       "interchangeable: this route measures the detectors, the route above "
+                       "measures the release. <b>The entity&ndash;document-pair column is the "
+                       "paper's <em>Exp.</em> column</b> — the risk that a person is still named "
+                       "in a given document after processing, not the share of people, which is "
+                       "the column beside it.")
 
     rows = []
     for c in CORPORA:
@@ -485,18 +536,16 @@ def section_exposure():
             continue
         rows.append([
             NICE[c],
-            f"{num(e['distinct_people_exposed'])} / {num(e['distinct_people'])} "
-            f"<b>({pct(e['distinct_people_exposed'] / max(e['distinct_people'], 1))})</b>",
-            f"{num(e['documents_exposed'])} / {num(e['documents'])} "
-            f"<b>({pct(e['documents_exposed'] / max(e['documents'], 1))})</b>",
+            ratio(e["distinct_people_exposed"], e["distinct_people"]),
+            ratio(e["documents_exposed"], e["documents"]),
             num(e["exposed_mentions_never_found"]), num(e["exposed_mentions_clipped"]),
         ])
     t2 = table(["Corpus", "Entities with something in the clear", "Documents",
                 "Mentions never found", "Mentions clipped"], rows,
                note="The same accounting over every identifier class the conditions replace, not "
-                    "people alone. Dates, quantities and miscellaneous spans are passed through by "
-                    "design and are in neither denominator.")
-    return t1, t2, enron_clipping_callout()
+                    "people alone, and on route one. Dates, quantities and miscellaneous spans are "
+                    "passed through by design and are in neither denominator.")
+    return t1, t_det, t2, enron_clipping_callout()
 
 
 def enron_clipping_callout():
@@ -575,6 +624,74 @@ def headline_cards():
         for k, v, d in cards)
 
 
+def language_callout():
+    """What the three OntoNotes languages spread over — computed, not remembered."""
+    onto = ((DATA.get("both_rates") or {}).get("ontonotes") or {}).get("union", {})
+    by = onto.get("by_language") or {}
+    if not by:
+        return ""
+    best = max(by, key=lambda k: by[k]["sensitivity"])
+    worst = min(by, key=lambda k: by[k]["sensitivity"])
+    return (
+        f"<div class='callout'><p><b>The spread is in the other identifier classes, not in finding "
+        f"people.</b> Sensitivity over the whole identifier set runs {f(by[best]['sensitivity'])} "
+        f"on {best.capitalize()} down to {f(by[worst]['sensitivity'])} on {worst.capitalize()}; "
+        f"person sensitivity runs {f(by[best]['person_sensitivity'])} down to "
+        f"{f(by[worst]['person_sensitivity'])}. That matters because the attacks recover "
+        f"<em>people</em>, so the alarming figure and the figure that bounds leakage are not the "
+        f"same number — and specificity moves only from {f(by[best]['specificity'], 4)} to "
+        f"{f(by[worst]['specificity'], 4)} across the three, so the spread is not "
+        f"over-replacement either.</p></div>")
+
+
+def fast_cell_callout():
+    """The fast sensitivity cell against the maximum one, on the corpus where it is sharpest."""
+    pts = (DATA.get("operating_points") or {}).get("cardiode") or {}
+    top, fast = pts.get("MAX-SENSITIVITY"), pts.get("FAST-SENSITIVITY")
+    if not top or not fast:
+        return ""
+    return (
+        f"<div class='callout'><p><b>The fast cell is usually not the worse cell.</b> On CARDIO:DE "
+        f"the fast sensitivity point gives up "
+        f"{f(top['sensitivity'] - fast['sensitivity'])} of sensitivity but is <em>more</em> "
+        f"specific than the maximum — {f(fast['specificity'], 4)} against "
+        f"{f(top['specificity'], 4)} — and "
+        f"{top['cost_parallel_s'] / fast['cost_parallel_s']:.0f}× cheaper. Catching the last "
+        f"identifiers means over-detecting, and over-detection has its own price — which only the "
+        f"second column shows.</p></div>")
+
+
+def informed_callout():
+    """The B-vs-C reading, read from the attack cells rather than remembered.
+
+    The headline card and this paragraph used to quote different ensembles for the same claim — the
+    card the recommended 13, the paragraph the earlier 15-detector pool — so both now read the same
+    rows and the alternative pool is named rather than quoted silently.
+    """
+    def cell(condition, tag, corpus="tab"):
+        return next((r["rank1"] for r in DATA["a4"]
+                     if r["corpus"] == corpus and r["condition"] == condition
+                     and not r["context"] and r["tag"] == tag), None)
+
+    docs = {c: (DATA.get("utility_by_corpus", {}).get(c, {}).get("union", {})
+                .get("ner_agreement", {}).get("A", {}).get("n")) for c in ("tab", "ontonotes")}
+    rec = [cell(k, REC_TAG) for k in ("B", "C", "B-forewarned")]
+    pool = [cell(k, "15det") for k in ("B", "C", "B-forewarned")]
+    alt = (f" The earlier 15-detector pool orders the same way, "
+           f"{f(pool[0])} / {f(pool[1])} / {f(pool[2])}." if all(v is not None for v in pool) else "")
+    return (
+        f"<div class='callout'><p><b>The finding that reorganised the paper.</b> Conditions B and C "
+        f"replace <em>identical</em> spans, so overwriting each replaced span of the surrogate "
+        f"release with <code>[PERSON]</code> reproduces the placeholder release character for "
+        f"character — verified on all {num(docs['tab'])} TAB and all {num(docs['ontonotes'])} "
+        f"OntoNotes documents.</p>"
+        f"<p>A release cannot be safer than a text anyone can compute from it. So when a "
+        f"candidate-ranking model scores {f(rec[0])} on the TAB surrogate release against "
+        f"{f(rec[1])} on the placeholder one, that is not protection: it is the ranker believing "
+        f"the surrogate. Tell it the scheme and it reaches {f(rec[2])} on exactly the same "
+        f"published bytes.{alt}</p></div>")
+
+
 SECTIONS = [
     ("detection", "Detection"),
     ("languages", "Languages"),
@@ -592,7 +709,7 @@ def build() -> str:
     utx, utx_callout = section_cross_corpus_utility()
     ut1, ut2 = section_utility()
     a2a, a2b, a2c = section_a2()
-    ex1, ex2, ex_callout = section_exposure()
+    ex1, ex_det, ex2, ex_callout = section_exposure()
     nav = "".join(f"<a href='#{i}'>{escape(n)}</a>" for i, n in SECTIONS)
     ensemble = "".join(f"<li><code>{escape(d)}</code></li>" for d in DATA["ensemble"])
 
@@ -726,10 +843,7 @@ footer p {{ max-width:78ch; }}
   optimised for.</p></div>
   <h3>The cost–quality front, in full</h3>
   {op1}
-  <div class="callout"><p><b>The fast cell is usually not the worse cell.</b> On CARDIO:DE the fast
-  sensitivity point gives up 0.097 of sensitivity but is <em>more</em> specific than the maximum and
-  191× cheaper. Catching the last identifiers means over-detecting, and over-detection has its own
-  price — which only the second column shows.</p></div>
+  {fast_cell_callout()}
   <h3>The recommended ensemble under every combining rule</h3>
   {op2}
   {enron_correction_callout()}
@@ -748,12 +862,7 @@ footer p {{ max-width:78ch; }}
   {lg1}
   <h3>OntoNotes, split three ways</h3>
   {lg2}
-  <div class="callout"><p><b>The spread is in the other identifier classes, not in finding
-  people.</b> Sensitivity over the whole identifier set runs 0.989 on English down to 0.614 on
-  Arabic; person sensitivity runs 0.991 down to 0.878. That matters because the attacks recover
-  <em>people</em>, so the alarming figure and the figure that bounds leakage are not the same
-  number — and specificity barely moves across the three, so the spread is not over-replacement
-  either.</p></div>
+  {language_callout()}
 </section>
 
 <section id="utility">
@@ -780,14 +889,7 @@ footer p {{ max-width:78ch; }}
   collisions counted rather than dropped, because an attacker has no ground truth to drop them
   with.</p>
 
-  <div class="callout"><p><b>The finding that reorganised the paper.</b> Conditions B and C replace
-  <em>identical</em> spans, so overwriting each replaced span of the surrogate release with
-  <code>[PERSON]</code> reproduces the placeholder release character for character — verified on all
-  1,268 TAB and all 5,994 OntoNotes documents.</p>
-  <p>A release cannot be safer than a text anyone can compute from it. So when a candidate-ranking
-  model scores 0.085 on surrogates against 0.290 on placeholders, that is not protection: it is the
-  ranker believing the surrogate. Tell it the scheme and it reaches 0.205 on exactly the same
-  published bytes.</p></div>
+  {informed_callout()}
 
   <h3>Candidate ranking, every cell</h3>
   {section_a4()}
@@ -811,6 +913,8 @@ footer p {{ max-width:78ch; }}
   pseudonymisation run left behind. Data-protection officers release documents and cases, and one
   unchanged mention puts a person back in the clear however many others were replaced.</p>
   {ex1}
+  <h3>The same exposure, measured on the detected spans</h3>
+  {ex_det}
   <h3>Where the residue is</h3>
   {ex2}
   {ex_callout}
