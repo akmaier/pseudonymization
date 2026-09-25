@@ -41,7 +41,7 @@ other identifier classes rather than the people targeted by the attacks.
 
 \subsection{Utility}\label{sec:results-utility}
 
-At the high-sensitivity operating point, utility depends strongly on replacement form. On CARDIO, named-entity agreement is $0.611\pm0.082$ with surrogates but only $0.004\pm0.008$ with placeholders. The latter largely reflects the frozen recognizer rather than semantic degradation: it never tags \texttt{[PERSON]} as a name, so every replaced mention is counted as a disagreement. Surrogates therefore preserve token-level named-entity utility substantially better than placeholders.
+At the high-sensitivity operating point, utility depends strongly on replacement form. On CARDIO, named-entity agreement is $0.611\pm0.082$ with surrogates but only $0.004\pm0.008$ with placeholders. The latter largely reflects the frozen recognizer rather than semantic degradation: it never tags \texttt{[PERSON]} as a name, so every replaced mention is counted as a disagreement. Surrogates therefore preserve token-level named-entity utility substantially better than placeholders. The same ordering holds on the other three corpora: named-entity agreement under the permissive rule is 0.478 on TAB, 0.295 on OntoNotes and 0.330 on Enron, rising to 0.898, 0.888 and 0.754 under the precise rule.
 
 The other two tasks retain their original-text baselines and support paired comparisons. Medication extraction scores $0.371\pm0.182$ on unmodified text. Under the precise rule, surrogate replacement yields $0.364\pm0.189$, with a paired difference of $-0.008\pm0.178$ that is consistent with zero ($q=0.80$). Under the permissive rule, performance drops to $0.346\pm0.181$, corresponding to a paired difference of $-0.020\pm0.182$ ($q=5.6\times10^{-3}$). Section classification scores $0.749\pm0.093$ on unmodified text. Surrogates reduce this score by $0.072\pm0.086$, whereas placeholders reduce it by $0.038\pm0.089$; both effects are significant ($q=1.6\times10^{-37}$ and $q=2.6\times10^{-14}$; rank-biserial correlations $-0.846$ and $-0.531$). Thus, typed placeholders preserve more utility at the document level, whereas surrogates are required to preserve token-level utility.
 
@@ -103,4 +103,6 @@ of 5,994 documents, while Enron leaves one in \SI{18.0}{\percent} of its people 
 The key normaliser both merges and splits identities: on Enron, ORGANISATION surrogates collide at
 \SI{17.3}{\percent} and drift at \SI{48.6}{\percent}, and PERSON drift reaches \SI{37.7}{\percent}
 against \SI{5.0}{\percent} on CARDIO:DE. The lower CARDIO:DE figure reflects constructed recurrence
-with fewer natural variants rather than generalisation.
+with fewer natural variants rather than generalisation. Drift is a utility cost as well as a mapping
+failure, because it breaks the longitudinal link that stable pseudonyms exist to preserve. It is a
+property of the key normaliser, and a stricter one reduces it at the price of more collisions.

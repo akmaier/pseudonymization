@@ -2,14 +2,14 @@
 
 \subsection{Corpora}\label{sec:corpora}
 
-Reference provenance differs including the corpus detection tasks.
-(Table~\ref{tab:corpora}). TAB manually annotates identifiers and document-scoped co-reference in
-court judgments~\cite{pilan2022tab}; OntoNotes covers three languages but was annotated for
-linguistics rather than privacy. A \emph{named entity} is a predefined person, organisation,
-location or other type, its occurrences form a co-reference chain. Enron derives
-genuine cross-document identity from message headers but contains exposed personal
-information~\cite{noever2020enron}. CARDIO:DE is the clinical anchor. To use it here, we inserted gold identifiers
-into an already de-identified release, which makes its name distribution synthetic.
+Reference provenance differs across the corpora, and with it the detection task
+(Table~\ref{tab:corpora}). CARDIO:DE is the clinical anchor. To use it here, we inserted gold
+identifiers into an already de-identified release, which makes its name distribution synthetic. TAB
+manually annotates identifiers and document-scoped co-reference in court
+judgments~\cite{pilan2022tab}; a \emph{named entity} is a predefined person, organisation, location
+or other type, its occurrences form a co-reference chain. OntoNotes covers three languages but was
+annotated for linguistics rather than privacy. Enron derives genuine cross-document identity from
+message headers but contains exposed personal information~\cite{noever2020enron}.
 
 \begin{table}[t]
   \caption{The corpora separate domain, language, and where the reference annotation came from.}\label{tab:corpora}
@@ -36,7 +36,7 @@ cross-document identity.
 
 \subsection{Conditions}\label{sec:conditions}
 
-Condition A is unmodified text. In B, each detected identifier becomes a realistic \emph{surrogate},
+Condition A is unmodified text. In condition B, each detected identifier becomes a realistic \emph{surrogate},
 such as another name, stable across the corpus, indexed by HMAC-SHA256, a keyed one-way digest
 irreproducible without the secret. Condition C uses an unindexed placeholder such as
 \texttt{[PERSON]}. B and C differ only in replacement form, following European guidance and prior
@@ -68,10 +68,8 @@ Note that it does exceed the maximum of Table~\ref{tab:operating-points} most of
 \subsection{Measurements}\label{sec:measurements}
 
 Detection is scored by token and by entity, an entity counting as protected only when every one of
-its mentions was replaced. Information-weighted precision scales each masked token by how poorly its
-context predicts it, so removing a predictable word costs less than removing an informative one, and
-exposure uses document, case and entity denominators, because few leaked tokens can expose many
-people. Frozen models analyse all three conditions for named-entity agreement, medication extraction
+its mentions was replaced. Exposure uses document, case and entity denominators, because few leaked
+tokens can expose many people. Frozen models analyse all three conditions for named-entity agreement, medication extraction
 and section classification; agreement is span F1 between the outputs on original and transformed
 text, and the original-text score accompanies every comparison. Continuous pairs use the Wilcoxon
 signed-rank test, binary correctness McNemar's test, and Benjamini--Hochberg correction applies
@@ -94,7 +92,7 @@ al.~\cite{kuzu2013practical,niedermeyer2014cryptanalysis,vatsalan2014taxonomy}: 
 prior granting perfect knowledge, an oracle upper bound, and a public name-frequency list, the
 realistic adversary.
 
-The attacker runs its own detector on the released text, so it can identify names that the defender failed to replace. All detected surfaces remain in the evaluation denominator, including ambiguous and unresolved cases~\cite{dankar2012estimating}. If the same surrogate represents $k$ different entities, a correct recovery receives a score of $1/k$ rather than being excluded. The attacker abstains when the score margin is too small, using $(\max-\max_2)/\sigma < \varphi$, where all quantities are computed from its own candidate scores~\cite{narayanan2008robust}. We therefore report both the fraction of queries answered and $c@1$, which rewards correct answers while allowing justified abstention~\cite{penas2011simple}, together with the chance level implied by the candidate set~\cite{rocher2019estimating}. Realistic surrogates are intended to make residual identifiers difficult to distinguish from replaced ones~\cite{carrell2013hiding}; the public-prior attack tests this property directly. Varying the prior's size and publication date then quantifies the value of additional attacker knowledge~\cite{bindschaedler2018cryptanalysis}.
+The attacker runs its own detector on the released text, so it can identify names that the defender failed to replace. All detected surfaces remain in the evaluation denominator, including ambiguous and unresolved cases~\cite{dankar2012estimating}. If the same surrogate represents $k$ different entities, a correct recovery receives a score of $1/k$ rather than being excluded. The attacker abstains when the score margin is too small, using $(\max-\max_2)/\sigma < \varphi$, where $\max$ and $\max_2$ are the best and second-best candidate scores, $\sigma$ their spread across candidates, and $\varphi$ the abstention threshold, all computed from its own candidate scores~\cite{narayanan2008robust}. We therefore report both the fraction of queries answered and $c@1$, which rewards correct answers while allowing justified abstention~\cite{penas2011simple}, together with the chance level implied by the candidate set~\cite{rocher2019estimating}. Realistic surrogates are intended to make residual identifiers difficult to distinguish from replaced ones~\cite{carrell2013hiding}; the public-prior attack tests this property directly. Varying the prior's size and publication date then quantifies the value of additional attacker knowledge~\cite{bindschaedler2018cryptanalysis}.
 
 \emph{Context linkage} ranks identities by cosine similarity between surrounding-word profiles;
 \emph{learned linkage} fits the same task on labelled, entity-disjoint examples. Both use identical
@@ -104,7 +102,7 @@ match, and their difference measures learning rather than gallery size. Cross-do
 permits this on Enron and CARDIO:DE but not on TAB or OntoNotes.
 
 \emph{LLM candidate ranking} gives a language model (\emph{gpt-oss-120B}) one marked mention and ten candidate names, with
-or without auxiliary text about each candidate from the released condition. Because B and C replace
+or without auxiliary text about each candidate from the released condition. Because conditions B and C replace
 identical spans, B can be rewritten into C, so we report this attack on B as presented, on B after
 that rewrite, and against a ranker told the scheme. The one-in-ten closed world measures an attacker
 holding a shortlist, not population re-identification. A \emph{dictionary lookup} would hash
