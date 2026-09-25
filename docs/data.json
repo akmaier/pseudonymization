@@ -5318,5 +5318,184 @@
     }
    }
   }
+ },
+ "exposure_from_release": {
+  "cardiode": {
+   "person": {
+    "distinct_people": 308,
+    "distinct_people_exposed": 27,
+    "entity_document_pairs": 1957,
+    "entity_document_pairs_exposed": 28,
+    "mentions": 2800,
+    "mentions_exposed": 34,
+    "documents": 400,
+    "documents_exposed": 17,
+    "cases": 270,
+    "cases_exposed": 17,
+    "cases_are_real": true,
+    "exposed_mentions_clipped": 2,
+    "exposed_mentions_never_found": 32
+   },
+   "replaced": {
+    "distinct_people": 7209,
+    "distinct_people_exposed": 211,
+    "entity_document_pairs": 9055,
+    "entity_document_pairs_exposed": 221,
+    "mentions": 9978,
+    "mentions_exposed": 227,
+    "documents": 400,
+    "documents_exposed": 155,
+    "cases": 270,
+    "cases_exposed": 131,
+    "cases_are_real": true,
+    "exposed_mentions_clipped": 102,
+    "exposed_mentions_never_found": 125
+   }
+  },
+  "tab": {
+   "person": {
+    "distinct_people": 8701,
+    "distinct_people_exposed": 139,
+    "entity_document_pairs": 8701,
+    "entity_document_pairs_exposed": 139,
+    "mentions": 15955,
+    "mentions_exposed": 220,
+    "documents": 1268,
+    "documents_exposed": 90,
+    "cases": 1268,
+    "cases_exposed": 90,
+    "cases_are_real": false,
+    "exposed_mentions_clipped": 129,
+    "exposed_mentions_never_found": 91
+   },
+   "replaced": {
+    "distinct_people": 30468,
+    "distinct_people_exposed": 2648,
+    "entity_document_pairs": 30468,
+    "entity_document_pairs_exposed": 2648,
+    "mentions": 59845,
+    "mentions_exposed": 4127,
+    "documents": 1268,
+    "documents_exposed": 879,
+    "cases": 1268,
+    "cases_exposed": 879,
+    "cases_are_real": false,
+    "exposed_mentions_clipped": 1601,
+    "exposed_mentions_never_found": 2526
+   }
+  },
+  "ontonotes": {
+   "person": {
+    "distinct_people": 13852,
+    "distinct_people_exposed": 1577,
+    "entity_document_pairs": 39240,
+    "entity_document_pairs_exposed": 2707,
+    "mentions": 47713,
+    "mentions_exposed": 3216,
+    "documents": 5994,
+    "documents_exposed": 1156,
+    "cases": 5994,
+    "cases_exposed": 1156,
+    "cases_are_real": false,
+    "exposed_mentions_clipped": 672,
+    "exposed_mentions_never_found": 2544
+   },
+   "replaced": {
+    "distinct_people": 30267,
+    "distinct_people_exposed": 5402,
+    "entity_document_pairs": 145119,
+    "entity_document_pairs_exposed": 16580,
+    "mentions": 175249,
+    "mentions_exposed": 19284,
+    "documents": 5994,
+    "documents_exposed": 2584,
+    "cases": 5994,
+    "cases_exposed": 2584,
+    "cases_are_real": false,
+    "exposed_mentions_clipped": 4398,
+    "exposed_mentions_never_found": 14886
+   }
+  },
+  "enron": {
+   "person": {
+    "distinct_people": 4015,
+    "distinct_people_exposed": 499,
+    "entity_document_pairs": 281476,
+    "entity_document_pairs_exposed": 54217,
+    "mentions": 398295,
+    "mentions_exposed": 89434,
+    "documents": 58636,
+    "documents_exposed": 27998,
+    "cases": 16,
+    "cases_exposed": 16,
+    "cases_are_real": true,
+    "exposed_mentions_clipped": 4104,
+    "exposed_mentions_never_found": 85330,
+    "exposed_mentions_by_region": {
+     "header": 11799,
+     "body": 77635
+    }
+   },
+   "replaced": {
+    "distinct_people": 20100,
+    "distinct_people_exposed": 2344,
+    "entity_document_pairs": 420890,
+    "entity_document_pairs_exposed": 72716,
+    "mentions": 842627,
+    "mentions_exposed": 108904,
+    "documents": 58636,
+    "documents_exposed": 35668,
+    "cases": 16,
+    "cases_exposed": 16,
+    "cases_are_real": true,
+    "exposed_mentions_clipped": 23425,
+    "exposed_mentions_never_found": 85479,
+    "exposed_mentions_by_region": {
+     "header": 30190,
+     "body": 78714
+    }
+   }
+  }
+ },
+ "enron_header_split": {
+  "corpus": "enron",
+  "ensemble": "recommended 13, union",
+  "regions": {
+   "header": {
+    "tokens": 4866950,
+    "gold_tokens": 3263708,
+    "person_gold_tokens": 515345,
+    "sensitivity": 0.9961430373060335,
+    "person_sensitivity": 0.9764778934500189,
+    "specificity": 0.34407095123506,
+    "predicted_tokens": 4302733,
+    "false_positive_tokens": 1051613,
+    "documents_with_a_finding": 6116,
+    "documents_with_a_person_in_clear": 6113,
+    "documents": 58636
+   },
+   "body": {
+    "tokens": 10640975,
+    "gold_tokens": 516949,
+    "person_gold_tokens": 278755,
+    "sensitivity": 0.8536296617267854,
+    "person_sensitivity": 0.7295223404064501,
+    "specificity": 0.6678959536453186,
+    "predicted_tokens": 3803513,
+    "false_positive_tokens": 3362230,
+    "documents_with_a_finding": 23902,
+    "documents_with_a_person_in_clear": 23898,
+    "documents": 58636
+   }
+  },
+  "person_entities": {
+   "exposed_total": 188,
+   "exposed_header_only": 56,
+   "exposed_body_only": 71,
+   "exposed_both": 61,
+   "mentioned_total": 4015,
+   "mentioned_header_only": 1757,
+   "mentioned_body_only": 238
+  }
  }
 }
