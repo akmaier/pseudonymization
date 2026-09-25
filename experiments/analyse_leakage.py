@@ -52,18 +52,46 @@ def summarise(rows: list[dict], label: str) -> dict | None:
     candidates = [r["a2_candidates"] for r in rows if r.get("a2_candidates")]
     lift = [r["a2_top1"] * r["a2_candidates"] for r in rows if r.get("a2_candidates")]
     rho = [r["a2_rho"] for r in rows if r.get("a2_rho") is not None]
+    top1 = [r["a2_top1"] for r in rows]
+    top5 = [r["a2_top5"] for r in rows]
+    # `lift` is already the recovered count: (top1/n) * n. Named for what it is, and given the
+    # binomial SD of that count within each row, which needs no resampling.
+    recovered = lift
+    within = [((r["a2_top1"] * (1.0 - r["a2_top1"]) * r["a2_candidates"]) ** 0.5)
+              for r in rows if r.get("a2_candidates")]
+
+    def spread(values):
+        """SD over span sources — `None`, never 0.0, when a single source cannot have one."""
+        return statistics.stdev(values) if len(values) > 1 else None
+
     out = {
         "group": label, "n": len(rows),
-        "a2_top1": statistics.fmean(r["a2_top1"] for r in rows),
-        "a2_top5": statistics.fmean(r["a2_top5"] for r in rows),
-        "a2_top1_max": max(r["a2_top1"] for r in rows),
+        "a2_top1": statistics.fmean(top1),
+        "a2_top1_sd": spread(top1),
+        "a2_top5": statistics.fmean(top5),
+        "a2_top5_sd": spread(top5),
+        "a2_top1_max": max(top1),
         "candidates": statistics.fmean(candidates) if candidates else None,
+        "candidates_sd": spread(candidates) if candidates else None,
         "lift_over_chance": statistics.fmean(lift) if lift else None,
+        "lift_over_chance_sd": spread(lift) if lift else None,
+        "recovered_mean": statistics.fmean(recovered) if recovered else None,
+        "recovered_binomial_sd": statistics.fmean(within) if within else None,
         "rank_correlation": statistics.fmean(rho) if rho else None,
+        "rank_correlation_sd": spread(rho) if rho else None,
+        "dispersion_unit": "span_source",
+        "n_span_sources": len(rows),
     }
-    print(f"  {label:<32} n={out['n']:>5}  top1 {out['a2_top1']:.4f}  top5 {out['a2_top5']:.4f}  "
-          f"cand {out['candidates']:>7.0f}  lift {out['lift_over_chance']:>6.1f}x  "
-          f"rho {out['rank_correlation']:+.3f}")
+
+    def pm(value, sd, fmt=".4f"):
+        return f"{value:{fmt}}" + ("" if sd is None else f"\u00b1{sd:{fmt}}")
+
+    print(f"  {label:<32} n={out['n']:>5}  "
+          f"top1 {pm(out['a2_top1'], out['a2_top1_sd'])}  "
+          f"top5 {pm(out['a2_top5'], out['a2_top5_sd'])}  "
+          f"cand {pm(out['candidates'], out['candidates_sd'], '.0f'):>16}  "
+          f"lift {pm(out['lift_over_chance'], out['lift_over_chance_sd'], '.1f'):>14}x  "
+          f"rho {pm(out['rank_correlation'], out['rank_correlation_sd'], '+.3f')}")
     return out
 
 

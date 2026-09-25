@@ -27,12 +27,16 @@ import itertools
 import json
 import os
 import statistics
+import pathlib
 import sys
 import time
 from pathlib import Path
 
 from pseudonymkit.attacks import (
     FrequencyAttack,
+    Prior,
+    degrade,
+    observe,
     LearnedLinkage,
     StructuralLinkage,
     build_gallery,
@@ -119,6 +123,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--corpus", required=True, choices=sorted(CORPORA))
+    ap.add_argument("--include", type=Path, default=None,
+                    help="file of '+'-joined ensembles to score under every rule regardless of "
+                         "--max-size; use it to add the large ensemble to a full sweep")
     ap.add_argument("--cache", type=Path, default=Path("results/detector_cache"))
     ap.add_argument("--out", type=Path, default=Path("results/leakage_sweep"))
     ap.add_argument("--max-size", type=int, default=3)
@@ -214,28 +221,28 @@ def main() -> int:
                 continue
         log(f"  resuming: {len(done)} span sources already done")
 
+    extra: list[tuple[str, ...]] = []
     wanted: set[str] | None = None
+
     if args.sources:
         wanted = {line.strip() for line in args.sources.read_text(encoding="utf-8").splitlines()
                   if line.strip()}
         log(f"  restricted to {len(wanted)} span sources from {args.sources}")
+    if args.include:
+        extra = [tuple(line.strip().split("+")) for line in
+                 args.include.read_text(encoding="utf-8").splitlines() if line.strip()]
+        log(f"  plus {len(extra)} explicitly included ensembles "
+            f"(sizes {sorted({len(e) for e in extra})}) from {args.include}")
 
     written = 0
     errored = 0
     skipped: list[tuple[str, int]] = []
     started = time.time()
     with destination.open("a" if done else "w", encoding="utf-8", buffering=1) as handle:
-        for names in subsets(detectors, args.max_size):
-            for rule, kwargs in RULES:
-                k = kwargs.get("k")
-                if len(names) == 1 and rule != "union":
-                    continue
-                if k is not None and k > len(names):
-                    continue
-                label = f"{'+'.join(names)}|{rule}{k or ''}"
+        for names, rule, kwargs, label in plan(detectors, args.max_size, wanted, extra):
+            k = kwargs.get("k")
+            if True:
                 if label in done:
-                    continue
-                if wanted is not None and label not in wanted:
                     continue
                 shared = set.intersection(*(covered[n] for n in names))
                 fraction = len(shared) / max(len(documents), 1)
@@ -287,6 +294,126 @@ def main() -> int:
     return 0
 
 
+def parse_label(label: str):
+    """``a+b+c|vote2`` -> ``(("a","b","c"), "vote", {"k": 2})``.
+
+    The inverse of the label the sweep writes, so a source file can name an ensemble the size-bounded
+    enumeration would never reach.
+    """
+    ensemble, _, rule = label.rpartition("|")
+    if not ensemble:
+        raise ValueError(f"not a span-source label: {label!r}")
+    digits = ""
+    while rule and rule[-1].isdigit():
+        digits = rule[-1] + digits
+        rule = rule[:-1]
+    kwargs = {"k": int(digits)} if digits else {}
+    return tuple(ensemble.split("+")), rule, kwargs
+
+
+def plan(detectors: list[str], max_size: int, wanted, extra):
+    """Every (ensemble, rule) this run should score, in a stable order.
+
+    The size-bounded enumeration first, then anything named explicitly that it did not reach — a
+    large ensemble asked for by name is run rather than silently filtered out of a set it was never
+    in.
+    """
+    seen: set[str] = set()
+    out = []
+
+    def add(names, rule, kwargs):
+        k = kwargs.get("k")
+        if len(names) == 1 and rule != "union":
+            return
+        if k is not None and k > len(names):
+            return
+        label = f"{'+'.join(names)}|{rule}{k or ''}"
+        if label in seen:
+            return
+        seen.add(label)
+        if wanted is not None and label not in wanted:
+            return
+        out.append((tuple(names), rule, kwargs, label))
+
+    for names in subsets(detectors, max_size):
+        for rule, kwargs in RULES:
+            add(names, rule, kwargs)
+
+    # Explicitly named ensembles, whatever their size.
+    for names in extra:
+        for rule, kwargs in RULES:
+            add(names, rule, kwargs)
+    if wanted is not None:
+        for label in sorted(wanted):
+            if label in seen:
+                continue
+            try:
+                names, rule, kwargs = parse_label(label)
+            except ValueError:
+                continue
+            unknown = [n for n in names if n not in detectors]
+            if unknown:
+                print(f"  requested source names detectors that are not in the pool: {unknown}",
+                      flush=True)
+                continue
+            seen.add(label)
+            out.append((names, rule, kwargs, label))
+    return out
+
+
+def attack_truth_tables(result, entity_type: str):
+    """Evaluator-side tables, exposed so the sweep can build them once per span source."""
+    from pseudonymkit.attacks.frequency import _truth_tables
+
+    return _truth_tables(result, entity_type)
+
+
+def external_priors(corpus: str, entity_type: str):
+    """The public name lists an adversary attacking this corpus could actually look up.
+
+    Absent rather than substituted where none exists: a corpus whose language has no list on disk
+    reports that the realistic adversary is not measurable, which is a result about our evidence
+    and not a reason to quote the upper bound in its place (§1).
+    """
+    from pseudonymkit.attacks.priors import (
+        build_prior, load_census_surnames, load_german_weights, load_uci_given_names,
+    )
+    from pseudonymkit.paths import shared_corpora
+
+    out = []
+    gazetteers = shared_corpora() / "gazetteers"
+    try:
+        if corpus in ("tab", "ontonotes", "enron"):
+            surnames = load_census_surnames(gazetteers / "Names_2010Census.csv")
+            out.append(build_prior(surnames, entity_type, label="US Census 2010 surnames",
+                                   provenance="US Census 2010, 162,253 surnames covering 90 % of "
+                                              "those recorded; public domain under 17 U.S.C. 105",
+                                   vintage="2010"))
+            given = load_uci_given_names(gazetteers / "name_gender_dataset.csv")
+            out.append(build_prior(given, entity_type, label="UCI given names",
+                                   provenance="UCI Gender by Name, CC BY 4.0, "
+                                              "DOI 10.24432/C55G7X",
+                                   vintage="1880-2019"))
+        elif corpus == "cardiode":
+            weights = pathlib.Path("data/cardiode_name_weights.json")
+            out.append(build_prior(load_german_weights(weights, "family"), entity_type,
+                                   label="German surnames",
+                                   provenance="abydos rank order x US Census 2010 counts — a US "
+                                              "Zipf shape on German ranks, not German counts",
+                                   vintage="2010"))
+            for part, cohort in (("male", "1930-1969"), ("female", "1930-1969")):
+                out.append(build_prior(load_german_weights(weights, part), entity_type,
+                                       label=f"German given names ({part})",
+                                       provenance="Stadt Bielefeld Einwohnermelderegister, "
+                                                  "CC BY 4.0",
+                                       vintage=cohort))
+    except FileNotFoundError as exc:
+        # Report, do not substitute.
+        print(f"  no external prior for {corpus}: {exc}", flush=True)
+        return []
+    return out
+
+
 def _one(names, rule, kwargs, label, documents, cache, index, inventory, key,
          gallery, query_docs, args, relational: bool) -> dict:
     """Detection and leakage for one span source, condition B built and discarded in memory."""
@@ -314,9 +441,60 @@ def _one(names, rule, kwargs, label, documents, cache, index, inventory, key,
         "documents_missing_a_detector": report.get("documents_missing_a_detector"),
     }
 
-    a2 = FrequencyAttack().run(result, args.entity_type, "deterministic", "hmac")
+    # **Two priors over one observation** (AM, 2026-09-22). The attacker's view of the release is
+    # computed once; what changes between cells is only what the adversary is assumed to know.
+    # The oracle is kept because a scheme safe under it is safe in practice, and it is labelled an
+    # upper bound in its own fields so it can never be read as a risk estimate.
+    # The adversary's view of this release: its own tagger's counts, and the evaluator-side tables
+    # that say what stands behind each surface. Computed once, shared by every prior and every
+    # abstention threshold below.
+    seen = observe(result)
+    tables = attack_truth_tables(result, args.entity_type)
+    internal = Prior.corpus_internal(result, args.entity_type)
+    # phi = 0: the attacker always answers. The headline, because every positive threshold refuses
+    # essentially every query on a one-dimensional frequency signal (measured, 2026-09-22).
+    oracle = FrequencyAttack(internal, eccentricity=0.0)
+    a2 = oracle.run(result, args.entity_type, "deterministic", "hmac")
+    bound = oracle.score(result, args.entity_type, observed=seen, tables=tables)
     row.update(a2_top1=a2.accuracy_top1, a2_top5=a2.accuracy_top5, a2_rho=a2.rank_correlation,
                a2_candidates=a2.candidates, a2_bands=dict(a2.by_frequency_band))
+    row.update({f"a2_bound_{k}": v for k, v in bound.as_dict().items()})
+
+    # The realistic adversary, and the Bindschaedler prior-quality sweep around it: one cell per
+    # (list, size, vintage). Reported per cell rather than averaged — the point is how attack
+    # strength varies with what the adversary knows, which an average would erase.
+    cells = []
+    available = external_priors(args.corpus, args.entity_type)
+    for prior in available:
+        for top in (100, 1_000, 10_000, None):
+            if top is not None and top >= prior.size:
+                continue
+            cell = FrequencyAttack(degrade(prior, top=top), eccentricity=0.0).score(
+                result, args.entity_type, observed=seen, tables=tables)
+            cells.append(cell.as_dict())
+
+    # The abstention curve, on the full-size priors only. Both numbers PAN asks for are already in
+    # each cell (`accuracy_attempted` blind, `c_at_1` rewarding); what this adds is how both move as
+    # the attacker is allowed to be more cautious.
+    curve = []
+    for label, prior in [("corpus-internal", internal)] + [(p.label, p) for p in available]:
+        for phi in (0.0, 0.05, 0.25, 1.5):
+            cell = FrequencyAttack(prior, eccentricity=phi).score(
+                result, args.entity_type, observed=seen, tables=tables)
+            curve.append({"prior": label, "phi": phi, "attempted": cell.attempted,
+                          "abstained": cell.abstained,
+                          "accuracy_attempted": cell.accuracy_attempted,
+                          "c_at_1": cell.c_at_1, "lift_over_chance": cell.lift_over_chance})
+    row["a2_abstention_curve"] = curve
+    if cells:
+        row["a2_prior_sweep"] = cells
+        # The full-size external prior is the headline realistic number.
+        best = max(cells, key=lambda c: c.get("prior_size") or 0)
+        row.update({f"a2_real_{k}": v for k, v in best.items()})
+    else:
+        row["a2_prior_sweep"] = []
+        row["a2_real_note"] = ("no external name-frequency list for this corpus — the realistic "
+                               "adversary is not measurable here and the bound is not a substitute")
 
     queries = build_queries(result, args.entity_type, documents=query_docs)
     truth = truth_map(result, args.entity_type)
@@ -325,20 +503,56 @@ def _one(names, rule, kwargs, label, documents, cache, index, inventory, key,
     # for every row including the condition-A ceiling.  The fields are left absent rather than set
     # to a zero that would read as "the attack failed".
     if relational and queries and truth:
-        a3 = StructuralLinkage().run(queries, gallery, truth, "deterministic", "hmac")
+        structural = StructuralLinkage()
+        # The whole-corpus A3, as reported before 2026-09-22 — kept so the change is auditable.
+        a3 = structural.run(queries, gallery, truth, "deterministic", "hmac")
         row.update(a3_rank1=a3.rank1, a3_rank5=a3.rank5, a3_map=a3.mean_average_precision,
-                   a3_queries=a3.queries)
-        folds = [
+                   a3_queries=a3.queries, a3_gallery=a3.gallery)
+
+        # One partition, handed to both attacks. A3 sees the same held-out queries A5 is tested on
+        # and the same undiminished gallery; the fold withholds labels from the learner and nothing
+        # else (AM, 2026-09-22).
+        partition = structural.folds(queries, gallery, truth, seed=args.seed, folds=args.folds)
+        a3_folds = [
+            structural.run(queries, gallery, truth, "deterministic", "hmac", subset=keys)
+            for keys in partition
+        ]
+        a5_folds = [
             LearnedLinkage(seed=args.seed, folds=args.folds, fold=f).run(
                 queries, gallery, truth, "deterministic", "hmac")
             for f in range(args.folds)
         ]
+
+        def summarise(results, prefix):
+            """Mean, spread and the raw per-fold values, for each metric.
+
+            ``None`` rather than ``0.0`` where a single fold cannot have a spread: a measured-looking
+            zero is worse than an absent number.
+            """
+            out = {f"{prefix}_folds": len(results)}
+            for name, get in (("rank1", lambda r: r.rank1),
+                              ("rank5", lambda r: r.rank5),
+                              ("map", lambda r: r.mean_average_precision)):
+                values = [get(r) for r in results]
+                out[f"{prefix}_{name}"] = statistics.fmean(values)
+                out[f"{prefix}_{name}_sd"] = (
+                    statistics.stdev(values) if len(values) > 1 else None)
+                out[f"{prefix}_{name}_values"] = values
+            out[f"{prefix}_queries_values"] = [r.queries for r in results]
+            out[f"{prefix}_gallery_values"] = [r.gallery for r in results]
+            return out
+
+        row.update(summarise(a3_folds, "a3f"))
+        row.update(summarise(a5_folds, "a5"))
+        # The paired difference, fold by fold — what "learning buys" actually means once both
+        # attacks face the same problem. Only defined because the folds are matched.
+        gap = [b.rank1 - a.rank1 for a, b in zip(a3_folds, a5_folds)]
         row.update(
-            a5_rank1=statistics.fmean([f.rank1 for f in folds]),
-            a5_rank1_sd=statistics.stdev([f.rank1 for f in folds]) if len(folds) > 1 else 0.0,
-            a5_rank5=statistics.fmean([f.rank5 for f in folds]),
-            a5_map=statistics.fmean([f.mean_average_precision for f in folds]),
-            a5_folds=args.folds,
+            a5_minus_a3_rank1=statistics.fmean(gap),
+            a5_minus_a3_rank1_sd=statistics.stdev(gap) if len(gap) > 1 else None,
+            a5_minus_a3_rank1_values=gap,
+            a5_seed=args.seed,
+            fold_paradigm="labels-held-out; full gallery at evaluation (AM 2026-09-22)",
         )
     return row
 

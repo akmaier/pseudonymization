@@ -17,7 +17,7 @@ assignments map each mention to its own surface, so :func:`build_queries`, :func
 
 from .base import Attack, AttackResult
 from .dictionary import DictionaryAttack, candidates_from_inventory, deterministic_inverter
-from .frequency import FrequencyAttack, reference_from_counts, spearman
+from .frequency import A2Score, FrequencyAttack, Prior, degrade, observe, reference_from_counts, spearman
 from .profiles import (
     EntityProfile, build_gallery, build_queries, disjoint_document_split, truth_map,
 )
@@ -28,6 +28,7 @@ from .candidates import score as score_candidates
 from .relational import LearnedLinkage, ReIdResult, StructuralLinkage, featurise
 
 __all__ = [
+    "A2Score", "Prior", "degrade", "observe",
     "Attack", "AttackResult",
     "DictionaryAttack", "deterministic_inverter", "candidates_from_inventory",
     "FrequencyAttack", "reference_from_counts", "spearman",

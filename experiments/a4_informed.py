@@ -152,7 +152,7 @@ def main() -> int:
     ap.add_argument("--a4-candidates", type=int, default=10)
     ap.add_argument("--a4-limit", type=int, default=200)
     ap.add_argument("--a4-model", default="gpt-oss-120b")
-    ap.add_argument("--mode", choices=("mask", "forewarned"), default="mask",
+    ap.add_argument("--mode", choices=("mask", "forewarned", "target"), default="mask",
                     help="mask = neutralise name-like spans with a public list; "
                          "forewarned = leave the text alone and tell the ranker the scheme")
     ap.add_argument("--config", type=Path, default=Path("config/llm_api.toml"))
@@ -191,6 +191,24 @@ def main() -> int:
         per_document = masked / len(items)
         log(f"  {len(items)} queries, {per_document:.1f} spans neutralised per document")
         ranker = LlmCandidateRanker(model=args.a4_model, config_path=str(args.config))
+    elif args.mode == "target":
+        # AM, 2026-09-25: if coarsening removes information, masking the surrogate should make the
+        # attacker's problem harder, not easier. This is the strategy that isolates the question.
+        # Only the *marked* mention is overwritten -- its span is given to the attacker for free, so
+        # no oracle knowledge is used -- while every other surrogate stays in place. It therefore
+        # removes the decoy at the target and keeps the distinct names for the other people in the
+        # document, which condition C destroys by collapsing them all to one string.
+        rewritten, per_document = [], 1.0
+        for item in items:
+            head, _, rest = item.text.partition(MARK_OPEN)
+            _, _, tail = rest.partition(MARK_CLOSE)
+            rewritten.append(CandidateSet(
+                doc_id=item.doc_id,
+                text=head + MARK_OPEN + PLACEHOLDER + MARK_CLOSE + tail,
+                truth=item.truth, candidates=item.candidates,
+                pseudonym=PLACEHOLDER, public_figure=item.public_figure))
+        log(f"  {len(items)} queries, marked mention masked, other surrogates left in place")
+        ranker = LlmCandidateRanker(model=args.a4_model, config_path=str(args.config))
     else:
         rewritten, per_document = list(items), 0.0
         log(f"  {len(items)} queries, text unchanged; the ranker is told the scheme")
@@ -210,6 +228,8 @@ def main() -> int:
         "queries": len(rewritten), "spans_neutralised_per_document": per_document,
         "adversary": ("public name list over the released text, replaced spans unknown"
                       if args.mode == "mask" else
+                      "only the marked mention masked; every other surrogate left in place"
+                      if args.mode == "target" else
                       "told the release is pseudonymised; the text itself is unchanged"),
     }
     destination.write_text(json.dumps(row) + "\n", encoding="utf-8")

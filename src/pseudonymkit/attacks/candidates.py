@@ -144,6 +144,30 @@ def _surface_and_documents(
     )
 
 
+def _released_positions(
+    result: PseudonymisedCorpus, entity_type: str
+) -> tuple[dict[str, str], dict[str, list[tuple[str, int, int]]]]:
+    """Where each gold entity's mentions landed **in the released text**, and that text.
+
+    The attacker reads the release, so its background evidence has to be quoted from the release.
+    Offsets come from :func:`replacements`, which replays the engine's own substitution pass — the
+    condition-A offsets are wrong by the accumulated length delta of every earlier replacement.
+    """
+    text: dict[str, str] = {}
+    positions: dict[str, list[tuple[str, int, int]]] = {}
+    for pdoc in result.documents:
+        doc_id = pdoc.document.doc_id
+        text[doc_id] = pdoc.text
+        for replacement in replacements(pdoc):
+            mention = replacement.mention
+            if mention.type != entity_type or not mention.gold_entity_id:
+                continue
+            positions.setdefault(mention.gold_entity_id, []).append(
+                (doc_id, replacement.new_start, replacement.new_end)
+            )
+    return text, positions
+
+
 def _context_snippet(
     corpus_text: Mapping[str, str],
     positions: Sequence[tuple[str, int, int]],
@@ -191,8 +215,10 @@ def build_items(
     thread mentioning one person forty times would otherwise contribute forty near-identical queries
     and dominate the rate.
     """
-    surfaces, positions = _surface_and_documents(corpus, entity_type)
-    corpus_text = {d.doc_id: d.text for d in corpus}
+    # Candidate names from the gold corpus — the adversary's list of real identities, which is the
+    # attack's premise. Evidence windows from the release, which is all the adversary can read.
+    surfaces, _gold_positions = _surface_and_documents(corpus, entity_type)
+    corpus_text, positions = _released_positions(result, entity_type)
     population = sorted(surfaces)
     if len(population) < 2:
         return []

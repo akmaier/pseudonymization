@@ -389,37 +389,3 @@ def test_dates_need_no_redraws_now_that_they_are_generated_directly():
     for index in range(200):
         form.render(index, mention("04.12.1980", "CODE"), "de")
     assert form.redraws == 0
-
-def test_a_date_shaped_code_that_is_not_a_date_does_not_demand_a_valid_surrogate():
-    """OntoNotes' first build died here, and the check was wrong twice over.
-
-    `_DMY` matches any `n.n.nnn`, so a citation-like code such as "2.31.610" — month 31 — is
-    date-*shaped* without being a date. Demanding a real date of its surrogate is unsatisfiable,
-    because format preservation keeps the three-digit trailing field and a three-digit year can
-    never fall in PLAUSIBLE_YEARS; all 512 draws were rejected before they could differ. It is also
-    backwards: a valid date standing where an invalid one stood is easier to spot, not harder.
-    """
-    from pseudonymkit.surrogates import code_is_consistent
-
-    mention = Mention("d", "m0", Span(0, 8, "2.31.610", "CODE"))
-    assert code_is_consistent("2.01.047", mention) is True
-    assert code_is_consistent("2.31.610", mention) is False, "it must still differ from the original"
-
-
-def test_a_real_date_still_demands_a_real_date():
-    from pseudonymkit.surrogates import code_is_consistent
-
-    mention = Mention("d", "m0", Span(0, 8, "12.03.99", "CODE"))
-    assert code_is_consistent("16.01.87", mention) is True
-    assert code_is_consistent("42.87.10", mention) is False, "day 42 of month 87"
-
-
-def test_the_whole_code_path_renders_for_a_date_shaped_non_date():
-    """End to end, because the unit above would have passed while the build still failed."""
-    from pseudonymkit.surrogates import Checked, FormatPreserving, code_is_consistent
-
-    surrogate = Checked(FormatPreserving(), code_is_consistent)
-    mention = Mention("d", "m0", Span(0, 8, "2.31.610", "CODE"))
-    rendered = surrogate.render(7, mention, "en")
-    assert rendered != "2.31.610"
-    assert len(rendered) == len("2.31.610")

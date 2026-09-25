@@ -6,9 +6,15 @@ what is left, and they differ in exactly one respect:
 * **A3** compares profiles with a **fixed** similarity — the classical structural baseline.
 * **A5** *learns* the similarity, on entities it never sees again — the strongest adversary we build.
 
-They share :mod:`pseudonymkit.attacks.profiles`, so **the A5 − A3 gap is attributable to the
-learning** and not to a different representation.  That gap is the study's "frozen defenders,
-trained attackers" principle expressed as a number.
+They share :mod:`pseudonymkit.attacks.profiles` **and, since 2026-09-22, the same evaluation
+problem**: the same held-out queries ranked against the same full gallery.  Only then is the A5 − A3
+gap attributable to the learning, which is the study's "frozen defenders, trained attackers"
+principle expressed as a number.
+
+Until that date it was not.  A5 ranked its held-out queries against the gallery-side half of its own
+test pairs, so its haystack was the answer key with the distractors removed and was roughly a fifth
+of the one A3 searched; the gap contained the difference in problem as well as the difference in
+attacker.  The fold holds out *labels* — that is all the disjointness a learned attacker needs.
 
 A5 is the text analogue of Packhäuser et al., *Deep learning-based patient re-identification is able
 to exploit the biometric nature of medical chest X-ray data* (Sci Rep 2022,
@@ -151,10 +157,47 @@ class StructuralLinkage:
         truth: Mapping[str, str],
         policy: str,
         technique: str,
+        subset: Sequence[str] | None = None,
     ) -> ReIdResult:
+        """``subset`` restricts the **queries** only, never the gallery.
+
+        Passing one fold's held-out query keys makes this the same problem A5 is scored on, so the
+        two can be compared fold by fold as a paired difference. The gallery stays whole in every
+        case: an attacker is not told which entities are under test.
+        """
         vocabulary = _vocabulary([queries, gallery], self._vocabulary_size)
+        if subset is not None:
+            keep = set(subset)
+            queries = {q: p for q, p in queries.items() if q in keep}
+            truth = {q: g for q, g in truth.items() if q in keep}
         return _score(queries, gallery, truth, None, vocabulary, self.name, policy, technique,
-                      notes="fixed cosine, no training")
+                      notes="fixed cosine, no training"
+                            + (f"; {len(queries)} queries of one fold" if subset is not None else ""))
+
+    def folds(
+        self,
+        queries: Mapping[str, EntityProfile],
+        gallery: Mapping[str, EntityProfile],
+        truth: Mapping[str, str],
+        seed: int,
+        folds: int,
+    ) -> list[Sequence[str]]:
+        """The query keys of each fold, cut exactly as :class:`LearnedLinkage` cuts them.
+
+        Duplicated logic would silently drift apart and the two attacks would stop being paired, so
+        the partition is produced once here and handed to both. Same seed, same shuffle, same
+        contiguous blocks.
+        """
+        pairs = [(q, g) for q, g in truth.items() if q in queries and g in gallery]
+        rng = np.random.default_rng(seed)
+        rng.shuffle(pairs)  # type: ignore[arg-type]
+        size, extra = divmod(len(pairs), folds)
+        out, start = [], 0
+        for index in range(folds):
+            stop = start + size + (1 if index < extra else 0)
+            out.append([q for q, _ in pairs[start:stop]])
+            start = stop
+        return out
 
 
 class LearnedLinkage:
@@ -229,14 +272,17 @@ class LearnedLinkage:
                               notes="too few entities for a disjoint split")
 
         weights = self._fit(train, queries, gallery, vocabulary, rng)
+        # The held-out queries, ranked against the **whole** gallery. Restricting the gallery to the
+        # test pairs' own answers would hand the attacker the answer key and delete every distractor
+        # (AM, 2026-09-22) — the fold exists to hold out labels, not candidates.
         eval_queries = {q: queries[q] for q, _ in test}
-        eval_gallery = {g: gallery[g] for _, g in test}
         eval_truth = dict(test)
         return _score(
-            eval_queries, eval_gallery, eval_truth, weights, vocabulary,
+            eval_queries, gallery, eval_truth, weights, vocabulary,
             self.name, policy, technique,
             notes=(
-                f"trained on {len(train)} entities, evaluated on {len(test)} disjoint ones"
+                f"trained on {len(train)} entities, evaluated on {len(test)} disjoint ones "
+                f"against the full gallery of {len(gallery)}"
                 + (f"; fold {self._fold + 1}/{self._folds}" if self._folds else "")
             ),
         )

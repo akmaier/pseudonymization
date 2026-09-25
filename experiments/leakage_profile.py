@@ -151,6 +151,17 @@ def profile(documents, spans_by_doc, corpus: str, types: frozenset[str]) -> dict
         "findings_per_document": {k: {"documents": v, "rate": v / documents_n}
                                   for k, v in buckets.items()},
         "findings_total": sum(per_doc_findings),
+        "findings_per_document_sd": (statistics.stdev(per_doc_findings)
+                                     if len(per_doc_findings) > 1 else None),
+        "findings_per_document_iqr": (
+            [float(q) for q in statistics.quantiles(per_doc_findings, n=4)[::2]]
+            if len(per_doc_findings) > 3 else None),
+        "tokens_per_document_sd": (statistics.stdev(per_doc_tokens)
+                                   if len(per_doc_tokens) > 1 else None),
+        "tokens_per_document_iqr": (
+            [float(q) for q in statistics.quantiles(per_doc_tokens, n=4)[::2]]
+            if len(per_doc_tokens) > 3 else None),
+        "dispersion_unit": "document",
         "findings_per_document_mean": statistics.fmean(per_doc_findings) if per_doc_findings else 0.0,
         "findings_per_document_median": (statistics.median(per_doc_findings)
                                          if per_doc_findings else 0.0),
@@ -218,11 +229,21 @@ def main() -> int:
               f"/{got['documents']:,} ({got['documents_exposed_rate']:.1%})")
         print(f"    findings per document           : " + "  ".join(
             f"{k}: {v['rate']:.1%}" for k, v in fpd.items())
-            + f"   (mean {got['findings_per_document_mean']:.2f}, "
-              f"median {got['findings_per_document_median']:.0f})")
+            + f"   (mean {got['findings_per_document_mean']:.2f}"
+            + (f"\u00b1{got['findings_per_document_sd']:.2f}"
+               if got.get("findings_per_document_sd") is not None else "")
+            + f", median {got['findings_per_document_median']:.0f}"
+            + (f", IQR {got['findings_per_document_iqr'][0]:.0f}"
+               f"-{got['findings_per_document_iqr'][1]:.0f}"
+               if got.get("findings_per_document_iqr") else "") + ")")
         print(f"    tokens left per document        : "
-              f"{got['tokens_per_document_mean']:.2f} "
-              f"(median {got['tokens_per_document_median']:.0f})")
+              f"{got['tokens_per_document_mean']:.2f}"
+              + (f"\u00b1{got['tokens_per_document_sd']:.2f}"
+                 if got.get("tokens_per_document_sd") is not None else "")
+              + f" (median {got['tokens_per_document_median']:.0f}"
+              + (f", IQR {got['tokens_per_document_iqr'][0]:.0f}"
+                 f"-{got['tokens_per_document_iqr'][1]:.0f}"
+                 if got.get("tokens_per_document_iqr") else "") + ")")
         print(f"    per case     : {got['cases_exposed']:,}/{got['cases']:,} {unit} "
               f"({got['cases_exposed_rate']:.1%}), {got['tokens_per_case_mean']:.2f} tokens each")
         print(f"    per entity   : {got['entities_exposed']:,}/{got['entities']:,} "

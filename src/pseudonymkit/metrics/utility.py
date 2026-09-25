@@ -308,6 +308,33 @@ class PairedComparison:
     condition_mean: float
     median_difference: float
     """Median of ``condition − reference``. Negative means the condition scored lower."""
+    reference_sd: float = float("nan")
+    condition_sd: float = float("nan")
+    """Sample standard deviation (``ddof=1``) of each condition over the shared documents.
+
+    **The replication unit is the document, not a fold.** Utility has no fold structure: the corpus
+    is scored once per condition, the gateway runs at temperature 0, and each instrument is built
+    once, so the only variation is between documents. A q-value with no dispersion beside it is a
+    test with nothing attached to it, which is the defect these fields close (AM, 2026-09-22)."""
+    mean_difference: float = float("nan")
+    difference_sd: float = float("nan")
+    """Mean and SD of the **paired** difference ``condition − reference``.
+
+    Not recoverable from the two marginal SDs. Both conditions are scored on the same documents
+    with the same frozen weights, so they are strongly positively correlated and ``SD(b − a)`` is
+    far smaller than either marginal. This is the dispersion the Wilcoxon actually tests; the
+    marginals describe the spread of the values a table displays. Both are reported because they
+    answer different questions and quoting either alone misleads."""
+    reference_median: float = float("nan")
+    condition_median: float = float("nan")
+    reference_iqr: tuple[float, float] | None = None
+    condition_iqr: tuple[float, float] | None = None
+    """Median and quartiles, carried alongside.
+
+    Several tasks are span-F1, which is bounded in [0, 1] and puts hard mass on both endpoints, so
+    ``mean ± SD`` can print an interval reaching outside the range the score can take — the 0.004
+    NER-agreement cell is the clear case. The quartiles let a caption show the distribution where
+    the SD would misdescribe it, without changing the convention."""
     discordant: tuple[int, int] | None = None
     """McNemar's ``(b, c)``: reference-right/condition-wrong, and the reverse."""
     q_value: float | None = None
@@ -331,9 +358,42 @@ class PairedComparison:
             "reference_mean": self.reference_mean,
             "condition_mean": self.condition_mean,
             "median_difference": self.median_difference,
+            "reference_sd": self.reference_sd,
+            "condition_sd": self.condition_sd,
+            "mean_difference": self.mean_difference,
+            "difference_sd": self.difference_sd,
+            "reference_median": self.reference_median,
+            "condition_median": self.condition_median,
+            "reference_iqr": list(self.reference_iqr) if self.reference_iqr else None,
+            "condition_iqr": list(self.condition_iqr) if self.condition_iqr else None,
+            "dispersion_unit": "document",
             "discordant": list(self.discordant) if self.discordant else None,
             **dict(self.metadata),
         }
+
+
+def _spread(a, b, differences) -> dict[str, object]:
+    """Dispersion of both conditions and of their paired difference, over the shared documents.
+
+    Separate from :func:`compare` only so that the two test branches cannot drift apart: a
+    dispersion that is right for the Wilcoxon rows and absent from the McNemar rows would be worse
+    than none at all. ``ddof=1`` throughout — these are samples of documents, not populations.
+    """
+    n = int(a.size)
+    if not n:
+        return {}
+    quartiles = lambda v: (float(np.percentile(v, 25)), float(np.percentile(v, 75)))
+    sd = lambda v: float(np.std(v, ddof=1)) if n > 1 else float("nan")
+    return {
+        "reference_sd": sd(a),
+        "condition_sd": sd(b),
+        "mean_difference": float(differences.mean()),
+        "difference_sd": sd(differences),
+        "reference_median": float(np.median(a)),
+        "condition_median": float(np.median(b)),
+        "reference_iqr": quartiles(a),
+        "condition_iqr": quartiles(b),
+    }
 
 
 def compare(reference: ScoreVector, condition: ScoreVector) -> PairedComparison:
@@ -350,6 +410,9 @@ def compare(reference: ScoreVector, condition: ScoreVector) -> PairedComparison:
     a, b, shared = reference.paired_with(condition)
     differences = b - a
     median_difference = float(median(differences)) if differences.size else float("nan")
+    # The observation, beside the test. `differences` was computed and then discarded down to its
+    # median; everything below is read off the vectors already in hand, at no cost.
+    spread = _spread(a, b, differences)
 
     if reference.kind == "binary":
         statistic, p_value, discordant_b, discordant_c = mcnemar(a, b)
@@ -362,6 +425,7 @@ def compare(reference: ScoreVector, condition: ScoreVector) -> PairedComparison:
             reference_mean=float(a.mean()) if n else float("nan"),
             condition_mean=float(b.mean()) if n else float("nan"),
             median_difference=median_difference,
+            **spread,
             discordant=(discordant_b, discordant_c),
             metadata={"n_shared": len(shared)},
         )
@@ -375,6 +439,7 @@ def compare(reference: ScoreVector, condition: ScoreVector) -> PairedComparison:
         reference_mean=float(a.mean()) if n else float("nan"),
         condition_mean=float(b.mean()) if n else float("nan"),
         median_difference=median_difference,
+        **spread,
         metadata={"n_shared": len(shared)},
     )
 

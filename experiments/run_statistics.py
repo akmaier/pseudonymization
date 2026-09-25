@@ -87,13 +87,22 @@ def main() -> int:
             if "A" not in conditions:
                 log(f"  {task}: no condition A — EXCLUDED (§8.3 requires the original beside each)")
                 continue
-            reference_mean = statistics.fmean(conditions["A"].values())
+            all_a = list(conditions["A"].values())
+            reference_mean = statistics.fmean(all_a)
+            # Named `_all` deliberately: this is over every condition-A document, whereas the
+            # `reference_mean` a comparison row carries is over the documents A shares with B or C.
+            # One field name for two populations in one file was a trap worth closing.
+            reference_sd_all = statistics.stdev(all_a) if len(all_a) > 1 else float("nan")
             if reference_mean <= NEAR_CHANCE:
-                log(f"  {task}: original-text mean {reference_mean:.4f} is near chance — "
-                    f"EXCLUDED, not averaged away (§8.3)")
+                log(f"  {task}: original-text mean {reference_mean:.4f}±{reference_sd_all:.4f} "
+                    f"(n={len(all_a)}) is near chance — EXCLUDED, not averaged away (§8.3)")
                 rows.append({"corpus": args.corpus, "span_source": span_source, "task": task,
                              "excluded": "near chance on the original text",
-                             "reference_mean": reference_mean})
+                             "reference_mean_all": reference_mean,
+                             "reference_sd_all": reference_sd_all,
+                             "n_all": len(all_a),
+                             "near_chance_threshold": NEAR_CHANCE,
+                             "dispersion_unit": "document"})
                 continue
 
             family: list = []
@@ -117,8 +126,15 @@ def main() -> int:
                               family="task", alpha=args.alpha)
                 rows.append(record)
                 star = "*" if comparison.significant else " "
+                # The observed values come first and the test second, because a q-value is not a
+                # result on its own (AM, 2026-09-22). `±` is one SD over documents.
                 log(f"  {task:<28} A vs {comparison.condition}  {comparison.test:<8} "
-                    f"n={comparison.n:<4} p={comparison.p_value:.3g} q={comparison.q_value:.3g}{star} "
+                    f"n={comparison.n:<4} "
+                    f"A={comparison.reference_mean:.4f}±{comparison.reference_sd:.4f} "
+                    f"{comparison.condition}={comparison.condition_mean:.4f}"
+                    f"±{comparison.condition_sd:.4f} "
+                    f"Δ={comparison.mean_difference:+.4f}±{comparison.difference_sd:.4f} "
+                    f"p={comparison.p_value:.3g} q={comparison.q_value:.3g}{star} "
                     f"{comparison.effect_name}={comparison.effect:+.3f} "
                     f"median Δ={comparison.median_difference:+.4f}")
 
