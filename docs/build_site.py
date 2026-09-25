@@ -182,6 +182,49 @@ def section_languages():
 
 
 # ---------------------------------------------------------------- utility
+def section_cross_corpus_utility():
+    """Entity agreement on all four corpora — the same task, the same two rules, four genres."""
+    util = DATA["utility_by_corpus"]
+    rows = []
+    for c in CORPORA:
+        for i, rule in enumerate(("union", "vote")):
+            d = (util.get(c, {}).get(rule) or {}).get("ner_agreement")
+            if not d:
+                continue
+            cells = []
+            for cond in ("A", "B", "C"):
+                v = d.get(cond)
+                cells.append("—" if not v else
+                             f"{v['mean']:.3f} <span class='sd'>± {v['sd']:.3f}</span>")
+            rows.append([f"<b>{NICE[c]}</b>" if i == 0 else "",
+                         "permissive (union of 15)" if rule == "union" else "precise (8 of 15)",
+                         *cells, num(d.get("A", {}).get("n"))])
+    t = table(["Corpus", "Rule", "A — original", "B — surrogates", "C — placeholders", "Docs"], rows,
+              note="Mean ± one standard deviation over documents, every document of each corpus. "
+                   "<b>Column A is 1.000 everywhere by construction and is not a result</b>: "
+                   "<code>ner_agreement</code> scores the frozen recogniser against its own output "
+                   "on the unmodified text, so A is the definition of perfect agreement, not a "
+                   "measurement of it. It is printed because the paired design requires the "
+                   "original-text score beside every condition. Read B and C down the two rules of "
+                   "one corpus, never across corpora: the genres differ in how much of a document "
+                   "is a name.")
+
+    def span(rule, cond):
+        vals = [util[c][rule]["ner_agreement"][cond]["mean"] for c in CORPORA
+                if (util.get(c, {}).get(rule) or {}).get("ner_agreement", {}).get(cond)]
+        return (min(vals), max(vals)) if vals else (None, None)
+
+    ulo, uhi = span("union", "B")
+    vlo, vhi = span("vote", "B")
+    callout = (f"<div class='callout'><p><b>Detector precision governs utility on all four corpora, "
+               f"not only the clinical one.</b> Under the permissive union the same frozen "
+               f"recogniser agrees with itself on only {f(ulo)}–{f(uhi)} of its original findings; "
+               f"requiring a majority of the same fifteen detectors recovers {f(vlo)}–{f(vhi)}. "
+               f"Same policy, same surrogates, same documents — only which spans were replaced "
+               f"changed.</p></div>")
+    return t, callout
+
+
 def section_utility():
     util = DATA["utility"]
     tasks = sorted({t for rule in util.values() for t in rule})
@@ -199,7 +242,8 @@ def section_utility():
                          "permissive (union of 15)" if rule == "union" else "precise (8 of 15)",
                          *cells, num(d.get("A", {}).get("n"))])
     t1 = table(["Task", "Rule", "A — original", "B — surrogates", "C — placeholders", "Docs"], rows,
-               note="Mean ± one standard deviation over documents, on CARDIO:DE. "
+               note="Mean ± one standard deviation over documents, on CARDIO:DE, which is the "
+                    "only corpus carrying the clinical tasks. "
                     "<code>ner_agreement</code> is 1.000 on A by construction: it scores the frozen "
                     "recogniser against its own output on the original text. "
                     "<code>medication_ie:in_narrative</code> is retained here but excluded from the "
@@ -222,8 +266,8 @@ def section_utility():
         ])
     t2 = table(["Task", "Rule", "Pair", "n", "Test", "Reference", "Condition", "Difference",
                 "q", "Sig.", "Effect"], rows,
-               note="Wilcoxon signed-rank on paired documents, Benjamini–Hochberg corrected within "
-                    "task families. Effect is the rank-biserial correlation. A rank-biserial of "
+               note="Wilcoxon signed-rank on paired documents of CARDIO:DE, Benjamini–Hochberg "
+                    "corrected within task families. Effect is the rank-biserial correlation. A rank-biserial of "
                     "−1.000 means <em>every</em> document lost, not merely the average.")
     return t1, t2
 
@@ -487,6 +531,7 @@ SECTIONS = [
 def build() -> str:
     op1, op2 = section_detection()
     lg1, lg2 = section_languages()
+    utx, utx_callout = section_cross_corpus_utility()
     ut1, ut2 = section_utility()
     a2a, a2b, a2c = section_a2()
     ex1, ex2 = section_exposure()
@@ -499,8 +544,8 @@ def build() -> str:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pseudonymisation — the results behind the paper</title>
-<meta name="description" content="Detection, utility and leakage measured end to end on four
-corpora: the full result set behind an eight-page paper.">
+<meta name="description" content="The text component of multimodal releases: detection, utility
+and leakage measured end to end on four corpora — the full result set behind an eight-page paper.">
 <style>
 :root {{
   --bg:#fbfaf8; --fg:#1b1a18; --muted:#6b675f; --line:#e2ded6; --card:#fff;
@@ -586,8 +631,10 @@ footer p {{ max-width:78ch; }}
 </head>
 <body>
 <header><div class="wrap hero">
-  <h1>Taking the names out of text,<br><span>measured end to end</span></h1>
-  <p class="lede">Detection, downstream utility and residual identity leakage, on the same documents,
+  <h1>The text beside the image,<br><span>measured end to end</span></h1>
+  <p class="lede">Medical images are released with the free text that describes them, and protecting
+  the image does not protect the report. <b>This study measures the text component of such
+  releases</b> — detection, downstream utility and residual identity leakage, on the same documents,
   with the pseudonymisation policy as the variable under test. Four corpora — clinical letters, legal
   judgments, news, e-mail — in German, English, Chinese and Arabic.</p>
   <p class="lede"><b>This page carries what the eight-page paper had no room for.</b> Every number is
@@ -652,18 +699,20 @@ footer p {{ max-width:78ch; }}
 
 <section id="utility">
   <h2><span class="n">03</span>Utility</h2>
-  <p class="sub">Three frozen models read all three conditions. The question is not whether the text
+  <p class="sub">Frozen models read all three conditions. The question is not whether the text
   changed but whether the task survives, so every comparison is paired per document and carries the
-  original-text score beside it.</p>
+  original-text score beside it. Entity agreement was measured on all four corpora; the clinical
+  information-extraction and section tasks exist only for the clinical letters.</p>
+  <h3>Entity agreement, all four corpora</h3>
+  {utx}
+  {utx_callout}
+  <h3>CARDIO:DE, every task</h3>
   {ut1}
   <h3>The paired tests in full</h3>
   {ut2}
-  <div class="callout"><p><b>Detector precision, not the replacement form, is the dominant lever.</b>
-  Entity agreement is 0.611 under a permissive union and 0.973 when the same fifteen detectors must
-  reach a majority — same policy, same surrogates, same corpus.</p>
-  <p>The placeholder column is partly an artefact and is labelled as one: the frozen recogniser never
-  tags <code>[PERSON]</code> as a name, so every replaced mention counts as a disagreement. Read that
-  column between rules, not between forms.</p></div>
+  <div class="callout"><p>The placeholder column is partly an artefact and is labelled as one: the
+  frozen recogniser never tags <code>[PERSON]</code> as a name, so every replaced mention counts as a
+  disagreement. Read that column between rules, not between forms.</p></div>
 </section>
 
 <section id="leakage">
@@ -721,6 +770,12 @@ footer p {{ max-width:78ch; }}
   <a href="data.json">one JSON export</a> of those result files by
   <code>docs/build_site.py</code>, so it cannot drift from the measurements the way a hand-maintained
   table does.</p>
+  <p><b>Text, and only text.</b> The motivation is multimodal — a radiograph travels with its
+  report, a cardiology study with its discharge letter, and releasing either half requires both to be
+  protected — but the study itself is not. Nothing here is an image experiment: no scan is defaced,
+  no burned-in pixel text is read, and no claim is made about what image de-identification costs.
+  Every measurement on this page is made on written documents, which is the half of such a release
+  that identifier replacement has to carry.</p>
   <p><b>Corpora are not redistributed here.</b> Several are bound by a data-use agreement, licensed,
   or contain real personal data. This export carries aggregates only: no corpus text, no surface
   form, no identity. CARDIO:DE in particular is single-user under its agreement with Heidelberg, and
