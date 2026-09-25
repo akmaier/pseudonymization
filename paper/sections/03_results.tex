@@ -38,8 +38,8 @@ specific than the maximum, 0.9769 against 0.9670, at 191 times less cost, and En
 ensemble, because the \SI{10}{\percent} band admits all 414 candidates.
 
 Language is a separate axis, and how separate depends on what is detected. Over all identifier types
-the best triple reaches 0.983 on English, 0.710 on Chinese and 0.545 on Arabic, and the pooled 0.745
-describes none of them: Arabic supplies \SI{45}{\percent} of the gold tokens from
+the best triple reaches 0.983 on English, 0.710 on Chinese and 0.545 on Arabic, and its pooled
+0.747 in Table~\ref{tab:operating-points} describes none of them: Arabic supplies \SI{45}{\percent} of the gold tokens from
 \SI{7}{\percent} of the documents, dominating the pooled score while being the hardest case. People
 transfer far better, at 0.991, 0.932 and 0.878 with the recommended ensemble, pooling to 0.935, so
 the forty-point spread belongs to the other identifier classes rather than to finding people, which
@@ -104,9 +104,9 @@ below that ceiling. Training the metric on entity-disjoint examples raises it to
 four times the fixed attack and 155 times chance, so the residual risk belongs to an adversary who
 can learn. On CARDIO:DE, with 207 identities in the gallery, the fixed attack recovers nothing and
 the trained one $0.0071\pm0.0160$ against chance $0.0048$, not distinguishable from guessing. Recall
-bounds this: two detectors agreeing lowers Enron person recall to 0.868, raises fixed linkage
-fivefold to 0.0500 and takes the names in clear text from 180 to 1,868, while intersection replaces
-almost nothing and leaves linkage at 0.2380.
+bounds this: two detectors agreeing lowers Enron person recall to 0.732, raises fixed linkage
+fivefold to 0.0500 and takes the names in clear text from 180 to 1,868, while intersection leaves
+person recall at 0.037 and linkage at 0.2380.
 
 The third attack shows why the replacement form cannot be credited with a difference. Ranking one
 marked mention against ten candidates, a language model falls from 0.995 on unmodified TAB text to
@@ -116,9 +116,10 @@ this says surrogates defend better, and that reading is wrong. The conditions re
 spans, so overwriting each replaced span of the surrogate release with \texttt{[PERSON]} reproduces
 the placeholder release character for character, verified on all 1,268 TAB and all 5,994 OntoNotes
 documents. The placeholder release is therefore computable from the surrogate release by anyone able
-to locate those spans, and no release is safer than a text derived from it: the gap measures a
-ranker that believes the surrogate, which is obscurity, not protection, and both forms carry the
-higher risk.
+to locate those spans, and this is measured rather than argued: an adversary merely told the scheme,
+with the text left untouched, reaches 0.205, and one neutralising name-like spans with a public name
+list reaches 0.215, against the 0.290 of the rewrite itself. The surrogate buys the credulity of a
+ranker that takes it at face value, not protection, and both forms carry the higher risk.
 
 Token recall hides exposure, and the denominator decides what a number means. The recommended
 release leaves one CARDIO:DE person mention of 4,396 in clear text, one entity of 1,957 and one

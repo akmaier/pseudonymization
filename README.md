@@ -10,12 +10,16 @@ plausible surrogate, or something else.
 
 ### Three findings you can read off the tables below
 
-- **The last point of detection quality is bought with an LLM and costs two to three orders of
-  magnitude.** On CARDIO:DE, an all-classical ensemble reaches 0.982 token recall at 1.41 s per
-  document; the best ensemble of any kind reaches 0.985 at 118 s — **0.003 recall for 84× the cost**.
-- **The cheap option is often not the worse option.** On the same corpus the fast ensemble gives up
-  some sensitivity but is *more* specific than the expensive one, and 444× cheaper. Catching the last
-  identifiers means over-detecting, and over-detection has its own price.
+- **Detection recall bounds leakage. The replacement scheme does not.** Conditions B and C replace
+  *identical* spans, so overwriting each replaced span of the surrogate release with `[PERSON]`
+  reproduces the placeholder release character for character — verified on every TAB and OntoNotes
+  document. A release cannot be safer than a text anyone can compute from it, so a surrogate buys
+  nothing against an adversary who knows the scheme. Telling a candidate-ranking attacker that much,
+  **without changing one character of the text**, lifts it from 0.085 to 0.205.
+- **The cheap option is often not the worse option.** On CARDIO:DE the fast-sensitivity ensemble
+  gives up 0.097 of sensitivity but is *more* specific than the maximum (0.9769 against 0.9670) and
+  **191× cheaper**. Catching the last identifiers means over-detecting, and over-detection has its
+  own price.
 - **Over-detection destroys more utility than pseudonymisation does.** Downstream NER agreement is
   0.611 under a permissive detector union and 0.973 under a majority vote — *same policy, same
   surrogates, same corpus*. What you replace matters less than what you wrongly decide to replace.
@@ -79,10 +83,10 @@ The spread is three orders of magnitude, and its shape is the same on all four c
 | dearest LLM (Qwen3.6-35B) | 442.9 · 98.1 · 71.1 · 41.7 |
 
 **The last point of quality is bought with an LLM and costs two to three orders of magnitude.** On
-CARDIO:DE an all-classical ensemble reaches token recall 0.982 at 1.41 s/document; the best ensemble
-of any kind reaches 0.985 at 118 s/document — 0.003 recall for 84× the cost. On TAB, at a recall
-floor of 0.80, the best information-weighted precision is 0.854 using Qwen3.6 at 98.7 s/document,
-against 0.844 all-classical at 0.57 s/document — 0.010 precision for 174×.
+CARDIO:DE the maximum-sensitivity ensemble reaches 0.992 at 57.6 s/document while the fast one
+reaches 0.895 at 0.301 s — 0.097 of sensitivity for **191× the cost**, and the cheaper ensemble is
+the *more specific* of the two. The latency table above is where that factor comes from: a single
+LLM in an ensemble sets its parallel cost, because cost is the slowest member.
 
 So four operating points are named — **fast against maximum, on specificity and sensitivity**
 (AM, 2026-09-20) — each chosen per corpus from that corpus's own sweep by a stated rule:
@@ -110,37 +114,39 @@ Three parts of that decision matter and are recorded here because none is infera
 **Both error rates are shown for every point.** Reading one alone hides the cost of the other, which
 is the whole reason for choosing sensitivity and specificity as the pair.
 
-| corpus | operating point | cost | sensitivity | specificity | ensemble |
+| corpus | operating point | cost (s/doc) | sensitivity | specificity | rule |
 |---|---|---:|---:|---:|---|
-| CARDIO:DE | MAX sensitivity | 116.875 s | 0.985 | 0.9751 | deid-roberta + gpt-oss-120b + privacy-tagger (∪) |
-| | **FAST sensitivity** | **0.263 s** | 0.908 | 0.9862 | Stanford |
-| | MAX specificity | 0.694 s | 0.776 | **0.9999** | Stanford + presidio + privacy-tagger (∩) |
-| | FAST specificity | 0.263 s | 0.908 | 0.9862 | Stanford |
-| TAB | MAX sensitivity | 14.210 s | 0.895 | 0.8999 | GLiNER-PII + Mistral-Small + presidio (∪) |
-| | **FAST sensitivity** | **0.219 s** | 0.826 | 0.9303 | GLiNER-v2.1 + xlm-r-ner + Stanford (∪) |
-| | MAX specificity | 29.677 s | 0.505 | 0.9976 | GLiNER-v2.1 + gemma-4-31B + privacy-tagger (vote) |
-| | **FAST specificity** | **0.117 s** | 0.595 | 0.9934 | Stanford |
-| OntoNotes | MAX sensitivity | 9.450 s | 0.613 | 0.9685 | Mistral-Small + gemma-4-31B + presidio (∪) |
-| | FAST sensitivity | 5.009 s | 0.559 | 0.9757 | xlm-r-ner + Magistral-Small + presidio (∪) |
-| | MAX specificity | 9.450 s | 0.506 | 0.9873 | xlm-r-ner + deid-roberta + gemma-4-31B (∪) |
-| | **FAST specificity** | **0.103 s** | 0.515 | 0.9740 | GLiNER-v2.1 + xlm-r-ner + presidio (∪) |
-| Enron | MAX sensitivity | 25.557 s | 0.971 | **0.7721** | Mistral-Small + gpt-oss-120b + presidio (∪) |
-| | **FAST sensitivity** | **0.057 s** | 0.881 | 0.7522 | xlm-r-ner + Stanford + deid-roberta (∪) |
-| | MAX specificity | 20.931 s | 0.588 | 0.9428 | Magistral-Small + gemma-4-31B + gemma-4-E4B (∩) |
-| | FAST specificity | 0.026 s | 0.674 | 0.8787 | Stanford |
+| CARDIO:DE | MAX sensitivity | 57.633 | 0.992 | 0.9670 | union |
+| | **FAST sensitivity** | **0.301** | 0.895 | 0.9769 | union |
+| | MAX specificity | 116.875 | 0.523 | **0.9997** | vote |
+| | FAST specificity | 0.263 | 0.781 | 0.9862 | single |
+| TAB | MAX sensitivity | 14.210 | 0.925 | 0.8986 | union |
+| | **FAST sensitivity** | **0.219** | 0.893 | 0.9242 | union |
+| | MAX specificity | 98.110 | 0.501 | 0.9959 | vote |
+| | FAST specificity | 0.117 | 0.520 | 0.9934 | single |
+| OntoNotes | MAX sensitivity | 9.450 | 0.747 | 0.9763 | union |
+| | FAST sensitivity | 5.376 | 0.684 | 0.9731 | union |
+| | MAX specificity | 0.103 | 0.503 | 0.9960 | union |
+| | FAST specificity | 0.103 | 0.503 | 0.9960 | union |
+| Enron | MAX sensitivity | 25.557 | 0.973 | **0.7720** | union |
+| | **FAST sensitivity** | **0.057** | 0.899 | 0.7419 | union |
+| | MAX specificity | 20.931 | 0.588 | 0.9428 | intersection |
+| | FAST specificity | 0.026 | 0.674 | 0.8787 | single |
+
+The search covers singles, pairs and triples, so the 13-detector ensemble the study **recommends**
+lies outside it and can exceed the "maximum" row.
 
 Three things only become visible with both columns present:
 
-- **The fast cell is usually not the worse cell.** On CARDIO:DE, FAST sensitivity gives up 0.077
-  sensitivity but is *more* specific than the maximum (0.9862 against 0.9751) and 444× cheaper — it
-  is not a compromise, it is better on one axis and cheaper on both. TAB behaves the same way
-  (0.9303 against 0.8999). Catching the last few identifiers means over-detecting, and over-detection
-  is what the specificity column measures.
-- **On TAB the maximum-specificity cell is dominated.** FAST specificity is 254× cheaper *and* more
-  sensitive (0.595 against 0.505), for 0.0042 of specificity. A criterion optimised in isolation can
-  select an ensemble that nothing else recommends.
-- **Enron's maximum sensitivity costs 23 % of the corpus.** Specificity 0.7721 means nearly a quarter
-  of the non-identifier tokens were replaced too. Catching 97.1 % of identifiers on real e-mail is
+- **The fast cell is usually not the worse cell.** On CARDIO:DE, FAST sensitivity gives up 0.097
+  sensitivity but is *more* specific than the maximum (0.9769 against 0.9670) and 191× cheaper — not
+  a compromise, but better on one axis and cheaper on the other. TAB behaves the same way (0.9242
+  against 0.8986, 65× cheaper).
+- **On OntoNotes the fast/maximum specificity distinction is degenerate.** The 10 % band admits all
+  414 candidates, so both cells select one ensemble. A criterion optimised in isolation can fail to
+  discriminate at all.
+- **Enron's maximum sensitivity costs 23 % of the corpus.** Specificity 0.7720 means nearly a quarter
+  of the non-identifier tokens were replaced too. Catching 97.3 % of identifiers on real e-mail is
   possible, and the price is a text with a quarter of its ordinary words overwritten — which the
   sensitivity column alone reports as a triumph.
 
@@ -164,19 +170,62 @@ the **original** text, so it cannot measure a loss.
   and title. So the rule that makes medication IE statistically free is also the rule under which
   every demographic identifier survives untouched into the released text. The utility gain and the
   privacy loss have the same cause, and neither is visible in a token-recall column.
-- **Medication extraction is free under a precise rule, and only under one.** A vs B is significant
-  under `union` (*q* = 5.6 × 10⁻³) and **not distinguishable from zero** under either three-detector
-  ensemble (*q* = 0.94–0.99).
-- **Surrogates beat placeholders decisively for token-level tasks.** NER agreement under condition C
-  collapses to 0.004 (union) and 0.674 (vote), against B's 0.611 and 0.973. Replacing a name with
-  `[PERSON]` removes the thing the downstream model is looking for.
-- **…and are worth nothing for document-level ones.** Section classification scores 0.677 under B and
-  0.711 under C at the same span source — C is *better*. A classifier reading the whole letter does
-  not care which string stood where, so the surrogate machinery buys nothing there.
+- **Medication extraction is free under a precise rule, and only under one.** Against an
+  original-text score of 0.371 ± 0.182, A vs B is significant under `union` (0.346 ± 0.181,
+  *q* = 5.6 × 10⁻³) and **not distinguishable from zero** under the majority vote (0.364 ± 0.189,
+  paired difference −0.008 ± 0.178, *q* = 0.80) or either three-detector ensemble (*q* = 0.94–0.99).
+- **Surrogates beat placeholders decisively for token-level tasks — partly by construction.** NER
+  agreement under condition C collapses to 0.004 (union) and 0.674 (vote), against B's 0.611 and
+  0.973. Replacing a name with `[PERSON]` removes the thing the downstream model is looking for, and
+  the frozen recogniser never tags `[PERSON]` as a name, so every replaced mention counts as a
+  disagreement. That column measures the metric as much as the release: read it *between rules*, not
+  between forms.
+- **…and are worth less than nothing for document-level ones.** Against an original-text score of
+  0.749, section classification loses 0.072 ± 0.086 to surrogates and only 0.038 ± 0.089 to
+  placeholders (both *q* < 10⁻¹³; rank-biserial −0.846 and −0.531). A classifier reading the whole
+  letter does not care which string stood where, and the surrogate machinery is the *worse* of the
+  two there.
 - **Every document loses NER agreement, not merely the average.** Rank-biserial is −1.000 for that
   task at every span source; the rules differ in the median loss (−0.377 union, −0.021 vote), not in
   whether it is universal.
 
+
+## What the attacks recover
+
+All figures are for the **recommended 13-detector union**, and all concern people: identity is
+`PERSON`, and the other identifier classes are what linkage exploits rather than what it names.
+
+| corpus | person recall | people still named in clear | frequency matching (public / oracle) | context linkage | learned linkage | chance |
+|---|---:|---:|---:|---:|---:|---:|
+| CARDIO:DE | 1.000 | 0.1 % | 0 / 1 | 0.0000 ± 0.0000 | 0.0071 ± 0.0160 | 1/207 |
+| TAB | 0.996 | 0.8 % | 0 / 1 | — | — | — |
+| OntoNotes | 0.935 | 4.9 % | 0 / 1 | — | — | — |
+| Enron | 0.890 | 18.0 % | 0 / 0 | 0.0095 ± 0.0012 | 0.0407 ± 0.0029 | 1/3816 |
+
+- **Frequency matching recovers nothing.** With a public name-frequency list it names no identity on
+  any corpus. Every name it returns is one the *detector missed* and the release printed in clear
+  text — that measures the defender's recall, not the adversary's inference, and the two must never
+  be added into one rate. Even the corpus's own distribution, which no real attacker holds, aligns
+  at most one identity.
+- **Linkage succeeds where identity is real, and needs its anchors.** On Enron the same fixed
+  similarity recovers **0.706** of held-out people from *unmodified* text; after the recommended
+  release it recovers 0.0095 — still 36× chance, but two orders of magnitude below that ceiling.
+  Training the metric raises it to 0.0407, four times the fixed attack. The residual risk belongs to
+  an adversary who can learn.
+- **Recall bounds all of it.** On Enron, two votes lower person recall from 0.890 to 0.732, raise
+  fixed linkage fivefold to 0.0500 and take the names left in clear text from 180 to 1,868;
+  intersection leaves person recall at 0.037 and linkage at 0.2380.
+- **Surrogates are not a privacy control.** B and C replace identical spans, so the placeholder
+  release is a character-for-character rewrite of the surrogate release — verified on 1268/1268 TAB
+  and 5994/5994 OntoNotes documents. A candidate-ranking LLM scores 0.085 on surrogates against
+  0.290 on placeholders, which *looks* like protection; it is the ranker believing the surrogate.
+  Told the scheme, with the text untouched, it reaches 0.205; neutralising name-like spans with a
+  public name list, 0.215. Choose the replacement form for **utility**, not for privacy.
+
+Token recall also hides exposure, and the denominator decides what a number means. The recommended
+release leaves one CARDIO:DE person mention of 4,396 in clear text — one entity of 1,957 and **one
+patient of 270**. Counting every identifier class rather than people alone, 8.5 % of letters still
+carry something and 12.2 % of patients do.
 
 ## Layout
 

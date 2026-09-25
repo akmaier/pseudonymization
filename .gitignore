@@ -59,6 +59,8 @@ paper/*.fls
 paper/*.log
 paper/*.out
 paper/*.pdf
+# ...except the built paper itself: AM reviews it from the remote (2026-09-25).
+!paper/main.pdf
 paper/*.synctex.gz
 paper/*.toc
 paper/*.lof
