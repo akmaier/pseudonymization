@@ -87,7 +87,11 @@ def section_detection():
                     "Information-weighted precision scales each masked token by how poorly its "
                     "context predicts it. This search covers singles, pairs and triples only, so the "
                     "recommended 13-detector ensemble lies outside it and can exceed the "
-                    "&ldquo;maximum&rdquo; row — it does on CARDIO:DE, at 0.998 against 0.992.")
+                    "&ldquo;maximum&rdquo; row — it does on CARDIO:DE, at 0.998 against 0.992. "
+                    "<b>Enron's four rows are the one place on this page still scored against the "
+                    "uncorrected gold</b> — the correction is described under the next table. The "
+                    "ensembles themselves are unaffected; the rates given for them here have not "
+                    "yet been recomputed.")
 
     br = DATA.get("both_rates") or {}
     rows = []
@@ -116,6 +120,38 @@ def section_detection():
                     "agreement buys specificity and pays for it in sensitivity. Precision mixes the "
                     "two denominators and is reported beside them, never optimised for.")
     return t1, t2
+
+
+def enron_correction_callout():
+    """What the Enron gold correction of 2026-09-25 changed, and what it did not."""
+    block = DATA.get("enron_gold_correction")
+    if not block:
+        return ""
+    was = block["superseded"]
+    now_u = DATA["both_rates"]["enron"]["union"]["overall"]
+    was_u = was["union_overall"]
+    body_now = DATA["enron_header_split"]["regions"]["body"]["person_sensitivity"]
+    body_was = was["header_split_person_sensitivity"]["body"]
+    return (
+        f"<div class='callout'><p><b>Enron's gold layer was corrected on "
+        f"{escape(block['corrected'])}.</b> Every Enron figure on this page is read against the "
+        f"corrected version, apart from the four rows of the cost&ndash;quality front above. "
+        f"The corpus adapter matched a correspondent's display name as an "
+        f"unanchored substring, so a short mailbox name was found inside ordinary English words "
+        f"and role accounts — <code>info@</code>, <code>questions@</code>, <code>news@</code> — "
+        f"entered the gold as people whose mentions were common nouns. Word-boundary anchoring and "
+        f"a role-account filter remove them: {num(was_u['person_gold_tokens'])} person identifier "
+        f"tokens become {num(now_u['person_gold_tokens'])}, and person sensitivity rises from "
+        f"{f(was_u['person_sensitivity'], 4)} to {f(now_u['person_sensitivity'], 4)}. The document "
+        f"text is byte-identical under the fix, so nothing was re-detected and both published patch "
+        f"sets are unchanged.</p>"
+        f"<p><b>Specificity does not move: {f(was_u['specificity'], 4)} before, "
+        f"{f(now_u['specificity'], 4)} after.</b> It is read over the non-identifier tokens, which "
+        f"the defect barely touched, so Enron's over-replacement is a property of this ensemble on "
+        f"this corpus and not an artefact of the gold. The same correction lifts person sensitivity "
+        f"in the message <em>body</em> from {f(body_was, 4)} to {f(body_now, 4)}, so the earlier "
+        f"reading that detection fails on prose and succeeds only on headers was a reading of the "
+        f"defect.</p></div>")
 
 
 # ---------------------------------------------------------------- languages
@@ -460,7 +496,29 @@ def section_exposure():
                note="The same accounting over every identifier class the conditions replace, not "
                     "people alone. Dates, quantities and miscellaneous spans are passed through by "
                     "design and are in neither denominator.")
-    return t1, t2
+    return t1, t2, enron_clipping_callout()
+
+
+def enron_clipping_callout():
+    """After the gold correction, Enron's residue is dominated by clipping, not by misses."""
+    block = DATA.get("enron_gold_correction")
+    e = ((DATA.get("exposure_from_release") or {}).get("enron") or {}).get("person")
+    if not block or not e:
+        return ""
+    was = block["superseded"]["exposure_person"]
+    share = e["exposed_mentions_clipped"] / max(e["mentions_exposed"], 1)
+    return (
+        f"<div class='callout'><p><b>On Enron the residue is now almost entirely clipping.</b> "
+        f"Mentions the ensemble never found fall from {num(was['exposed_mentions_never_found'])} "
+        f"to {num(e['exposed_mentions_never_found'])} once the gold no longer counts ordinary words "
+        f"and role accounts as names. Mentions that were found and then truncated barely move — "
+        f"{num(was['exposed_mentions_clipped'])} to {num(e['exposed_mentions_clipped'])} — and are "
+        f"now {num(e['exposed_mentions_clipped'])} of the {num(e['mentions_exposed'])} person "
+        f"mentions the release leaves in the clear, {pct(share)} of them.</p>"
+        f"<p>The dominant residual failure on this corpus is therefore not a detector missing a "
+        f"name. It is the engine resolving overlapping spans and writing a shorter one, so the rest "
+        f"of the name is published — a failure no measure computed on detected spans can see.</p>"
+        f"</div>")
 
 
 def section_stability():
@@ -534,7 +592,7 @@ def build() -> str:
     utx, utx_callout = section_cross_corpus_utility()
     ut1, ut2 = section_utility()
     a2a, a2b, a2c = section_a2()
-    ex1, ex2 = section_exposure()
+    ex1, ex2, ex_callout = section_exposure()
     nav = "".join(f"<a href='#{i}'>{escape(n)}</a>" for i, n in SECTIONS)
     ensemble = "".join(f"<li><code>{escape(d)}</code></li>" for d in DATA["ensemble"])
 
@@ -674,6 +732,7 @@ footer p {{ max-width:78ch; }}
   price — which only the second column shows.</p></div>
   <h3>The recommended ensemble under every combining rule</h3>
   {op2}
+  {enron_correction_callout()}
   <h3>The 13 detectors</h3>
   <ul class="cols">{ensemble}</ul>
   <p class="note">Two further large language models were run as single detectors and excluded from
@@ -754,6 +813,7 @@ footer p {{ max-width:78ch; }}
   {ex1}
   <h3>Where the residue is</h3>
   {ex2}
+  {ex_callout}
 </section>
 
 <section id="stability">
