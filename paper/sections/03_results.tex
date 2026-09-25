@@ -30,7 +30,7 @@
   \end{tabular}}
 \end{table}
 
-Table~\ref{tab:operating-points} gives the cost--quality front, with sensitivity the primary criterion for protection. Maximum-sensitivity configurations reach 0.992 on CARDIO, 0.925 on TAB, 0.747 on OntoNotes, and 0.973 on Enron. The faster alternatives retain 0.895, 0.893, 0.684, and 0.899 sensitivity, respectively, while sharply reducing cost; for example, CARDIO falls from \SI{57.633}{s} to \SI{0.301}{s} and Enron from \SI{25.557}{s} to \SI{0.057}{s} per document. The OntoNotes specificity rows coincide because the \SI{10}{\percent} band admits all 414 candidates.
+Table~\ref{tab:operating-points} gives the cost--quality front for our detector triplet ensembles, with sensitivity the primary criterion for protection. Maximum-sensitivity configurations reach 0.992 on CARDIO, 0.925 on TAB, 0.747 on OntoNotes, and 0.973 on Enron. The faster alternatives retain 0.895, 0.893, 0.684, and 0.899 sensitivity, respectively, while sharply reducing cost; for example, CARDIO falls from \SI{57.633}{s} to \SI{0.301}{s} and Enron from \SI{25.557}{s} to \SI{0.057}{s} per document. The OntoNotes specificity rows coincide because the \SI{10}{\percent} band admits all 414 candidates.
 
 Within OntoNotes, language effects depend on what is detected. Under the recommended ensemble,
 sensitivity is 0.989 on English, 0.868 on Chinese and 0.614 on Arabic; pooled sensitivity is 0.801.
@@ -64,8 +64,8 @@ The other two tasks retain their original-text baselines and support paired comp
     CARDIO:DE & 1.000 & 0.869 & 0.1 & 0 (1) & $0.0000\pm0.0000$ & $0.0071\pm0.0160$ & $1/207$ \\
     Enron     & 0.890 & 0.624 & 18.0 & 0 (0) & $0.0095\pm0.0012$ & $0.0407\pm0.0029$ & $1/3816$ \\
     \addlinespace
-    TAB       & 0.996 & 0.850 & 0.8 & 0 (1) & \multicolumn{2}{l}{not measurable} & {--} \\
-    OntoNotes & 0.935 & 0.932 & 4.9 & 0 (1) & \multicolumn{2}{l}{not measurable} & {--} \\
+    TAB       & 0.996 & 0.850 & 0.8 & 0 (1) & \multicolumn{2}{l}{no links $\rightarrow$ not measurable} & {--} \\
+    OntoNotes & 0.935 & 0.932 & 4.9 & 0 (1) & \multicolumn{2}{l}{no links $\rightarrow$ not measurable} & {--} \\
     \bottomrule
   \end{tabular}
 \end{table}

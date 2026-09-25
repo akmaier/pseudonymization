@@ -12,9 +12,9 @@ hospital~\cite{hou2025llama}. We ask what survives transformation of the text, a
 it costs.
 
 \emph{De-identification} reduces identifying information. Reversible \emph{pseudonymisation}
-replaces an identifier with a realistic \emph{surrogate}; \emph{anonymisation} prevents singling
-out. Stable pseudonyms preserve longitudinal utility but hand an adversary a persistent handle.
-European guidance treats keyed message authentication codes as
+replaces an identifier with a realistic \emph{surrogate}; \emph{anonymisation} prevents protects individuals. 
+Stable pseudonyms preserve longitudinal utility but hand an adversary a persistent handle.
+European guidance regards keyed message authentication codes as
 robust~\cite{enisa2021pseudonymisation}, and the health-informatics standard is revised
 accordingly~\cite{din25237}.
 
@@ -22,18 +22,16 @@ Detection benchmarks ask whether an identifying span was
 found~\cite{vats2026redact,jha2026piibench,uppala2026privacyfilter}; utility studies measure
 downstream change~\cite{vakili2022utility,berg2020impact} or information
 loss~\cite{trienes2024infolossqa}; re-identification studies measure attack success. Frameworks
-combine technical performance, information loss and an intruder test~\cite{mozes2021nointruder},
+combine technical performance, information loss and intrusion tests~\cite{mozes2021nointruder},
 while surrogate systems and masking benchmarks cover single
-pieces~\cite{eder2019emails,pilan2022tab,osborne2022bratsynthetic}. None states together what one
+pieces~\cite{eder2019emails,pilan2022tab,osborne2022bratsynthetic}. No study states together what one
 policy buys and what it costs. Data-protection officers release documents and cases, not average
-tokens, and one unchanged mention can identify someone after thousands were removed, so we measure
+tokens, as one unchanged mention can identify someone after thousands were removed, so we measure
 surviving findings, exposed cases and linkable entities rather than token rates alone.
 
-One design covers four corpora in German, English, Chinese and Arabic: clinical letters, legal
+Our design covers four corpora in German, English, Chinese and Arabic: clinical letters, legal
 judgments, news and other genres, and e-mail. Every document receives the same detector comparison,
-release conditions and measurements. Two predictions are put at risk: that detector precision
+release conditions and measurements. Two predictions are under investigation: that detector precision
 governs utility more strongly than the choice between surrogates and typed placeholders, and that
 detection sensitivity moves the two attacks in opposite directions, because removing a name obstructs
-context linkage while leaving a larger, more stable population for frequency matching. The clinical
-corpus has a known weakness: its gold names were inserted into an already de-identified release, so
-its name distribution is synthetic.
+context linkage while leaving a larger, more stable population for frequency matching. 

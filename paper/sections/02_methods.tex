@@ -2,13 +2,13 @@
 
 \subsection{Corpora}\label{sec:corpora}
 
-Reference provenance differs, so detection denominators are not interchangeable
+Reference provenance differs including the corpus detection tasks.
 (Table~\ref{tab:corpora}). TAB manually annotates identifiers and document-scoped co-reference in
 court judgments~\cite{pilan2022tab}; OntoNotes covers three languages but was annotated for
 linguistics rather than privacy. A \emph{named entity} is a predefined person, organisation,
-location or other type, its occurrences \emph{mentions} forming a co-reference chain. Enron derives
+location or other type, its occurrences form a co-reference chain. Enron derives
 genuine cross-document identity from message headers but contains exposed personal
-information~\cite{noever2020enron}. CARDIO:DE is the clinical anchor, its gold identifiers inserted
+information~\cite{noever2020enron}. CARDIO:DE is the clinical anchor. To use it here, we inserted gold identifiers
 into an already de-identified release, which makes its name distribution synthetic.
 
 \begin{table}[t]
@@ -26,11 +26,11 @@ into an already de-identified release, which makes its name distribution synthet
   \end{tabular}
 \end{table}
 
-One denominator follows. CARDIO:DE gold covers only inserted identifiers, and \SI{84.7}{\percent}
+Therefore CARDIO:DE ground truth covers only inserted identifiers, and \SI{84.7}{\percent}
 of its gold tokens are dates, which the detectors do find but the conditions pass through by design.
 Sensitivity, replacement, exposure and the attacks are therefore all scored over the types actually
-replaced, and the retained types are in none of those denominators. Retained dates are themselves a
-re-identification channel, and a release keeping them needs date shifting. A TAB applicant is
+replaced, and the retained types are not part of our evaluation. Retained dates are themselves a
+re-identification channel, easy to spot, and a release keeping them needs date shifting. A TAB applicant is
 usually named once but has a median of 17 later role mentions, and only Enron has natural
 cross-document identity.
 
@@ -53,22 +53,17 @@ every condition on identical documents and measurements.
 \subsection{Detectors, Ensembles and Operating Points}\label{sec:detectors}
 
 The 15 frozen detectors comprise rules, zero-shot and fine-tuned encoders, multilingual and German
-clinical recognisers, and eight gateway language models; the repository lists every model, version
+clinical recognisers, and eight large language models; the repository, we release with acceptance of the paper, lists every model, version
 and prompt. Cached spans are combined by union, intersection or at-least-$k$ vote. Two rules recur
 below: the \emph{permissive} rule is the union of all 15, the \emph{precise} rule a majority, 8 of
 the 15. Leakage uses the configuration we recommend, a fixed 13-detector union; two large language
-models remain available singly but are excluded from it, because preliminary runs made them one to
-two orders of magnitude slower per document without improving detection. A proportional output
-limit truncated \SI{92}{\percent} of Chinese replies, which we corrected and re-ran rather than
-score truncation as a detection failure.
+models were excluded from it, because preliminary runs identified them as one to
+two orders of magnitude slower per document without improving detection. 
 
-Each corpus receives fast and maximum points for sensitivity, the share of replaced-type
-identifier tokens detected, and specificity, the share of all other tokens left untouched; an
-ensemble run in parallel costs its slowest member. Neither rate is readable alone, so both are given
-at every point. A maximum point is non-dominated, the fast point the cheapest within
-\SI{10}{\percent} of it, subject to a sensitivity floor that stops an empty detector winning on
-specificity. This search covers singles, pairs and triples, so the recommended 13-detector ensemble
-lies outside it and may exceed the maximum of Table~\ref{tab:operating-points}.
+To explore ensembling, each corpus reports fast and maximum detector triplets for sensitivity, the share of replaced-type
+identifier tokens detected, and specificity, the share of all other tokens left untouched; for each parallel run we report slowest member of the ensemble. 
+Our search covers singles, pairs and triples. Still for maximum performance, we recommended the 13-detector ensemble.
+Note that it does exceed the maximum of Table~\ref{tab:operating-points} most of the time.
 
 \subsection{Measurements}\label{sec:measurements}
 
@@ -99,15 +94,7 @@ al.~\cite{kuzu2013practical,niedermeyer2014cryptanalysis,vatsalan2014taxonomy}: 
 prior granting perfect knowledge, an oracle upper bound, and a public name-frequency list, the
 realistic adversary.
 
-The attacker tags the released text itself and so also sees names the defender missed. Every
-detected surface stays in the denominator, including ambiguous and unresolved
-bins~\cite{dankar2012estimating}, and if $k$ entities share a surrogate a recovery scores $1/k$
-rather than being deleted. Abstention occurs where $(\max - \max_2)/\sigma < \varphi$, computed
-from the attacker's own scores~\cite{narayanan2008robust}. We report the answered-query rate and
-$c@1$, which credits warranted abstention~\cite{penas2011simple}, beside a chance rate from the
-candidate set~\cite{rocher2019estimating}. Realistic surrogates exist so residual identifiers are
-hard to pick out~\cite{carrell2013hiding}, which is what the public prior tests; sweeping its size
-and vintage measures what better knowledge is worth~\cite{bindschaedler2018cryptanalysis}.
+The attacker runs its own detector on the released text, so it can identify names that the defender failed to replace. All detected surfaces remain in the evaluation denominator, including ambiguous and unresolved cases~\cite{dankar2012estimating}. If the same surrogate represents $k$ different entities, a correct recovery receives a score of $1/k$ rather than being excluded. The attacker abstains when the score margin is too small, using $(\max-\max_2)/\sigma < \varphi$, where all quantities are computed from its own candidate scores~\cite{narayanan2008robust}. We therefore report both the fraction of queries answered and $c@1$, which rewards correct answers while allowing justified abstention~\cite{penas2011simple}, together with the chance level implied by the candidate set~\cite{rocher2019estimating}. Realistic surrogates are intended to make residual identifiers difficult to distinguish from replaced ones~\cite{carrell2013hiding}; the public-prior attack tests this property directly. Varying the prior's size and publication date then quantifies the value of additional attacker knowledge~\cite{bindschaedler2018cryptanalysis}.
 
 \emph{Context linkage} ranks identities by cosine similarity between surrounding-word profiles;
 \emph{learned linkage} fits the same task on labelled, entity-disjoint examples. Both use identical
@@ -116,7 +103,7 @@ the complete candidate list with every distractor, so neither attack is told tha
 match, and their difference measures learning rather than gallery size. Cross-document identity
 permits this on Enron and CARDIO:DE but not on TAB or OntoNotes.
 
-\emph{LLM candidate ranking} gives a language model one marked mention and ten candidate names, with
+\emph{LLM candidate ranking} gives a language model (\emph{gpt-oss-120B}) one marked mention and ten candidate names, with
 or without auxiliary text about each candidate from the released condition. Because B and C replace
 identical spans, B can be rewritten into C, so we report this attack on B as presented, on B after
 that rewrite, and against a ranker told the scheme. The one-in-ten closed world measures an attacker
