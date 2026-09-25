@@ -32,18 +32,17 @@ corpus, so it is a set of four answers rather than one transferable recipe.
   \end{tabular}}
 \end{table}
 
-The fast point is usually not the worse one: on CARDIO:DE it gives up 0.097 sensitivity but is more
-specific than the maximum, 0.9769 against 0.9670, at 191 times less cost, and Enron repeats this at
-\SI{0.057}{s} against \SI{25.557}{s} per message. The two OntoNotes specificity rows are one
-ensemble, because the \SI{10}{\percent} band admits all 414 candidates.
+On CARDIO:DE, the fast configuration gives up 0.097 sensitivity while raising specificity from
+0.9670 to 0.9769 at 191 times lower cost. Enron cuts cost from \SI{25.557}{s} to \SI{0.057}{s} per
+message. The OntoNotes specificity rows coincide because the \SI{10}{\percent} band admits all 414
+candidates.
 
-Language is a separate axis, and how separate depends on what is detected. Under the recommended
-ensemble, sensitivity is 0.989 on English, 0.868 on Chinese and 0.614 on Arabic, and the pooled
-0.801 describes none of them: Arabic supplies \SI{45}{\percent} of the identifier tokens from
-\SI{7}{\percent} of the documents, dominating the pooled score while being the hardest case. People
-transfer far better, at 0.991, 0.932 and 0.878, pooling to 0.935, so the thirty-seven-point spread
-belongs to the other identifier classes rather than to finding people, which is what the attacks try
-to do.
+Within OntoNotes, language effects depend on what is detected. Under the recommended ensemble,
+sensitivity is 0.989 on English, 0.868 on Chinese and 0.614 on Arabic; pooled sensitivity is 0.801.
+Arabic supplies \SI{45}{\percent} of identifier tokens from \SI{7}{\percent} of documents, so it
+dominates the pooled result while remaining the hardest case. Person sensitivity transfers better
+at 0.991, 0.932 and 0.878, pooling to 0.935. The thirty-seven-point spread therefore lies in the
+other identifier classes rather than the people targeted by the attacks.
 
 \subsection{Utility}\label{sec:results-utility}
 
@@ -61,8 +60,8 @@ zero ($q=0.80$), and under the permissive rule it falls to $0.346\pm0.181$, a di
 $-0.020\pm0.182$ that is ($q=5.6\times10^{-3}$). Section classification scores $0.749\pm0.093$ on
 unmodified text and loses $0.072\pm0.086$ to surrogates against $0.038\pm0.089$ to placeholders,
 both significant ($q=1.6\times10^{-37}$, $q=2.6\times10^{-14}$; rank-biserial $-0.846$, $-0.531$).
-At document level the realistic surrogate is therefore not merely unnecessary but worse than the
-typed placeholder, while at token level it is the only form that survives.
+At document level, typed placeholders preserve more utility than realistic surrogates. At token
+level, only surrogates survive.
 
 \subsection{Leakage}\label{sec:results-leakage}
 
@@ -90,37 +89,39 @@ configuration.
   \end{tabular}
 \end{table}
 
-Frequency matching recovers nothing. With a public name list it names no identity on any corpus;
-every name it returns is one the detector missed and the release printed in clear text, which
-measures the defender's sensitivity rather than the adversary's inference. Even the corpus's own
-distribution, which no real attacker holds, aligns at most one identity, and raising the abstention
-threshold from $\varphi=0$ to $\varphi=0.05$ makes the attack decline all but 11 of 25,677 CARDIO:DE
-queries and all of them elsewhere, so the alignment's $c@1$ is zero at every threshold. This holds
-for one attack and these priors and does not establish safety against others.
+With this frequency attack and public name list, no identity is recovered on the four corpora.
+Every returned name was missed by the detector and printed in clear text, so it measures defender
+sensitivity rather than adversarial inference. The corpus distributions, unavailable to a real
+attacker, align at most one identity. Raising the abstention threshold from $\varphi=0$ to
+$\varphi=0.05$ leaves 11 of 25,677 CARDIO:DE queries and none elsewhere; alignment $c@1$ is zero at
+every threshold. These results concern this attack and these priors, not safety against other
+attacks.
 
-Linkage succeeds where identity is real, and needs two anchors to be read. On Enron the fixed
-similarity recovers 0.706 of held-out people from unmodified text; after the recommended release it
-recovers $0.0095\pm0.0012$, still 36 times the $1/3816$ chance rate but two orders of magnitude
-below that ceiling. Training the metric on entity-disjoint examples raises it to $0.0407\pm0.0029$,
-four times the fixed attack and 155 times chance, so the residual risk belongs to an adversary who
-can learn. On CARDIO:DE, with 207 identities in the gallery, the fixed attack recovers nothing and
-the trained one $0.0071\pm0.0160$ against chance $0.0048$, not distinguishable from guessing. Recall
-bounds this: two detectors agreeing lowers Enron person sensitivity to 0.732, raises fixed linkage
-fivefold to 0.0500 and takes the names in clear text from 180 to 1,868, while intersection leaves
-person sensitivity at 0.037 and linkage at 0.2380.
+Linkage requires cross-document identity and must be read against unmodified text and chance. On
+Enron, fixed similarity recovers 0.706 of held-out people from unmodified text and
+$0.0095\pm0.0012$ after the recommended release. The latter is 36 times the $1/3816$ chance rate
+but two orders of magnitude below the unmodified-text rate. Entity-disjoint training raises recovery to
+$0.0407\pm0.0029$, four times the fixed attack and 155 times chance, so a trained adversary carries
+the residual risk. CARDIO:DE has 207 gallery identities; fixed linkage recovers no identity, and
+learned linkage $0.0071\pm0.0160$ against chance $0.0048$ is statistically indistinguishable from
+guessing.
+Across the tested Enron configurations, linkage rises as person sensitivity falls. Agreement
+between two detectors lowers sensitivity to 0.732, raises fixed linkage fivefold to 0.0500 and
+increases clear-text names from 180 to 1,868; intersection yields 0.037 sensitivity and 0.2380
+linkage.
 
-The third attack shows why the replacement form cannot be credited with a difference. Ranking one
-marked mention against ten candidates, a language model falls from 0.995 on unmodified TAB text to
+The third attack initially assigns different risks to the replacement forms. Ranking one marked
+mention against ten candidates, a language model falls from 0.995 on unmodified TAB text to
 0.110 with surrogates, near the 0.100 chance rate, but reaches 0.340 with typed placeholders;
 CARDIO:DE (0.085 against 0.120) and OntoNotes (0.290 against 0.630) order the same way. Read as protection
-this says surrogates defend better, and that reading is wrong. The conditions replace identical
-spans, so overwriting each replaced span of the surrogate release with \texttt{[PERSON]} reproduces
-the placeholder release character for character, verified on all 1,268 TAB and all 5,994 OntoNotes
-documents. The placeholder release is therefore computable from the surrogate release by anyone able
-to locate those spans, and this is measured rather than argued: an adversary merely told the scheme,
-with the text left untouched, reaches 0.165, and one neutralising name-like spans with a public name
-list reaches 0.145, against the 0.340 of the rewrite itself. The surrogate buys the credulity of a
-ranker that takes it at face value, not protection, and both forms carry the higher risk.
+the ordering suggests stronger surrogate protection, but it reflects ranker behaviour. Both
+conditions replace identical spans. Overwriting each surrogate span with \texttt{[PERSON]}
+reproduces the placeholder release character for character, verified on all 1,268 TAB and all 5,994
+OntoNotes documents. Anyone able to locate those spans can compute the placeholder release from the
+surrogate release. A scheme-aware adversary with unchanged text reaches 0.165; neutralising
+name-like spans with a public list reaches 0.145, against 0.340 for the rewrite. For this candidate
+ranking attack, the direct surrogate score measures the ranker's acceptance of plausible names,
+while both forms carry the higher reachable risk.
 
 Sensitivity hides exposure, and the denominator decides what a number means. The recommended
 release leaves one CARDIO:DE person mention of 4,396 in clear text, one entity of 1,957 and one
@@ -132,5 +133,5 @@ of 5,994 documents, while Enron leaves one in \SI{18.0}{\percent} of its people 
 \label{sec:results-stability}%
 The key normaliser both merges and splits identities: on Enron, ORGANISATION surrogates collide at
 \SI{17.3}{\percent} and drift at \SI{48.6}{\percent}, and PERSON drift reaches \SI{37.7}{\percent}
-against \SI{5.0}{\percent} on CARDIO:DE, whose lower figure reflects constructed recurrence with
-fewer natural variants rather than generalisation.
+against \SI{5.0}{\percent} on CARDIO:DE. The lower CARDIO:DE figure reflects constructed recurrence
+with fewer natural variants rather than generalisation.

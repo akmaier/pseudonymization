@@ -1,29 +1,33 @@
 \section{Discussion}\label{sec:discussion}
 
-Four recommendations follow, and one prediction does not survive.
+For releases prioritising leakage reduction, the measurements support the large union with its
+specificity cost reported. On CARDIO:DE, detector agreement raises specificity from 0.869 to 0.986 but
+reduces sensitivity. On Enron, two votes lower person sensitivity from 0.890 to 0.732 and raise
+fixed linkage fivefold. Across these tested configurations, lower sensitivity coincides with greater
+name exposure and linkage.
 
-\textbf{Prefer a large union to a consensus rule, and price it.} Agreement buys specificity, 0.869
-against 0.986 on CARDIO:DE, and pays in sensitivity, which every leakage measure follows: two votes
-on Enron take person sensitivity from 0.890 to 0.732 and raise fixed linkage fivefold.
-\textbf{State the attacker's knowledge with the number.} A corpus-internal prior is an upper bound,
-not a risk, and here the two differ by the whole result. \textbf{Report the denominator you release
-on.} No corpus-level score describes a document, a case or a language.
+Attack results depend on adversarial knowledge and denominator. The
+corpus-internal prior is an upper bound, while the public prior estimates risk under one available
+source; their difference constitutes the frequency result here. Corpus-level scores must therefore
+be accompanied by document, case and language results.
 
-\textbf{Choose the replacement form for utility, not for privacy.} The placeholder release is a
-rewrite of the surrogate release, so neither is safer against an adversary who knows the scheme, and
-merely telling the ranker so lifts it from 0.110 to 0.165 on unchanged text. The surrogate's real
-advantage is that token-level tasks survive it and do not survive \texttt{[PERSON]}; at document
-level the placeholder is better.
+The measurements support choosing replacement form for utility. The placeholder release is
+computable from the surrogate release, so a scheme-aware adversary can obtain the same privacy
+exposure from either. Telling the ranker the scheme raises recovery from 0.110 to 0.165 on unchanged
+text. Token-level tasks survive surrogates but fail with \texttt{[PERSON]}; document-level utility is
+higher with placeholders.
 
-The prediction that sensitivity moves the two attacks in opposite directions is refuted. Better
-detection was expected to starve context linkage while leaving a larger population for frequency
-alignment. Instead alignment recovered nothing at any sensitivity and both linkage attacks fell as
-it rose: both are bounded by the identifiers the detector missed.
+The prediction that sensitivity moves frequency alignment and linkage in opposite directions is
+refuted for these attacks, priors, corpora and ensemble. Better detection was expected to starve
+context linkage while enlarging the population available for frequency alignment. Frequency
+alignment recovered no identity at any tested sensitivity with these priors, while both linkage
+attacks declined as sensitivity rose. In these experiments, missed identifiers limited both
+measured attacks.
 
-The limits are specific. Linkage is measurable only on Enron and CARDIO:DE, because TAB and
-OntoNotes link mentions within a document; people recur there, so those figures understate rather
-than bound the risk. CARDIO:DE names were inserted into an already de-identified release, making its
-frequency distribution synthetic and its clinical realism partial. Dates pass through by design, a
-channel this pipeline does not close. The candidate-ranking attack presents ten names, bounding an
-adversary with a shortlist rather than one searching a population. Every number describes one
-release under one key.
+Linkage is measurable only on Enron and CARDIO:DE because TAB and
+OntoNotes link mentions within documents. People recur there, so the reported linkage values
+understate rather than bound their risk. CARDIO:DE names were inserted into an already de-identified
+release, making its frequency distribution synthetic and its clinical realism partial. Dates pass
+through by design, leaving that channel open. The candidate-ranking attack presents ten names and
+therefore represents an adversary with a shortlist, not population search. Every number describes
+one release under one key.
