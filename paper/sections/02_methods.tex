@@ -52,8 +52,12 @@ every condition on identical documents and measurements.
 
 \subsection{Detectors, Ensembles and Operating Points}\label{sec:detectors}
 
-The 15 frozen detectors comprise rules, zero-shot and fine-tuned encoders, multilingual and German
-clinical recognisers, and eight large language models; the repository, we release with acceptance of the paper, lists every model, version
+The 15 frozen detectors comprise a rule engine~\cite{presidio}, a German domain
+tagger~\cite{akbik2019flair,eder2019emails}, two zero-shot models~\cite{zaratiana2024gliner}, a
+multilingual {NER} encoder~\cite{conneau2020xlmr}, two clinical
+de-identifiers~\cite{chambon2023deid,johnson2020deid} and eight large language
+models~\cite{openai2025gptoss,gemma2026gemma4,microsoft2025phi4mini,mistral2025magistral,qwen2025qwen3,granite41,mistralsmall32};
+the repository, we release with acceptance of the paper, lists every model, version
 and prompt. Cached spans are combined by union, intersection or at-least-$k$ vote. Two rules recur
 below: the \emph{permissive} rule is the union of all 15, the \emph{precise} rule a majority, 8 of
 the 15. Leakage uses the configuration we recommend, a fixed 13-detector union; two large language
