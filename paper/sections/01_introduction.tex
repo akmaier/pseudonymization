@@ -1,51 +1,39 @@
 \section{Introduction}\label{sec:introduction}
 
-Clinical data are multimodal. A chest radiograph travels with its report, and a cardiology study
-with its discharge letter. Anonymising pixels and prose are different open problems: the image may
-require defacing or removal of burned-in text, while the report requires us to find and replace
-identifiers in running language. Solving either alone does not permit sharing. Hence, a database is
-releasable only when both halves are protected.
+Clinical data are multimodal: a chest radiograph travels with its report, a cardiology study with
+its discharge letter. Releasing either half requires both to be protected, since an image may need
+defacing or removal of burned-in text while its report needs identifier replacement. Artificial
+intelligence scales both tasks, and its errors vary by distribution, language, script and identifier
+class. Packh\"auser et al.~\cite{packhauser2022reid} re-identified patients from de-identified chest
+radiographs and priced a defence against diagnostic utility~\cite{packhauser2023anonymization};
+pathological speech has been evaluated against privacy, utility and
+fairness~\cite{arasteh2024speaker}; clinical text is instead kept with the model inside the
+hospital~\cite{hou2025llama}. We ask what survives transformation of the text, and what protecting
+it costs.
 
-Artificial intelligence makes both tasks tractable at database scale. Yet, it also makes their
-guarantees harder to state. Learned systems fail according to the distribution on which they are
-used, and their errors need not be uniform across languages, scripts, document types, or identifier
-classes. Packh\"auser et al.~\cite{packhauser2022reid} demonstrated the imaging version of this problem by
-re-identifying patients from de-identified chest radiographs. Here, we measure its text analogue: whether identity
-can still be recovered after the explicit identifiers have been transformed.
+\emph{De-identification} reduces identifying information. Reversible \emph{pseudonymisation}
+replaces an identifier with a realistic \emph{surrogate}; \emph{anonymisation} prevents singling
+out. Stable pseudonyms preserve longitudinal utility but hand an adversary a persistent handle.
+European guidance treats keyed message authentication codes as
+robust~\cite{enisa2021pseudonymisation}, and the health-informatics standard is revised
+accordingly~\cite{din25237}.
 
-We use \emph{de-identification} as the broad process of reducing identifying information.
-\emph{Pseudonymisation} is a reversible or linkable form of that process: an identifier is replaced
-by a \emph{surrogate}, i.e. a realistic substitute such as another name. \emph{Anonymisation} aims
-to prevent a person from being singled out or linked at all. This distinction matters because a
-stable pseudonym preserves longitudinal utility, but it also gives an adversary a handle that
-persists across records. European guidance makes this trade-off explicit and regards keyed message
-authentication codes as a robust pseudonymisation
-technique~\cite{enisa2021pseudonymisation}; the health-informatics standard is
-revised accordingly~\cite{din25237}.
+Detection benchmarks ask whether an identifying span was
+found~\cite{vats2026redact,jha2026piibench,uppala2026privacyfilter}; utility studies measure
+downstream change~\cite{vakili2022utility,berg2020impact} or information
+loss~\cite{trienes2024infolossqa}; re-identification studies measure attack success. Frameworks
+combine technical performance, information loss and an intruder test~\cite{mozes2021nointruder},
+while surrogate systems and masking benchmarks cover single
+pieces~\cite{eder2019emails,pilan2022tab,osborne2022bratsynthetic}. None states together what one
+policy buys and what it costs. Data-protection officers release documents and cases, not average
+tokens, and one unchanged mention can identify someone after thousands were removed, so we measure
+surviving findings, exposed cases and linkable entities rather than token rates alone.
 
-Existing evaluation is split. Detection benchmarks report whether an identifying
-\emph{span}---a contiguous sequence of tokens---was found, and they are now
-numerous~\cite{vats2026redact,jha2026piibench,uppala2026privacyfilter}. Utility studies report the change in a downstream
-task~\cite{vakili2022utility,berg2020impact}, and a related line measures information loss
-directly~\cite{trienes2024infolossqa}. Re-identification studies report whether an attacker succeeds. These quantities
-are rarely measured together, although evaluation frameworks argue that
-technical performance, information loss, and an intruder test belong together
-~\cite{mozes2021nointruder}. Surrogate systems and masking benchmarks study important pieces
-~\cite{eder2019emails,pilan2022tab,osborne2022bratsynthetic}, but not all three costs in one design. We
-therefore cannot say what a protection policy buys or costs.
-
-Aggregate corpus scores create a second gap. A data-protection officer does not release an average
-token. They release documents and cases concerning people. Note that one unmodified mention can
-identify a person even when thousands of other identifier tokens were removed. We must therefore
-ask whether any finding survives in each document, whether any case remains exposed, and whether
-each entity remains linkable. An \emph{entity} is the underlying person, place, or organisation; a
-\emph{co-reference chain} is the set of textual mentions that refer to that same entity.
-
-Here, we evaluate one design on four corpora, covering clinical letters, legal judgments, news and
-other genres, and e-mail in German, English, Chinese, and Arabic. Each document passes through the
-same detector comparison, the same three release conditions, and the same measurement families.
-This permits two tests. First, does detector precision govern utility more strongly than the choice
-between surrogates and placeholders? Second, does improved recall move re-identification attacks in
-opposite directions? Removing names may obstruct context linkage while creating a larger, stable
-population for frequency matching. We connect detection, utility, exposure, attacks, and stability
-on the same records.
+One design covers four corpora in German, English, Chinese and Arabic: clinical letters, legal
+judgments, news and other genres, and e-mail. Every document receives the same detector comparison,
+release conditions and measurements. Two predictions are put at risk: that detector precision
+governs utility more strongly than the choice between surrogates and typed placeholders, and that
+detection recall moves the two attacks in opposite directions, because removing a name obstructs
+context linkage while leaving a larger, more stable population for frequency matching. The clinical
+corpus has a known weakness: its gold names were inserted into an already de-identified release, so
+its name distribution is synthetic.

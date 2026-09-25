@@ -2,151 +2,134 @@
 
 \subsection{Detection}\label{sec:results-detection}
 
-Table~\ref{tab:operating-points} is the cost--quality front. It retains all four operating points
-for each corpus so that an inexpensive system is never compared with a maximum-quality system from a
-different denominator. Note that the winning ensemble differs on every corpus, so the table is a set of
-four separate answers rather than one recipe.
+Table~\ref{tab:operating-points} gives the cost--quality front. The winning configuration differs by
+corpus, so it is a set of four answers rather than one transferable recipe.
 
 \begin{table}[t]
-  \caption{Fast and maximum operating points on both error rates. Cost varies by three orders of
-  magnitude while quality varies by less than a factor of two; Enron's row is provisional because its
-  detection sweep is still being repeated.}\label{tab:operating-points}
-  \centering\scriptsize
-  \begin{tabular}{@{}ll S[table-format=1.3] S[table-format=1.4] S[table-format=3.3] l@{}}
+  \caption{Operating points on both error rates, over all annotated identifier types. Cost is
+  seconds per document; the rule is $\cup$ union, $\cap$ intersection, $v$ at-least-$k$ vote, $s$ a
+  single detector. Cost varies by three orders of magnitude, quality by less than
+  two.}\label{tab:operating-points}
+  \centering\scriptsize\setlength{\tabcolsep}{2.2pt}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{@{}l *{4}{S[table-format=1.3] S[table-format=1.4] r}@{}}
     \toprule
-    Corpus & Operating point & {Sens.} & {Spec.} & {Cost (s/doc)} & Rule \\
+    & \multicolumn{3}{c}{CARDIO:DE} & \multicolumn{3}{c}{TAB}
+    & \multicolumn{3}{c}{OntoNotes} & \multicolumn{3}{c}{Enron} \\
+    \cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}\cmidrule(lr){11-13}
+    Operating point & {Sens.} & {Spec.} & Cost & {Sens.} & {Spec.} & Cost
+                    & {Sens.} & {Spec.} & Cost & {Sens.} & {Spec.} & Cost \\
     \midrule
-    CARDIO:DE & maximum sensitivity  & 0.992 & 0.9670 & 57.633 & union \\
-              & fast sensitivity     & 0.895 & 0.9769 & 0.301 & union \\
-              & maximum specificity  & 0.523 & 0.9997 & 116.875 & vote \\
-              & fast specificity     & 0.781 & 0.9862 & 0.263 & single \\
-    \addlinespace
-    TAB       & maximum sensitivity  & 0.925 & 0.8986 & 14.210 & union \\
-              & fast sensitivity     & 0.893 & 0.9242 & 0.219 & union \\
-              & maximum specificity  & 0.501 & 0.9959 & 98.110 & vote \\
-              & fast specificity     & 0.520 & 0.9934 & 0.117 & single \\
-    \addlinespace
-    OntoNotes & maximum sensitivity  & 0.747 & 0.9763 & 9.450 & union \\
-              & fast sensitivity     & 0.684 & 0.9731 & 5.376 & union \\
-              & maximum specificity  & 0.503 & 0.9960 & 0.103 & union \\
-              & fast specificity     & 0.503 & 0.9960 & 0.103 & union \\
-    \addlinespace
-    Enron     & maximum sensitivity  & 0.973 & 0.7720 & 25.557 & union \\
-              & fast sensitivity     & 0.899 & 0.7419 & 0.057 & union \\
-              & maximum specificity  & 0.588 & 0.9428 & 20.931 & intersection \\
-              & fast specificity     & 0.674 & 0.8787 & 0.026 & single \\
+    max.\ sensitivity & 0.992 & 0.9670 & $57.633^{\cup}$  & 0.925 & 0.8986 & $14.210^{\cup}$
+                      & 0.747 & 0.9763 & $9.450^{\cup}$   & 0.973 & 0.7720 & $25.557^{\cup}$ \\
+    fast sensitivity  & 0.895 & 0.9769 & $0.301^{\cup}$   & 0.893 & 0.9242 & $0.219^{\cup}$
+                      & 0.684 & 0.9731 & $5.376^{\cup}$   & 0.899 & 0.7419 & $0.057^{\cup}$ \\
+    max.\ specificity & 0.523 & 0.9997 & $116.875^{v}$    & 0.501 & 0.9959 & $98.110^{v}$
+                      & 0.503 & 0.9960 & $0.103^{\cup}$   & 0.588 & 0.9428 & $20.931^{\cap}$ \\
+    fast specificity  & 0.781 & 0.9862 & $0.263^{s}$      & 0.520 & 0.9934 & $0.117^{s}$
+                      & 0.503 & 0.9960 & $0.103^{\cup}$   & 0.674 & 0.8787 & $0.026^{s}$ \\
     \bottomrule
-  \end{tabular}
+  \end{tabular}}
 \end{table}
 
-The fast cell is usually not the worse cell. On CARDIO:DE it gives up 0.097 sensitivity, yet it is
-\emph{more} specific than the maximum---0.977 against 0.967---and 191 times cheaper, detecting
-\SI{89.5}{\percent} of the placed identifiers in \SI{0.30}{s} per letter. Note that the maximum buys
-its last points of recall by over-detecting, and the specificity column is where that cost appears.
-On Enron the same pattern is starker still: \SI{0.06}{s} per message against \SI{25.6}{s}, for 0.074
-of sensitivity. Across the comparison, cost spans three orders of magnitude while quality changes by
-less than a factor of two. Yet a different ensemble wins on each corpus, so no detector recipe
-transfers unchanged.
+The fast point is usually not the worse one: on CARDIO:DE it gives up 0.097 sensitivity but is more
+specific than the maximum, 0.9769 against 0.9670, at 191 times less cost, and Enron repeats this at
+\SI{0.057}{s} against \SI{25.557}{s} per message. The two OntoNotes specificity rows are one
+ensemble, because the \SI{10}{\percent} band admits all 414 candidates.
 
-Language is not a detail. OntoNotes token sensitivity is 0.983 for English, 0.710 for Chinese, and
-0.549 for Arabic. The pooled value, 0.747, describes none of them. Arabic supplies
-\SI{45}{\percent} of the gold tokens although it supplies only \SI{7}{\percent} of the documents.
-This imbalance makes a pooled score both numerically dominated and operationally misleading.
-
-Consensus also removes whole classes. When eight votes out of 15 are required, DEMOGRAPHIC, MISC,
-and QUANTITY fall
-to zero on all three applicable corpora. CODE loses \SIrange{94}{99}{\percent}, and Arabic
-detection falls to \SI{1.7}{\percent}. The apparent precision gain is therefore not a uniformly
-better detector. It is a decision to stop detecting difficult classes.
+Language is a separate axis, and how separate depends on what is detected. Over all identifier types
+the best triple reaches 0.983 on English, 0.710 on Chinese and 0.545 on Arabic, and the pooled 0.745
+describes none of them: Arabic supplies \SI{45}{\percent} of the gold tokens from
+\SI{7}{\percent} of the documents, dominating the pooled score while being the hardest case. People
+transfer far better, at 0.991, 0.932 and 0.878 with the recommended ensemble, pooling to 0.935, so
+the forty-point spread belongs to the other identifier classes rather than to finding people, which
+is what the attacks try to do.
 
 \subsection{Utility}\label{sec:results-utility}
 
-Table~\ref{tab:utility} collects the comparisons that distinguish detector precision from
-replacement policy. Under realistic surrogates, named-entity agreement is 0.611 with the permissive
-union but 0.973 with the precise rule. The condition and surrogate inventory are identical. Only
-the detector spans change. TAB and OntoNotes reproduce this ordering in paired per-document scores.
-Hence, detector precision dominates replacement policy for this measure.
+Detector precision governs utility more strongly than the replacement form. Named-entity agreement
+on CARDIO:DE is $0.611\pm0.082$ with surrogates under the permissive rule and $0.973\pm0.019$ under
+the precise rule; with placeholders it is $0.004\pm0.008$ and $0.674\pm0.082$. The placeholder
+figures measure the metric as much as the release, because the frozen recogniser never tags
+\texttt{[PERSON]} as a name, so every replaced mention counts as a disagreement and the comparison
+is informative between rules rather than between forms.
 
-\begin{table}[t]
-  \caption{CARDIO:DE utility. The combination rule moves the scores far more than the choice between
-  surrogates and placeholders does, and the direction of that choice reverses between the
-  token-level and the document-level task.}\label{tab:utility}
-  \centering\small
-  \begin{tabular}{@{}l S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3]@{}}
-    \toprule
-    & {original} & \multicolumn{2}{c}{surrogates} & \multicolumn{2}{c}{placeholders} \\
-    \cmidrule(lr){3-4}\cmidrule(lr){5-6}
-    Task & {A} & {permissive} & {precise} & {permissive} & {precise} \\
-    \midrule
-    Entity agreement (token)      & 1.000 & 0.611 & 0.973 & 0.004 & 0.674 \\
-    Section classification (doc.) & 0.749 & 0.677 & 0.709 & 0.711 & 0.718 \\
-    Medication extraction         & 0.367 & 0.346 & 0.364 & 0.314 & 0.381 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Surrogates matter when the output depends on the individual tokens. Typed placeholders collapse
-entity agreement to 0.004 under the permissive rule, because every person becomes the same string
-and the tagger has nothing left to align. Yet at document level the advantage disappears, and in
-fact reverses: section classification scores 0.677 under surrogates and 0.711 under placeholders.
-Note that a classifier reading a whole letter does not care which name stood where, so the machinery
-that constructs a realistic replacement buys nothing there. Medication extraction is the clearest
-case of the same point: under the precise rule the difference from the original text is not
-statistically distinguishable from zero.
-
-There is an important caveat to the high agreement. Under the precise rule,
-\SI{98.3}{\percent} of Arabic identifiers and \SI{93.3}{\percent} of Chinese identifiers are never
-replaced. The downstream model therefore sees nearly the original text. Calling this utility
-``preserved'' without the paired detection result would reward a privacy system for doing little.
+The other two tasks carry their original-text scores and admit the paired test. Medication
+extraction scores $0.371\pm0.182$ on unmodified text; under the precise rule it moves to
+$0.364\pm0.189$ with surrogates, a paired difference of $-0.008\pm0.178$ not distinguishable from
+zero ($q=0.80$), and under the permissive rule it falls to $0.346\pm0.181$, a difference of
+$-0.020\pm0.182$ that is ($q=5.6\times10^{-3}$). Section classification scores $0.749\pm0.093$ on
+unmodified text and loses $0.072\pm0.086$ to surrogates against $0.038\pm0.089$ to placeholders,
+both significant ($q=1.6\times10^{-37}$, $q=2.6\times10^{-14}$; rank-biserial $-0.846$, $-0.531$).
+At document level the realistic surrogate is therefore not merely unnecessary but worse than the
+typed placeholder, while at token level it is the only form that survives.
 
 \subsection{Leakage}\label{sec:results-leakage}
 
-Recall changes the population available to an attacker. For frequency matching, raw top-1 accuracy
-falls as detection recall rises because the candidate pool grows. When we divide by the chance rate
-for that pool, the trend reverses: lift rises monotonically from 31 to 75 on TAB and from 48 to 91
-on OntoNotes. The denominator must therefore be held constant before attributing a privacy gain to
-recall.
-
-The attacks nevertheless disagree, as Table~\ref{tab:leakage} shows. On Enron, context linkage
-falls from 0.172 to 0.051 as recall rises, whereas the lift of frequency matching holds. The
-unmodified-text ceiling for context linkage is 0.706. Learned linkage is approximately twice as
-successful as fixed context linkage throughout, quantifying what training buys the adversary.
+Table~\ref{tab:leakage} reports the recommended 13-detector union, the intended release
+configuration.
 
 \begin{table}[t]
-  \caption{The two attack families respond to detection recall in opposite directions. Frequency
-  matching is reported as lift over the chance rate for its own candidate pool, because that pool
-  grows with recall and the raw rate therefore falls while the attack strengthens.}\label{tab:leakage}
-  \centering\small
-  \begin{tabular}{@{}ll S[table-format=2.3] S[table-format=2.3] c@{}}
+  \caption{Leakage from the recommended 13-detector union; all columns concern people.
+  \emph{Recall} is person-token recall, \emph{Exp.} the share of people keeping a mention in clear
+  text, \emph{Frequency} the identities named from frequency alone with a public list and, bracketed,
+  with the corpus's own distribution (an upper bound, not a risk). \emph{Linkage} is Rank-1 over the
+  complete candidate list against chance $1/\text{gallery}$.}\label{tab:leakage}
+  \centering\scriptsize
+  \begin{tabular}{@{}l@{\hspace{0.9em}} S[table-format=1.3]@{\hspace{0.9em}} S[table-format=2.1]@{\hspace{0.9em}} c@{\hspace{0.9em}} l@{\hspace{0.9em}} l@{\hspace{0.9em}} l@{}}
     \toprule
-    Corpus & Attack & {low recall} & {high recall} & direction \\
+    Corpus & {Recall} & {Exp.\ (\%)} & Frequency & {Context link.} & {Learned link.} & Chance \\
     \midrule
-    TAB       & frequency matching (lift) & 31 & 75 & worsens \\
-    OntoNotes & frequency matching (lift) & 48 & 91 & worsens \\
-    Enron     & context linkage (Rank-1)  & 0.172 & 0.051 & improves \\
+    CARDIO:DE & 1.000 & 0.1 & 0 (1) & $0.0000\pm0.0000$ & $0.0071\pm0.0160$ & $1/207$ \\
+    Enron     & 0.890 & 18.0 & 0 (0) & $0.0095\pm0.0012$ & $0.0407\pm0.0029$ & $1/3816$ \\
+    \addlinespace
+    TAB       & 0.996 & 0.8 & 0 (1) & \multicolumn{2}{l}{not measurable} & {--} \\
+    OntoNotes & 0.935 & 4.9 & 0 (1) & \multicolumn{2}{l}{not measurable} & {--} \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-Rank-1 alone can also overstate protection. On TAB, LLM candidate ranking drops from 0.999 on
-unmodified text to 0.087 after pseudonymisation. Yet, Rank-5 remains 0.514. With ten candidates,
-chance Rank-1 is 0.100 and chance Rank-5 is 0.500. Condition B therefore reduces this attacker to
-guessing inside the stated closed world; it does not establish anonymity outside that world.
+Frequency matching recovers nothing. With a public name list it names no identity on any corpus;
+every name it returns is one the detector missed and the release printed in clear text, which
+measures the defender's recall rather than the adversary's inference. Even the corpus's own
+distribution, which no real attacker holds, aligns at most one identity, and raising the abstention
+threshold from $\varphi=0$ to $\varphi=0.05$ makes the attack decline all but 11 of 25,677 CARDIO:DE
+queries and all of them elsewhere, so the alignment's $c@1$ is zero at every threshold. This holds
+for one attack and these priors and does not establish safety against others.
 
-Finally, token leakage understates what survives. At maximum sensitivity on CARDIO:DE,
-\SI{26.8}{\percent} of letters still carry at least one finding and \SI{73.2}{\percent} are clean.
-At patient level, \SI{7.0}{\percent} retain a name in the clear. These denominators answer different
-questions: one leaked token, one affected letter, and one exposed patient are not interchangeable.
-The full report therefore retains the distribution of surviving findings per document, because one
-residual mention and seven give an attacker different evidence.
+Linkage succeeds where identity is real, and needs two anchors to be read. On Enron the fixed
+similarity recovers 0.706 of held-out people from unmodified text; after the recommended release it
+recovers $0.0095\pm0.0012$, still 36 times the $1/3816$ chance rate but two orders of magnitude
+below that ceiling. Training the metric on entity-disjoint examples raises it to $0.0407\pm0.0029$,
+four times the fixed attack and 155 times chance, so the residual risk belongs to an adversary who
+can learn. On CARDIO:DE, with 207 identities in the gallery, the fixed attack recovers nothing and
+the trained one $0.0071\pm0.0160$ against chance $0.0048$, not distinguishable from guessing. Recall
+bounds this: two detectors agreeing lowers Enron person recall to 0.868, raises fixed linkage
+fivefold to 0.0500 and takes the names in clear text from 180 to 1,868, while intersection replaces
+almost nothing and leaves linkage at 0.2380.
 
-\subsection{Stability}\label{sec:results-stability}
+The third attack shows why the replacement form cannot be credited with a difference. Ranking one
+marked mention against ten candidates, a language model falls from 0.995 on unmodified TAB text to
+0.085 with surrogates, the 0.100 chance rate, but reaches 0.290 with typed placeholders; CARDIO:DE
+(0.090 against 0.135) and OntoNotes (0.310 against 0.590) order the same way. Read as protection
+this says surrogates defend better, and that reading is wrong. The conditions replace identical
+spans, so overwriting each replaced span of the surrogate release with \texttt{[PERSON]} reproduces
+the placeholder release character for character, verified on all 1,268 TAB and all 5,994 OntoNotes
+documents. The placeholder release is therefore computable from the surrogate release by anyone able
+to locate those spans, and no release is safer than a text derived from it: the gap measures a
+ranker that believes the surrogate, which is obscurity, not protection, and both forms carry the
+higher risk.
 
-The stability metrics expose simultaneous under- and over-merging by the key normaliser. On Enron,
-ORGANISATION surrogates collide at \SI{17.3}{\percent} while drifting at
-\SI{48.6}{\percent}. PERSON surrogates drift at \SI{37.7}{\percent}, compared with
-\SI{5.0}{\percent} on CARDIO:DE. The surface-form rule collapses unrelated organisations that share
-a short name, yet separates one person written with a full name, surname, title, or initials.
-CARDIO:DE's low drift is not evidence that the rule generalises. Its recurrence was constructed and
-has fewer natural variants. These collision, fragmentation, and drift measurements therefore need
-the provenance of the identity layer beside them.
+Token recall hides exposure, and the denominator decides what a number means. The recommended
+release leaves one CARDIO:DE person mention of 4,396 in clear text, one entity of 1,957 and one
+patient of 270; over every identifier type rather than people alone, \SI{8.5}{\percent} of letters
+carry something and \SI{12.2}{\percent} of patients do. TAB leaves a name in 44 of 1,268 judgments
+and OntoNotes in 736 of 5,994 documents, while Enron leaves one in \SI{18.0}{\percent} of its
+people and something in \SI{45.8}{\percent} of its messages: person recall 0.890 and nearly half
+the messages carrying an identifier describe one release.
+
+\label{sec:results-stability}%
+The key normaliser both merges and splits identities: on Enron, ORGANISATION surrogates collide at
+\SI{17.3}{\percent} and drift at \SI{48.6}{\percent}, and PERSON drift reaches \SI{37.7}{\percent}
+against \SI{5.0}{\percent} on CARDIO:DE, whose lower figure reflects constructed recurrence with
+fewer natural variants rather than generalisation.

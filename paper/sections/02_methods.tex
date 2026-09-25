@@ -2,115 +2,122 @@
 
 \subsection{Corpora}\label{sec:corpora}
 
-Table~\ref{tab:corpora} states each gold standard's provenance because their recall denominators are
-not interchangeable. TAB provides manually annotated identifiers and document-scoped
-co-reference~\cite{pilan2022tab}. OntoNotes covers three languages, but was annotated for
-linguistics, not privacy. A \emph{named entity} is a mention classified as a person, organisation,
-location, or another predefined type. Enron's header-derived gold carries genuine cross-document
-identity; note that the corpus is itself known to contain a large volume of exposed personal
-information~\cite{noever2020enron}. CARDIO:DE is the clinical anchor; its gold identifiers were inserted into an already
-de-identified release.
+Reference provenance differs, so recall denominators are not interchangeable
+(Table~\ref{tab:corpora}). TAB manually annotates identifiers and document-scoped co-reference in
+court judgments~\cite{pilan2022tab}; OntoNotes covers three languages but was annotated for
+linguistics rather than privacy. A \emph{named entity} is a predefined person, organisation,
+location or other type, its occurrences \emph{mentions} forming a co-reference chain. Enron derives
+genuine cross-document identity from message headers but contains exposed personal
+information~\cite{noever2020enron}. CARDIO:DE is the clinical anchor, its gold identifiers inserted
+into an already de-identified release, which makes its name distribution synthetic.
 
 \begin{table}[t]
-  \caption{The corpora separate domain, language, and gold provenance; missing token statistics
-  remain visible rather than being estimated.}\label{tab:corpora}
+  \caption{The corpora separate domain, language, and where the reference annotation came from.}\label{tab:corpora}
   \centering\small
-  \begin{tabular}{@{}lS[table-format=5.0]S[table-format=7.0]S[table-format=2.1]lll@{}}
+  \begin{tabular}{@{}l@{\hspace{1.2em}} S[table-format=5.0]@{\hspace{1.2em}} S[table-format=8.0]@{\hspace{1.2em}} S[table-format=2.1]@{\hspace{1.2em}} l@{\hspace{1.2em}} l@{}}
     \toprule
-    Corpus & {Docs} & {Tokens} & {Ment./doc} & Lang. & Gold & Role \\
+    Corpus & {Docs} & {Tokens} & {Ment./doc} & Lang. & Reference annotation \\
     \midrule
-    CARDIO:DE & 400 & 885\,059 & 78.3 & de & constructed & clinical \\
-    TAB & 1268 & 1\,844\,804 & 81.2 & en & manual & legal \\
-    OntoNotes & 5994 & 4\,726\,594 & 45.5 & en/zh/ar & linguistic & multi-genre \\
-    Enron & 58636 & 15\,507\,925 & 14.4 & en & header-derived & e-mail \\
+    CARDIO:DE & 400 & 885059 & 78.3 & de & constructed \\
+    TAB & 1268 & 1844804 & 81.2 & en & manual \\
+    OntoNotes & 5994 & 4726594 & 45.5 & en/zh/ar & linguistic \\
+    Enron & 58636 & 15507925 & 14.4 & en & header-derived \\
     \bottomrule
   \end{tabular}
-
 \end{table}
 
-Each corpus has one limit that changes how its results should be read. In CARDIO:DE, the gold is
-complete only for the identifiers inserted by our construction; moreover, \SI{84.7}{\percent} of
-gold tokens are dates that the transformation does not replace. In TAB, the applicant is typically
-named once but subsequently occurs as ``the applicant'', with a median of 17 role mentions. We
-report OntoNotes separately by language and never pool it. Enron alone provides natural
-cross-document identity.
+Two denominators follow. CARDIO:DE gold covers only inserted identifiers, and \SI{84.7}{\percent}
+of its gold tokens are dates, passed through by design: sensitivity in
+Table~\ref{tab:operating-points} is scored over every annotated type including those dates, while
+replacement, exposure and the attacks are scored over the types actually replaced. Retained dates
+are themselves a re-identification channel, and a release keeping them needs date shifting. A TAB
+applicant is usually named once but has a median of 17 later role mentions, and only Enron has
+natural cross-document identity.
 
 \subsection{Conditions}\label{sec:conditions}
 
-Condition A is unmodified text. In B, each detected identifier becomes a realistic surrogate that
-remains stable throughout the corpus. Its index comes from HMAC-SHA256, a \emph{keyed hash}: a
-one-way digest that cannot be recomputed without the secret key. In C, the same span becomes an
-unindexed typed placeholder such as \texttt{[PERSON]}. B and C therefore differ only in replacement
-form. The policy follows European guidance~\cite{enisa2021pseudonymisation} and prior e-mail
-pseudonymisation~\cite{eder2019emails}.
+Condition A is unmodified text. In B, each detected identifier becomes a realistic \emph{surrogate},
+such as another name, stable across the corpus, indexed by HMAC-SHA256, a keyed one-way digest
+irreproducible without the secret. Condition C uses an unindexed placeholder such as
+\texttt{[PERSON]}. B and C differ only in replacement form, following European guidance and prior
+e-mail pseudonymisation~\cite{enisa2021pseudonymisation,eder2019emails}, and replace identical
+spans.
 
-Before hashing, we casefold each mention, collapse whitespace, and remove titles and punctuation.
-Thus, \emph{Dr. Weber} and \emph{weber} agree, while \emph{Weber} and \emph{Kay Weber} do not. We
-hold this rule fixed and examine its failures in Sect.~\ref{sec:results-stability}.
-
-Figure~\ref{fig:overview} shows the resulting end-to-end design and matters because every release
-condition is evaluated with all three measurement families on the same documents.
+Before hashing, the key normaliser casefolds mentions, collapses whitespace and removes titles and
+punctuation, so \emph{Dr. Weber} matches \emph{weber} but \emph{Weber} does not match \emph{Kay
+Weber}. Unrelated people may therefore share a key while one person's initials and full name may
+not; Sect.~\ref{sec:results-stability} reports both failures. Figure~\ref{fig:overview} evaluates
+every condition on identical documents and measurements.
 \input{figures/overview}
 
-\subsection{Detectors and Ensembles}\label{sec:detectors}
+\subsection{Detectors, Ensembles and Operating Points}\label{sec:detectors}
 
-We evaluate 15 frozen detectors: rules, zero-shot and fine-tuned encoders, multilingual and German
-clinical recognisers, and eight gateway language models. Cached spans are combined by union,
-intersection, or a vote of at least $k$ members over single detectors, pairs, and triples.
+The 15 frozen detectors comprise rules, zero-shot and fine-tuned encoders, multilingual and German
+clinical recognisers, and eight gateway language models; the repository lists every model, version
+and prompt. Cached spans are combined by union, intersection or at-least-$k$ vote. Two rules recur
+below: the \emph{permissive} rule is the union of all 15, the \emph{precise} rule a majority, 8 of
+the 15. Leakage uses the configuration we recommend, a fixed 13-detector union; two large language
+models remain available singly but are excluded from it, because preliminary runs made them one to
+two orders of magnitude slower per document without improving detection. A proportional output
+limit truncated \SI{92}{\percent} of Chinese replies, which we corrected and re-ran rather than
+score truncation as a detection failure.
 
-Output-token limits require particular care. The cost of a model reply depends on script because
-the same visible text may require different numbers of subword tokens. For a reasoning model, much
-of that budget is fixed rather than proportional to input length. A proportional budget truncated
-\SI{92}{\percent} of Chinese replies. We corrected it and repeated the runs because this otherwise
-resembles a detector failure.
-
-\subsection{Operating Points}\label{sec:operating-points}
-
-For each corpus we select a fast and a maximum operating point on sensitivity and specificity.
-Sensitivity is the fraction of gold identifier tokens detected; specificity is the fraction of
-non-identifier tokens left untouched. The rates use separate denominators. Parallel ensemble cost
-is the slowest member's time. The maximum is the best non-dominated configuration; fast is the
-cheapest ensemble within \SI{10}{\percent} of it. A sensitivity floor is mandatory, since detecting
-nothing maximises specificity.
+Each corpus receives fast and maximum points for sensitivity, the share of identifier tokens
+detected, and specificity, the share of other tokens left untouched; an ensemble run in parallel
+costs its slowest member. A maximum point is non-dominated, the fast point the cheapest within
+\SI{10}{\percent} of it, subject to a sensitivity floor that stops an empty detector winning on
+specificity. This search covers singles, pairs and triples, so the recommended 13-detector ensemble
+lies outside it and may exceed the maximum of Table~\ref{tab:operating-points}.
 
 \subsection{Measurements}\label{sec:measurements}
 
-Detection is scored at token and entity level. An entity is protected only when every mention in
-its co-reference chain is replaced. We additionally use information-weighted precision, which gives
-more penalty to masking a token that conveyed information not predictable from its remaining
-context. This complements recall. Exposure is counted per document, case, and entity; few leaked
-tokens can still expose many people.
+Detection is scored by token and by entity, an entity counting as protected only when every one of
+its mentions was replaced. Information-weighted precision scales each masked token by how poorly its
+context predicts it, so removing a predictable word costs less than removing an informative one, and
+exposure uses document, case and entity denominators, because few leaked tokens can expose many
+people. Frozen models analyse all three conditions for named-entity agreement, medication extraction
+and section classification; agreement is span F1 between the outputs on original and transformed
+text, and the original-text score accompanies every comparison. Continuous pairs use the Wilcoxon
+signed-rank test, binary correctness McNemar's test, and Benjamini--Hochberg correction applies
+within task families. Utility and attack figures carry one standard deviation over documents,
+detector combinations or folds; detection and exposure are exact population proportions.
 
-For utility, frozen models analyse all three conditions. We measure named-entity-recognition
-agreement, i.e. span F1 between a model's output on original and transformed text, and two clinical
-tasks: medication information extraction and section classification. Continuous paired scores use
-the Wilcoxon signed-rank test; binary correctness uses McNemar's test. We control the false-discovery
-rate with Benjamini--Hochberg correction within each task family. Original-text performance is
-always reported beside it.
-
-Stability has three denominators. A collision occurs when distinct gold entities receive one
-surrogate. Fragmentation occurs when one entity receives several surrogates within a document.
-Drift occurs when its surrogate changes between documents. These metrics apply to condition B,
-where a mapping exists, rather than to a placeholder that deliberately merges all entities of one
-type.
+A \emph{collision} gives distinct people one surrogate, \emph{fragmentation} gives one person
+several within a document, and \emph{drift} changes it between documents. These apply to B, which
+has a mapping, and not to placeholders, which merge every entity of one type by design.
 
 \subsection{The Attacks}\label{sec:attacks}
 
-\emph{Frequency matching} aligns surrogate and real-name frequency ranks. It requires a matching
-population reference, which CARDIO:DE lacks because we placed its names. \emph{Context linkage}
-matches profiles built from words around a person's mentions. It requires other documents about
-the same cross-document identities, so it runs on Enron and CARDIO:DE, not TAB or OntoNotes.
+\emph{Frequency matching} aligns surrogate frequencies with real-name frequencies. Published attacks
+on pseudonymised free text target the identifiers a system missed rather than the surrogate
+distribution it produced, as the parrot attack does~\cite{carrell2019parrot}, so we transfer the
+alignment model from attacks on encoded identifiers in record linkage and disclosure-risk
+work~\cite{vidanage2022survey,naveed2015inference}. Two priors run over one observation, following
+Kuzu et al., Niedermeyer et al. and Vatsalan et
+al.~\cite{kuzu2013practical,niedermeyer2014cryptanalysis,vatsalan2014taxonomy}: a corpus-internal
+prior granting perfect knowledge, an oracle upper bound, and a public name-frequency list, the
+realistic adversary.
 
-\emph{LLM candidate ranking} shows a model one marked mention and ten candidate names, with or
-without other text about each candidate. It needs that candidate population and, in the second arm,
-auxiliary text. This is a one-in-ten closed world, not a population re-identification rate.
-\emph{Learned linkage} trains the context-linkage task on entity-disjoint examples. It additionally
-needs labelled training data; its gap to fixed linkage measures the value of learning. Gallery and
-query documents are disjoint. A \emph{dictionary lookup} would hash candidate names, but is defined
-and not run because no condition is unkeyed.
+The attacker tags the released text itself and so also sees names the defender missed. Every
+detected surface stays in the denominator, including ambiguous and unresolved
+bins~\cite{dankar2012estimating}, and if $k$ entities share a surrogate a recovery scores $1/k$
+rather than being deleted. Abstention occurs where $(\max - \max_2)/\sigma < \varphi$, computed
+from the attacker's own scores~\cite{narayanan2008robust}. We report the answered-query rate and
+$c@1$, which credits warranted abstention~\cite{penas2011simple}, beside a chance rate from the
+candidate set~\cite{rocher2019estimating}. Realistic surrogates exist so residual identifiers are
+hard to pick out~\cite{carrell2013hiding}, which is what the public prior tests; sweeping its size
+and vintage measures what better knowledge is worth~\cite{bindschaedler2018cryptanalysis}.
 
-\subsection{Stability and the Key Normaliser}\label{sec:key-normaliser}
+\emph{Context linkage} ranks identities by cosine similarity between surrounding-word profiles;
+\emph{learned linkage} fits the same task on labelled, entity-disjoint examples. Both use identical
+document-disjoint folds, and only the labels of held-out queries are hidden: those people stay in
+the complete candidate list with every distractor, so neither attack is told that a query has a
+match, and their difference measures learning rather than gallery size. Cross-document identity
+permits this on Enron and CARDIO:DE but not on TAB or OntoNotes.
 
-The fixed rule deciding whether surface mentions denote one entity casefolds, collapses whitespace,
-and removes titles and punctuation. Note that distinct people may collapse to one key while initials
-and full names remain separate. Section~\ref{sec:results-stability} reports both effects.
+\emph{LLM candidate ranking} gives a language model one marked mention and ten candidate names, with
+or without auxiliary text about each candidate from the released condition. Because B and C replace
+identical spans, B can be rewritten into C, so we report this attack on B as presented, on B after
+that rewrite, and against a ranker told the scheme. The one-in-ten closed world measures an attacker
+holding a shortlist, not population re-identification. A \emph{dictionary lookup} would hash
+candidate names; it is defined but not run, because no condition here is unkeyed.

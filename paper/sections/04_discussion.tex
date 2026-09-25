@@ -1,40 +1,27 @@
 \section{Discussion}\label{sec:discussion}
 
-The strongest result is practical. A cheap ensemble is already a credible deployment on German
-clinical letters. The fast operating point detects \SI{89.5}{\percent} of the identifiers we placed
-in \SI{0.30}{s} per document, is \emph{more} specific than the maximum---0.977 against
-0.967---and is 191 times cheaper, which buys the maximum 9.7 percentage points of sensitivity.
-Under a precise detector, realistic pseudonymisation also keeps clinical information extraction
-statistically indistinguishable from the original text. This is the combination a hospital needs:
-measurable protection without destroying the task for which the data are shared.
+Four recommendations follow, and one prediction does not survive.
 
-Yet, the two error rates do not settle the choice. At the maximum point \SI{73.2}{\percent} of
-letters leave with no surviving finding at all; at the fast point only \SI{6.5}{\percent} do, and
-the median letter retains three. Note that this is the same pair of systems that differ by only
-0.097 in sensitivity. Document-level exposure separates them where sensitivity and specificity
-barely do, which is precisely the argument for reporting the denominator a release is actually
-judged on.
+\textbf{Prefer a large union to a consensus rule.} Agreement buys precision the release does not
+need and pays in recall, and every leakage measure follows recall. \textbf{State the attacker's
+knowledge with the number.} A corpus-internal prior is an upper bound, not a risk, and here the two
+differ by the whole result. \textbf{Report the denominator you release on.} No corpus-level score
+describes a document, a case or a language, and the three disagree on every corpus we measured.
 
-The strongest language-model attacker falls from near-perfect ranking to chance in a ten-candidate
-closed world. Yet, frequency matching and context linkage move in opposite directions with recall:
-stable surrogates remove names but make detected identities easier to count and follow.
+\textbf{Choose the replacement form for utility, not for privacy.} Since the placeholder release is
+a rewrite of the surrogate release, neither is safer against an adversary who knows the scheme, and
+the surrogate's apparent advantage is obscurity. Its real advantage is that token-level tasks
+survive it and do not survive \texttt{[PERSON]}; at document level the placeholder is better.
 
-The large ensemble is promising but not final. On CARDIO:DE and TAB it appears strong on both error
-rates, which no small ensemble achieves. Its Table~\ref{tab:operating-points} entries are explicitly
-\provisional{provisional}; no quantitative claim relies on them.
+The prediction that recall moves the two attacks in opposite directions is refuted. Better detection
+was expected to starve context linkage while leaving a larger population for frequency alignment.
+Instead alignment recovered nothing at any recall and both linkage attacks fell as recall rose: the
+attacks do not trade off, and both are bounded by the identifiers the detector missed.
 
-For practice, use the fast point unless a release requires more. Audit consensus by identifier
-class, split results by language, and report per patient. Rank-5 should accompany Rank-1, and
-specificity should accompany sensitivity. Note that this requires better denominators, not a new
-model.
-
-Protecting images does not repair a report, or vice versa. Text failures are structured by language,
-class, and document length. A mixed-language recall averages results differing by more than 40
-percentage points and is unsuitable as a release criterion.
-
-Limitations narrow the claim. We repeated multilingual runs after an inadequate non-Latin token
-budget, but detection scoring retains truncated replies that the conditions drop. Surrogates depend
-on detected spans, and CARDIO:DE's constructed gold lacks natural variation. Linkage runs on two
-corpora only. Enron covers 263 promising configurations, selected elsewhere, rather than all 1,743.
-No corpus marks public figures for stratified candidate ranking. These limits define where
-replication is needed.
+The limits are specific. Linkage is measurable only on Enron and CARDIO:DE, because TAB and
+OntoNotes link mentions within a document; people recur there, so those figures understate rather
+than bound the risk. CARDIO:DE names were inserted into an already de-identified release, making its
+frequency distribution synthetic and its clinical realism partial. Dates pass through by design, a
+channel this pipeline does not close. The candidate-ranking attack presents ten names, bounding an
+adversary with a shortlist rather than one searching a population, and ran on the full 15-detector
+union, not the recommended 13. Every number describes one release under one key.

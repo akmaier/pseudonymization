@@ -1,17 +1,42 @@
 # pseudonymization
 
-Experiment repository for a study on **text pseudonymisation**, evaluated end to end —
-**detection, utility and leakage** — across languages, domains, methods and *policies*.
+**Taking the names out of text is easy to measure badly.** Report recall alone and the answer is
+always "use more models". This study measures the other columns too — what the detection *costs*,
+what the text is still *good for* afterwards, and what can still be *recovered* from it.
 
-Target venue: **TrustFMI @ ACCV 2026** (workshop, Osaka, 14 Dec 2026). Submission **25 Sept 2026**;
-6–8 pages full / 4 pages short, LNCS, via OpenReview. Treat that deadline as the near-term target,
-not as a limit on the study — compute is available and the work is intended to outlive the workshop.
+It runs across languages, domains and detection methods, but the variable under test is the one
+usually held fixed: the **pseudonymisation policy** itself — whether a name becomes `[PERSON]`, a
+plausible surrogate, or something else.
 
-**Read [`experiment_plan.md`](experiment_plan.md) first — it is the sole authority on what is run.**
-It carries the factor design, the metrics, the statistics, the corpora and the compute.
-[`experiment_plan.md`](experiment_plan.md) carries the *argument*: the thesis, the gap in the literature, the hypotheses and
-the limitations. Everything under `data/` is **superseded historical record** — it shows how
-decisions were reached and is not binding.
+### Three findings you can read off the tables below
+
+- **The last point of detection quality is bought with an LLM and costs two to three orders of
+  magnitude.** On CARDIO:DE, an all-classical ensemble reaches 0.982 token recall at 1.41 s per
+  document; the best ensemble of any kind reaches 0.985 at 118 s — **0.003 recall for 84× the cost**.
+- **The cheap option is often not the worse option.** On the same corpus the fast ensemble gives up
+  some sensitivity but is *more* specific than the expensive one, and 444× cheaper. Catching the last
+  identifiers means over-detecting, and over-detection has its own price.
+- **Over-detection destroys more utility than pseudonymisation does.** Downstream NER agreement is
+  0.611 under a permissive detector union and 0.973 under a majority vote — *same policy, same
+  surrogates, same corpus*. What you replace matters less than what you wrongly decide to replace.
+
+**Everything uses public corpora only**, so every number here can be reproduced.
+
+### Where to start
+
+| you want | read |
+|---|---|
+| the results, in prose | this file, below |
+| what exactly was run, and why | [`experiment_plan.md`](experiment_plan.md) — the authoritative specification: thesis, gap, hypotheses, factor design, metrics, statistics, corpora, compute |
+| how the code is put together | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| who wrote it | [`AUTHORS.md`](AUTHORS.md) |
+
+Target venue: **TrustFMI @ ACCV 2026** (workshop, Osaka, 14 Dec 2026), submission 25 Sept 2026. The
+deadline is a near-term target, not the limit of the study — the work is intended to outlive the
+workshop.
+
+Everything under `data/` is **superseded historical record**: it shows how decisions were reached
+and is not binding.
 
 ## Decisions already taken
 
@@ -20,10 +45,10 @@ decisions were reached and is not binding.
 - **Not another detection benchmark.** REDACT, PIIBench and the OpenAI-Privacy-Filter evaluation all
   landed in 2026 and own that ground. Our independent variable is the **pseudonymisation function
   and policy**, not the detector.
-- **Scope is not negotiable.** Nobody — human or agent — reduces the scope or the number of
-  experiments in `experiment_plan.md` to save time, money or compute. The budget is sufficient (AM,
-  2026-09-06). If a planned cell turns out to be impossible, that is reported and stated, not
-  silently substituted or dropped.
+- **Nothing is dropped to save compute.** The full factor design in `experiment_plan.md` is run as
+  specified; where a planned cell proves impossible it is reported as such rather than quietly
+  substituted. This is why some cells below are expensive and reported anyway — the cost *is* the
+  finding.
 - **Ensemble detection is in.** In the group's own tests an ensemble across LLMs plus the baseline
   methods outperformed any single detector; it belongs in the detector axis as both a strong
   baseline and a recall upper bound. See `experiment_plan.md` §1, axis D.
@@ -157,9 +182,8 @@ the **original** text, so it cannot measure a loss.
 
 | path | contents |
 |---|---|
-| [`experiment_plan.md`](experiment_plan.md) | **the authoritative experiment specification** — factors, metrics, statistics, corpora, sampling, models, compute |
-| [`experiment_plan.md`](experiment_plan.md) | the argument — thesis, gap, hypotheses, related work, limitations |
-| [`AUTHORS.md`](AUTHORS.md) | author list — complete; middle order (2–5) still unsettled, **do not guess it** |
+| [`experiment_plan.md`](experiment_plan.md) | **the authoritative specification** — the argument (thesis, gap, hypotheses, related work, limitations) *and* the design (factors, metrics, statistics, corpora, sampling, models, compute) |
+| [`AUTHORS.md`](AUTHORS.md) | author list — complete; the middle order (positions 3–6) is not yet settled |
 | [`references/standards.md`](references/standards.md) | ISO 25237, ENISA, ISO/IEC 20889, GDPR |
 | [`references/text_pseudonymization.md`](references/text_pseudonymization.md) | detection benchmarks, surrogate generation, utility, leakage, email |
 | [`data/candidates.md`](data/candidates.md) | every corpus considered, including ones beyond the current plan |
@@ -169,11 +193,19 @@ the **original** text, so it cannot measure a loss.
 | `tests/` | 670 tests, no network, no models, under two seconds |
 | `experiments/` | code lands here |
 
-## For the agent picking this up
+## Provenance, data and credentials
 
-- Every reference in `references/` was retrieved from Crossref, arXiv, ACL Anthology or the
-  publisher during 2026-09-05/06. Where an abstract could **not** be retrieved it says so — those are
-  title-level evidence only and must be opened before being relied on.
-- **No credentials in this repo, ever.** Corpora are not committed either: several are DUA-bound
-  (BRONCO), licensed (Avocado, i2b2/n2c2) or contain real personal data (Enron). `.gitignore` covers
-  `data/corpora/`.
+- **References are retrieved, not remembered.** Every entry in `references/` was pulled from
+  Crossref, arXiv, the ACL Anthology or the publisher on 2026-09-05/06. Where an abstract could not
+  be retrieved, the entry says so — those are title-level evidence only and should be opened before
+  being relied on.
+- **No credentials in this repository, ever.** `config/` ships `*.example.toml` templates; the real
+  files are gitignored, and carry no hostnames, usernames or keys.
+- **Corpora are not committed.** Several are DUA-bound (BRONCO), licensed (Avocado, i2b2/n2c2) or
+  contain real personal data (Enron); `.gitignore` covers `data/corpora/`. You will need to obtain
+  them yourself under their own terms — `data/candidates.md` lists every corpus considered and what
+  each requires.
+- **On Enron.** The corpus is used deliberately and the ethics position is stated in the paper
+  rather than left implicit: it is the only public e-mail corpus with real names in a natural
+  frequency distribution, and excluding it would have protected nobody. Five safeguards bind its use
+  — see `experiment_plan.md`.

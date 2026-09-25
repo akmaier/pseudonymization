@@ -1,14 +1,13 @@
 \section{Conclusion}\label{sec:conclusion}
 
-Safe sharing of clinical databases requires both modalities to be anonymised. A protected image
-does not compensate for a report that names the patient, and a protected report does not remove
-identity from the image. Artificial intelligence makes both tasks possible at scale, but learned
-failures must be measured at the level at which data are released.
-
-For text, we price detection, utility, and re-identification on the same documents. Detector
-precision governs utility more strongly than the choice between realistic surrogates and typed
-placeholders. Better detection protects against context linkage while strengthening the frequency
-signal available to another attacker. Aggregate token recall, in turn, understates exposure at the
-document and patient levels. Hence, there is no single anonymisation score. A release should state
-its operating point, language-specific errors, surviving cases, attack model, and stability. The
-operating points and the measurements behind them will be released with the paper.
+Safe sharing of clinical data needs both modalities protected: a guarded image does not compensate
+for a report that names the patient, and a guarded report does not remove identity from the image.
+Artificial intelligence makes both possible at scale, but its failures must be measured where data
+are released. For text we priced detection, utility and re-identification on the same documents. A
+large union ensemble replaces almost every person mention and holds both attacks near their chance
+rates, and what remains is bounded by the identifiers the detector missed rather than by the
+replacement scheme, which is one rewrite away from its alternative. Detector precision governs
+utility more than the choice between surrogates and placeholders, and token recall understates
+exposure per document, case and language. There is therefore no single anonymisation score: a
+release should state its operating point, per-language errors, surviving cases, attacker knowledge
+and stability. Our operating points and measurements are released with it.
