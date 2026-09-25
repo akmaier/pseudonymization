@@ -19,18 +19,18 @@
                     & {Sens.} & {Spec.} & Cost & {Sens.} & {Spec.} & Cost \\
     \midrule
     max.\ sensitivity & 0.992 & 0.9670 & $57.633^{\cup}$  & 0.925 & 0.8986 & $14.210^{\cup}$
-                      & 0.747 & 0.9763 & $9.450^{\cup}$   & 0.973 & 0.7720 & $25.557^{\cup}$ \\
+                      & 0.747 & 0.9763 & $9.450^{\cup}$   & 0.997 & 0.7745 & $25.557^{\cup}$ \\
     fast sensitivity  & 0.895 & 0.9769 & $0.301^{\cup}$   & 0.893 & 0.9242 & $0.219^{\cup}$
-                      & 0.684 & 0.9731 & $5.376^{\cup}$   & 0.899 & 0.7419 & $0.057^{\cup}$ \\
+                      & 0.684 & 0.9731 & $5.376^{\cup}$   & 0.922 & 0.7420 & $0.057^{\cup}$ \\
     max.\ specificity & 0.523 & 0.9997 & $116.875^{v}$    & 0.501 & 0.9959 & $98.110^{v}$
-                      & 0.503 & 0.9960 & $0.103^{\cup}$   & 0.588 & 0.9428 & $20.931^{\cap}$ \\
+                      & 0.503 & 0.9960 & $0.103^{\cup}$   & 0.529 & 0.9448 & $20.931^{\cap}$ \\
     fast specificity  & 0.781 & 0.9862 & $0.263^{s}$      & 0.520 & 0.9934 & $0.117^{s}$
-                      & 0.503 & 0.9960 & $0.103^{\cup}$   & 0.674 & 0.8787 & $0.026^{s}$ \\
+                      & 0.503 & 0.9960 & $0.103^{\cup}$   & 0.692 & 0.8781 & $0.026^{s}$ \\
     \bottomrule
   \end{tabular}}
 \end{table}
 
-Table~\ref{tab:operating-points} gives the cost--quality front for our detector triplet ensembles, with sensitivity the primary criterion for protection. Maximum-sensitivity configurations reach 0.992 on CARDIO, 0.925 on TAB, 0.747 on OntoNotes, and 0.973 on Enron. The faster alternatives retain 0.895, 0.893, 0.684, and 0.899 sensitivity, respectively, while sharply reducing cost; for example, CARDIO falls from \SI{57.633}{s} to \SI{0.301}{s} and Enron from \SI{25.557}{s} to \SI{0.057}{s} per document. The OntoNotes specificity rows coincide because the \SI{10}{\percent} band admits all 414 candidates.
+Table~\ref{tab:operating-points} gives the cost--quality front for our detector triplet ensembles, with sensitivity the primary criterion for protection. Maximum-sensitivity configurations reach 0.992 on CARDIO, 0.925 on TAB, 0.747 on OntoNotes, and 0.997 on Enron. The faster alternatives retain 0.895, 0.893, 0.684, and 0.922 sensitivity, respectively, while sharply reducing cost; for example, CARDIO falls from \SI{57.633}{s} to \SI{0.301}{s} and Enron from \SI{25.557}{s} to \SI{0.057}{s} per document. The OntoNotes specificity rows coincide because the \SI{10}{\percent} band admits all 414 candidates.
 
 Within OntoNotes, language effects depend on what is detected. Under the recommended ensemble,
 sensitivity is 0.989 on English, 0.868 on Chinese and 0.614 on Arabic; pooled sensitivity is 0.801.
@@ -52,8 +52,8 @@ The other two tasks retain their original-text baselines and support paired comp
 \begin{table}[t]
   \caption{Leakage from the recommended 13-detector union; all columns concern people.
   \emph{Sens.} is person sensitivity and \emph{Spec.} the share of non-identifier tokens left
-  alone: neither is readable without the other. \emph{Exp.} is the share of people keeping a mention
-  in clear text, \emph{Frequency} the identities named from frequency alone with a public list and,
+  alone: neither is readable without the other. \emph{Exp.} is the risk that a person is still named in a
+  given document after processing, \emph{Frequency} the identities named from frequency alone with a public list and,
   bracketed, with the corpus's own distribution (an upper bound, not a risk). \emph{Linkage} is
   Rank-1 over the complete candidate list against chance $1/\text{gallery}$.}\label{tab:leakage}
   \centering\scriptsize
@@ -62,7 +62,7 @@ The other two tasks retain their original-text baselines and support paired comp
     Corpus & {Sens.} & {Spec.} & {Exp.\ (\%)} & Frequency & {Context link.} & {Learned link.} & Chance \\
     \midrule
     CARDIO:DE & 1.000 & 0.869 & 0.1 & 0 (1) & $0.0000\pm0.0000$ & $0.0071\pm0.0160$ & $1/207$ \\
-    Enron     & 0.890 & 0.624 & 18.0 & 0 (0) & $0.0095\pm0.0012$ & $0.0407\pm0.0029$ & $1/3816$ \\
+    Enron     & 0.991 & 0.624 & 1.6 & 0 (0) & $0.0093\pm0.0010$ & $0.0394\pm0.0030$ & $1/3697$ \\
     \addlinespace
     TAB       & 0.996 & 0.850 & 0.8 & 0 (1) & \multicolumn{2}{l}{no links $\rightarrow$ not measurable} & {--} \\
     OntoNotes & 0.935 & 0.932 & 4.9 & 0 (1) & \multicolumn{2}{l}{no links $\rightarrow$ not measurable} & {--} \\
@@ -79,25 +79,26 @@ $\varphi=0.05$ leaves 11 of 25,677 CARDIO:DE queries and zero elsewhere; alignme
 every threshold. 
 
 Linkage requires cross-document identity and must be read against unmodified text and chance. On
-Enron, fixed similarity recovers 0.706 of held-out people from unmodified text and
-$0.0095\pm0.0012$ after the recommended release. The latter is 36 times the $1/3816$ chance rate
+Enron, fixed similarity recovers 0.720 of held-out people from unmodified text and
+$0.0093\pm0.0010$ after the recommended release. The latter is 34 times the $1/3697$ chance rate
 but two orders of magnitude below the unmodified-text rate. Entity-disjoint training raises recovery to
-$0.0407\pm0.0029$, four times the fixed attack and 155 times chance, so a trained adversary carries
+$0.0394\pm0.0030$, four times the fixed attack and 146 times chance, so a trained adversary carries
 the residual risk. CARDIO:DE has 207 attacker's reference identities; fixed linkage recovery is zero, and
 learned linkage $0.0071\pm0.0160$ against chance $0.0048$ is consistent with guessing.
 Across the tested Enron configurations, linkage rises as person sensitivity falls. Agreement
-between two detectors lowers sensitivity to 0.732, raises fixed linkage fivefold to 0.0500 and
-increases clear-text names from 180 to 1,868; intersection yields 0.037 sensitivity and 0.2380
+between two detectors lowers sensitivity to 0.831, raises fixed linkage fivefold to 0.0509 and
+increases clear-text names from 152 to 1,816; intersection yields 0.044 sensitivity and 0.2551
 linkage.
 
 The third attack assigns different risks to the replacement forms. Ranking one marked mention against ten candidates, the model falls from 0.995 on unmodified TAB to 0.110 with surrogates, near 0.100 chance, but reaches 0.340 with typed placeholders; OntoNotes (0.290 versus 0.630) orders likewise. Only CARDIO:DE (0.085 versus 0.120) stays at chance level for both categories. This is consistent with source-text recall, not stronger surrogate protection: a neutral placeholder permits retrieval of a memorized person, whereas a surrogate supplies a conflicting name and suppresses that candidate. Accordingly, C is highest on widely replicated OntoNotes, intermediate on public TAB, and at chance on restricted CARDIO:DE. Yet both forms replace identical spans. Replacing each surrogate with \texttt{[PERSON]} reproduces C character for character on all 1,268 TAB and 5,994 OntoNotes documents. 
 
-Sensitivity alone omits exposure units; each denominator answers a different question. The 13 detector union 
-leaves one CARDIO:DE person mention of 4,396 in clear text, one entity of 1,957 and one
-patient of 270; over every identifier type, \SI{8.5}{\percent} of patient letters carry something and
-\SI{12.2}{\percent} of patients do. TAB leaves a name in 44 of 1,268 judgments and OntoNotes in 736
-of 5,994 documents, while Enron leaves one in \SI{18.0}{\percent} of its people and something in
-\SI{45.8}{\percent} of its messages.
+Sensitivity alone omits exposure units; each denominator answers a different question. The
+13-detector union leaves one CARDIO:DE person mention of 2,800 in clear text, in one letter of 400
+and for one patient of 270; over every identifier type, \SI{9.5}{\percent} of letters carry
+something and \SI{13.3}{\percent} of patients do. TAB leaves a name in 47 of 1,268 judgments and
+OntoNotes in 790 of 5,994 documents. On Enron the risk that a person is still named in a given
+message is \SI{1.6}{\percent}, while \SI{5.9}{\percent} of messages carry an identifier of some
+type.
 
 \label{sec:results-stability}%
 The key normaliser both merges and splits identities: on Enron, ORGANISATION surrogates collide at

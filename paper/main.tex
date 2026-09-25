@@ -48,11 +48,11 @@ not protect the report. This paper measures the text component of such releases.
 leakage on the same documents, with the pseudonymisation policy as the variable under test: 15
 detectors, three release conditions and four corpora of clinical letters, legal judgments, news and
 other genres, and e-mail, in German, English, Chinese and Arabic. A fixed 13-detector union replaces
-almost every person mention in the clinical letters at specificity \num{0.869}, and \num{0.890} of
+almost every person mention in the clinical letters at specificity \num{0.869}, and \num{0.991} of
 them in e-mail at specificity \num{0.624}. With this ensemble, frequency matching with a public name
 list recovers zero identities across the four corpora; its returned names were missed by the detector
-and printed in clear text. Cross-document linkage reaches \num{0.0095}
-without training and \num{0.0407} with it on e-mail, against $1/3816$ chance and a \num{0.706}
+and printed in clear text. Cross-document linkage reaches \num{0.0093}
+without training and \num{0.0394} with it on e-mail, against $1/3697$ chance and a \num{0.720}
 ceiling on unmodified text. The tested replacement forms expose the same reachable text to a
 scheme-aware adversary: the typed-placeholder release is a character-for-character rewrite of the
 surrogate release. Under this ensemble, residual exposure is set by identifiers the detector missed
