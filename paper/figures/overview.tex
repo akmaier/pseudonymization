@@ -1,15 +1,18 @@
 \begin{figure}[t]
   \centering
   % Laid out in explicit millimetres and scaled to the column. Node *text* does not scale with the
-  % x/y unit vectors, so every width below is measured with \settowidth rather than assumed: the
-  % example line is 59.6mm and the detector box's widest line 32.8mm at \scriptsize. Assuming them
-  % is what put the sentences underneath the measurement boxes, and the box text outside its box.
+  % x/y unit vectors, so every width here is measured with \settowidth rather than assumed.
+  % Condition B shows a ONE-token person surrogate on purpose: in the released data every one of
+  % the 13,620 TAB person surrogates is a single token, so a two-token name is replaced by a single
+  % name and the token structure is not preserved. Drawing "Anna Weber -> Marta Keller" would
+  % misreport the release.
   \resizebox{\textwidth}{!}{%
   \begin{tikzpicture}[
       x=1mm,y=1mm,
       box/.style={draw=blue!55!black, fill=blue!6, rounded corners=1.2mm,
                   line width=.45pt, align=center, inner sep=1.5mm, font=\scriptsize},
-      measure/.style={box, draw=orange!70!black, fill=orange!8},
+      measure/.style={box, draw=orange!70!black, fill=orange!8,
+                      minimum width=27mm, minimum height=7mm},
       line/.style={align=left, font=\scriptsize, inner sep=.5mm},
       tag/.style={font=\scriptsize\itshape, text=black!55, inner sep=.5mm},
       hit/.style={fill=teal!16, rounded corners=.6mm, inner sep=.5mm},
@@ -18,25 +21,23 @@
       rail/.style={line width=.45pt, draw=black!70},
       rewrite/.style={-{Latex[length=1.6mm]}, line width=.5pt, draw=teal!55!black, dashed}
     ]
-    \node[box, minimum width=37mm, minimum height=16mm] (det) at (18.5,30)
+    \node[box, minimum width=37mm, minimum height=15mm] (det) at (18.5,31)
       {detector pool\\\scriptsize 15 rules, encoders, LLMs\\[-.3mm]
        \scriptsize union / vote / intersection};
 
-    % One rail out of the detector pool, then a short arrow into each condition: three separate
-    % arrows from the box corner converge on the tags and land on top of them.
-    \draw[flow] (det.east) -- (41,30);
-    \draw[rail] (41,22) -- (41,38);
-    \foreach \y in {38,30,22} { \draw[flow] (41,\y) -- (44.5,\y); }
+    \draw[flow] (det.east) -- (41,31);
+    \draw[rail] (41,22) -- (41,40);
+    \foreach \y in {40,31,22} { \draw[flow] (41,\y) -- (44.5,\y); }
 
-    \node[tag, anchor=east] at (50,38) {A};
-    \node[line, anchor=west] at (51.5,38)
+    \node[tag, anchor=east] at (50,40) {A};
+    \node[line, anchor=west] at (51.5,40)
       {Frau \tikz[baseline]{\node[hit,anchor=base]{Anna Weber};}, geb.\
        \tikz[baseline]{\node[kept,anchor=base]{12.03.1948};},
        \tikz[baseline]{\node[hit,anchor=base]{Klinik Nord};}.};
 
-    \node[tag, anchor=east] at (50,30) {B};
-    \node[line, anchor=west] at (51.5,30)
-      {Frau \tikz[baseline]{\node[hit,anchor=base]{Marta Keller};}, geb.\
+    \node[tag, anchor=east] at (50,31) {B};
+    \node[line, anchor=west] at (51.5,31)
+      {Frau \tikz[baseline]{\node[hit,anchor=base]{Keller};}, geb.\
        \tikz[baseline]{\node[kept,anchor=base]{12.03.1948};},
        \tikz[baseline]{\node[hit,anchor=base]{Klinik S\"ud};}.};
 
@@ -46,19 +47,21 @@
        \tikz[baseline]{\node[kept,anchor=base]{12.03.1948};},
        \tikz[baseline]{\node[hit,anchor=base]{\texttt{[ORG]}};}.};
 
-    \draw[rewrite] (46.8,28.4) -- (46.8,23.6);
-    \node[tag, anchor=west, text=teal!45!black] at (51.5,15)
+    % Centred under the sentence block, which runs from x=51.5 to about x=115.
+    \draw[rewrite] (83,28.2) -- (83,25.3);
+    \node[tag, anchor=north, text=teal!45!black] at (83,17.6)
       {identical spans, so B rewrites to C};
 
-    \node[measure, minimum width=27mm] (m1) at (131,38) {detection\\and exposure};
-    \node[measure, minimum width=27mm] (m2) at (131,30) {downstream\\utility};
-    \node[measure, minimum width=27mm] (m3) at (131,22) {attacks and\\stability};
-    \foreach \y in {38,30,22} { \draw[flow] (116,\y) -- (117.5,\y); }
+    \node[measure] (m1) at (131,40) {detection\\and exposure};
+    \node[measure] (m2) at (131,31) {downstream\\utility};
+    \node[measure] (m3) at (131,22) {attacks and\\stability};
+    \foreach \y in {40,31,22} { \draw[flow] (116,\y) -- (117.5,\y); }
   \end{tikzpicture}%
   }
   \caption{One set of detector spans generates three release conditions, on an invented header line
   in the style of a discharge letter. Detected identifiers (teal) become surrogates in B and typed
-  placeholders in C; dates (red) pass through by design. B and C replace the same spans, so C is a
+  placeholders in C; dates (red) pass through by design. A surrogate replaces a whole detected span
+  with a single name, so the two-token name becomes one. B and C replace the same spans, so C is a
   rewrite of B. Every condition meets every measurement family on the same documents.}
   \label{fig:overview}
 \end{figure}

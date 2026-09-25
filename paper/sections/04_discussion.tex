@@ -1,26 +1,24 @@
 \section{Discussion}\label{sec:discussion}
 
-For releases prioritising leakage reduction, the measurements support the large union with its
-specificity cost reported. On CARDIO:DE, detector agreement raises specificity from 0.869 to 0.986 but
-reduces sensitivity. On Enron, two votes lower person sensitivity from 0.890 to 0.732 and raise
+For releases prioritising leakage reduction, the measurements support the large union, whose
+CARDIO:DE specificity is 0.869. Requiring detector agreement trades sensitivity for specificity.
+On Enron, two votes lower person sensitivity from 0.890 to 0.732 and raise
 fixed linkage fivefold. Across these tested configurations, lower sensitivity coincides with greater
 name exposure and linkage.
 
-Attack results depend on adversarial knowledge and denominator. The
-corpus-internal prior is an upper bound, while the public prior estimates risk under one available
-source; their difference constitutes the frequency result here. Corpus-level scores must therefore
-be accompanied by document, case and language results.
+Attack results depend on adversarial knowledge and denominator. The public prior measures this
+frequency attack with one available source; its contrast with the corpus-internal upper bound is the
+frequency result. Corpus-level scores should accompany document, case and language results.
 
-The measurements support choosing replacement form for utility. The placeholder release is
-computable from the surrogate release, so a scheme-aware adversary can obtain the same privacy
-exposure from either. Telling the ranker the scheme raises recovery from 0.110 to 0.165 on unchanged
-text. Token-level tasks survive surrogates but fail with \texttt{[PERSON]}; document-level utility is
-higher with placeholders.
+For TAB and OntoNotes, a scheme-aware adversary can derive the placeholder release from the surrogate
+release. Replacement form still affects utility. Telling the ranker the scheme raises recovery from
+0.110 to 0.165 on unchanged text. In the tested tasks, surrogates preserve token-level performance
+and placeholders more document-level utility.
 
 The prediction that sensitivity moves frequency alignment and linkage in opposite directions is
 refuted for these attacks, priors, corpora and ensemble. Better detection was expected to starve
 context linkage while enlarging the population available for frequency alignment. Frequency
-alignment recovered no identity at any tested sensitivity with these priors, while both linkage
+alignment recovered zero identities at every tested sensitivity with these priors, while both linkage
 attacks declined as sensitivity rose. In these experiments, missed identifiers limited both
 measured attacks.
 

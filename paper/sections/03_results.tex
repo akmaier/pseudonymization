@@ -2,8 +2,6 @@
 
 \subsection{Detection}\label{sec:results-detection}
 
-Table~\ref{tab:operating-points} gives the cost--quality front. The winning configuration differs by
-corpus, so it is a set of four answers rather than one transferable recipe.
 
 \begin{table}[t]
   \caption{Operating points on both error rates. Sensitivity is over the identifier types the
@@ -32,10 +30,7 @@ corpus, so it is a set of four answers rather than one transferable recipe.
   \end{tabular}}
 \end{table}
 
-On CARDIO:DE, the fast configuration gives up 0.097 sensitivity while raising specificity from
-0.9670 to 0.9769 at 191 times lower cost. Enron cuts cost from \SI{25.557}{s} to \SI{0.057}{s} per
-message. The OntoNotes specificity rows coincide because the \SI{10}{\percent} band admits all 414
-candidates.
+Table~\ref{tab:operating-points} gives the cost--quality front, with sensitivity the primary criterion for protection. Maximum-sensitivity configurations reach 0.992 on CARDIO, 0.925 on TAB, 0.747 on OntoNotes, and 0.973 on Enron. The faster alternatives retain 0.895, 0.893, 0.684, and 0.899 sensitivity, respectively, while sharply reducing cost; for example, CARDIO falls from \SI{57.633}{s} to \SI{0.301}{s} and Enron from \SI{25.557}{s} to \SI{0.057}{s} per document. The OntoNotes specificity rows coincide because the \SI{10}{\percent} band admits all 414 candidates.
 
 Within OntoNotes, language effects depend on what is detected. Under the recommended ensemble,
 sensitivity is 0.989 on English, 0.868 on Chinese and 0.614 on Arabic; pooled sensitivity is 0.801.
@@ -46,27 +41,13 @@ other identifier classes rather than the people targeted by the attacks.
 
 \subsection{Utility}\label{sec:results-utility}
 
-Detector precision governs utility more strongly than the replacement form. Named-entity agreement
-on CARDIO:DE is $0.611\pm0.082$ with surrogates under the permissive rule and $0.973\pm0.019$ under
-the precise rule; with placeholders it is $0.004\pm0.008$ and $0.674\pm0.082$. The placeholder
-figures measure the metric as much as the release, because the frozen recogniser never tags
-\texttt{[PERSON]} as a name, so every replaced mention counts as a disagreement and the comparison
-is informative between rules rather than between forms.
+At the high-sensitivity operating point, utility depends strongly on replacement form. On CARDIO, named-entity agreement is $0.611\pm0.082$ with surrogates but only $0.004\pm0.008$ with placeholders. The latter largely reflects the frozen recognizer rather than semantic degradation: it never tags \texttt{[PERSON]} as a name, so every replaced mention is counted as a disagreement. Surrogates therefore preserve token-level named-entity utility substantially better than placeholders.
 
-The other two tasks carry their original-text scores and admit the paired test. Medication
-extraction scores $0.371\pm0.182$ on unmodified text; under the precise rule it moves to
-$0.364\pm0.189$ with surrogates, a paired difference of $-0.008\pm0.178$ not distinguishable from
-zero ($q=0.80$), and under the permissive rule it falls to $0.346\pm0.181$, a difference of
-$-0.020\pm0.182$ that is ($q=5.6\times10^{-3}$). Section classification scores $0.749\pm0.093$ on
-unmodified text and loses $0.072\pm0.086$ to surrogates against $0.038\pm0.089$ to placeholders,
-both significant ($q=1.6\times10^{-37}$, $q=2.6\times10^{-14}$; rank-biserial $-0.846$, $-0.531$).
-At document level, typed placeholders preserve more utility than realistic surrogates. At token
-level, only surrogates survive.
+The other two tasks retain their original-text baselines and support paired comparisons. Medication extraction scores $0.371\pm0.182$ on unmodified text. Under the precise rule, surrogate replacement yields $0.364\pm0.189$, with a paired difference of $-0.008\pm0.178$ that is consistent with zero ($q=0.80$). Under the permissive rule, performance drops to $0.346\pm0.181$, corresponding to a paired difference of $-0.020\pm0.182$ ($q=5.6\times10^{-3}$). Section classification scores $0.749\pm0.093$ on unmodified text. Surrogates reduce this score by $0.072\pm0.086$, whereas placeholders reduce it by $0.038\pm0.089$; both effects are significant ($q=1.6\times10^{-37}$ and $q=2.6\times10^{-14}$; rank-biserial correlations $-0.846$ and $-0.531$). Thus, typed placeholders preserve more utility at the document level, whereas surrogates are required to preserve token-level utility.
 
 \subsection{Leakage}\label{sec:results-leakage}
 
-Table~\ref{tab:leakage} reports the recommended 13-detector union, the intended release
-configuration.
+
 
 \begin{table}[t]
   \caption{Leakage from the recommended 13-detector union; all columns concern people.
@@ -89,43 +70,31 @@ configuration.
   \end{tabular}
 \end{table}
 
-With this frequency attack and public name list, no identity is recovered on the four corpora.
-Every returned name was missed by the detector and printed in clear text, so it measures defender
+Table~\ref{tab:leakage} reports the 13-detector union.
+This frequency attack with the public name list recovers zero identities across the four corpora.
+Its returned names were missed by the detector and printed in clear text, so it measures defender
 sensitivity rather than adversarial inference. The corpus distributions, unavailable to a real
 attacker, align at most one identity. Raising the abstention threshold from $\varphi=0$ to
-$\varphi=0.05$ leaves 11 of 25,677 CARDIO:DE queries and none elsewhere; alignment $c@1$ is zero at
-every threshold. These results concern this attack and these priors, not safety against other
-attacks.
+$\varphi=0.05$ leaves 11 of 25,677 CARDIO:DE queries and zero elsewhere; alignment $c@1$ is zero at
+every threshold. 
 
 Linkage requires cross-document identity and must be read against unmodified text and chance. On
 Enron, fixed similarity recovers 0.706 of held-out people from unmodified text and
 $0.0095\pm0.0012$ after the recommended release. The latter is 36 times the $1/3816$ chance rate
 but two orders of magnitude below the unmodified-text rate. Entity-disjoint training raises recovery to
 $0.0407\pm0.0029$, four times the fixed attack and 155 times chance, so a trained adversary carries
-the residual risk. CARDIO:DE has 207 gallery identities; fixed linkage recovers no identity, and
-learned linkage $0.0071\pm0.0160$ against chance $0.0048$ is statistically indistinguishable from
-guessing.
+the residual risk. CARDIO:DE has 207 attacker's reference identities; fixed linkage recovery is zero, and
+learned linkage $0.0071\pm0.0160$ against chance $0.0048$ is consistent with guessing.
 Across the tested Enron configurations, linkage rises as person sensitivity falls. Agreement
 between two detectors lowers sensitivity to 0.732, raises fixed linkage fivefold to 0.0500 and
 increases clear-text names from 180 to 1,868; intersection yields 0.037 sensitivity and 0.2380
 linkage.
 
-The third attack initially assigns different risks to the replacement forms. Ranking one marked
-mention against ten candidates, a language model falls from 0.995 on unmodified TAB text to
-0.110 with surrogates, near the 0.100 chance rate, but reaches 0.340 with typed placeholders;
-CARDIO:DE (0.085 against 0.120) and OntoNotes (0.290 against 0.630) order the same way. Read as protection
-the ordering suggests stronger surrogate protection, but it reflects ranker behaviour. Both
-conditions replace identical spans. Overwriting each surrogate span with \texttt{[PERSON]}
-reproduces the placeholder release character for character, verified on all 1,268 TAB and all 5,994
-OntoNotes documents. Anyone able to locate those spans can compute the placeholder release from the
-surrogate release. A scheme-aware adversary with unchanged text reaches 0.165; neutralising
-name-like spans with a public list reaches 0.145, against 0.340 for the rewrite. For this candidate
-ranking attack, the direct surrogate score measures the ranker's acceptance of plausible names,
-while both forms carry the higher reachable risk.
+The third attack assigns different risks to the replacement forms. Ranking one marked mention against ten candidates, the model falls from 0.995 on unmodified TAB to 0.110 with surrogates, near 0.100 chance, but reaches 0.340 with typed placeholders; OntoNotes (0.290 versus 0.630) orders likewise. Only CARDIO:DE (0.085 versus 0.120) stays at chance level for both categories. This is consistent with source-text recall, not stronger surrogate protection: a neutral placeholder permits retrieval of a memorized person, whereas a surrogate supplies a conflicting name and suppresses that candidate. Accordingly, C is highest on widely replicated OntoNotes, intermediate on public TAB, and at chance on restricted CARDIO:DE. Yet both forms replace identical spans. Replacing each surrogate with \texttt{[PERSON]} reproduces C character for character on all 1,268 TAB and 5,994 OntoNotes documents. 
 
-Sensitivity hides exposure, and the denominator decides what a number means. The recommended
-release leaves one CARDIO:DE person mention of 4,396 in clear text, one entity of 1,957 and one
-patient of 270; over every identifier type, \SI{8.5}{\percent} of letters carry something and
+Sensitivity alone omits exposure units; each denominator answers a different question. The 13 detector union 
+leaves one CARDIO:DE person mention of 4,396 in clear text, one entity of 1,957 and one
+patient of 270; over every identifier type, \SI{8.5}{\percent} of patient letters carry something and
 \SI{12.2}{\percent} of patients do. TAB leaves a name in 44 of 1,268 judgments and OntoNotes in 736
 of 5,994 documents, while Enron leaves one in \SI{18.0}{\percent} of its people and something in
 \SI{45.8}{\percent} of its messages.

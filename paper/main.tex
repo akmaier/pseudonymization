@@ -48,14 +48,15 @@ not protect the report. We measure identifier detection, downstream utility and 
 leakage on the same documents, with the pseudonymisation policy as the variable under test: 15
 detectors, three release conditions and four corpora of clinical letters, legal judgments, news and
 other genres, and e-mail, in German, English, Chinese and Arabic. A fixed 13-detector union replaces
-almost every person mention in the clinical letters and \num{0.890} of them in e-mail. Frequency
-matching with a public name list then recovers no identity at all; every name it returns is one the
-detector missed and the release printed in clear text. Cross-document linkage reaches \num{0.0095}
+almost every person mention in the clinical letters at specificity \num{0.869}, and \num{0.890} of
+them in e-mail at specificity \num{0.624}. With this ensemble, frequency matching with a public name
+list recovers zero identities across the four corpora; its returned names were missed by the detector
+and printed in clear text. Cross-document linkage reaches \num{0.0095}
 without training and \num{0.0407} with it on e-mail, against $1/3816$ chance and a \num{0.706}
-ceiling on unmodified text. Replacement form bounds neither attack: the typed-placeholder release is
-a character-for-character rewrite of the surrogate release, so surrogates cannot protect against an
-adversary who knows the scheme. What remains is governed by identifiers the detector missed, and has
-to be reported per document, per case and per language.
+ceiling on unmodified text. The tested replacement forms expose the same reachable text to a
+scheme-aware adversary: the typed-placeholder release is a character-for-character rewrite of the
+surrogate release. Under this ensemble, residual exposure is set by identifiers the detector missed
+and must be reported per document, per case and per language.
 \end{abstract}
 
 \begin{keywords}
