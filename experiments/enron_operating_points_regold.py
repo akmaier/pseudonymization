@@ -12,15 +12,28 @@ sys.path.insert(0, 'src'); sys.path.insert(0, 'experiments')
 from pseudonymkit.conditions import CONSTRUCTED, POOLED
 from pseudonymkit.construction import detected_documents
 from pseudonymkit.detectors.cache import DetectorCache
-from pseudonymkit.metrics.detection import prepare, score_prepared, tokenise
+from pseudonymkit.metrics.detection import frequency_weight, prepare, score_prepared, tokenise
 from pseudonymkit.serialisation import iter_documents
 from score_detection import CORPORA
 
 REPLACED = frozenset(POOLED) | frozenset(CONSTRUCTED)
 documents = list(iter_documents(CORPORA['enron']()))
-index = prepare(documents, corpus='enron')
+
+# The sweep that chose these triples weighted each token by its corpus self-information
+# (weight_model 'unigram:enron').  Scoring the same ensembles under the default uniform weight
+# makes information-weighted precision collapse onto plain precision, which is not the metric the
+# other three corpora report.  Build the same unigram distribution here.
+from collections import Counter
+counts: Counter[str] = Counter()
+total = 0
+for d in documents:
+    for start, end in tokenise(d.text):
+        counts[d.text[start:end].casefold()] += 1
+        total += 1
+print(f'weighting: unigram self-information over {total:,} tokens, {len(counts):,} types', flush=True)
+index = prepare(documents, corpus='enron',
+                weight=frequency_weight(counts, total), weight_model='unigram:enron')
 cache = DetectorCache(Path('results/detector_cache'), 'enron')
-total = sum(len(list(tokenise(d.text))) for d in documents)
 points = json.load(open('results/detection/enron_operating_points.json'))['points']
 
 out = {}
@@ -37,7 +50,7 @@ for name, p in points.items():
     hit = sum(v[2] for t, v in per.items() if t in REPLACED)
     negatives = total - (s.get('gold_tokens') or 0)
     fp = (s.get('predicted_tokens') or 0) - (s.get('true_positive_tokens') or 0)
-    out[name] = {'rule': rule, 'sensitivity': hit / gold if gold else None,
+    out[name] = {'rule': rule, 'weight_model': s.get('weight_model'), 'sensitivity': hit / gold if gold else None,
                  'specificity': max(0, negatives - fp) / negatives if negatives > 0 else None,
                  'precision': s.get('precision'),
                  'information_weighted_precision': s.get('information_weighted_precision'),
