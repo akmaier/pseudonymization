@@ -6,10 +6,10 @@ Table~\ref{tab:operating-points} gives the cost--quality front. The winning conf
 corpus, so it is a set of four answers rather than one transferable recipe.
 
 \begin{table}[t]
-  \caption{Operating points on both error rates, over all annotated identifier types. Cost is
-  seconds per document; the rule is $\cup$ union, $\cap$ intersection, $v$ at-least-$k$ vote, $s$ a
-  single detector. Cost varies by three orders of magnitude, quality by less than
-  two.}\label{tab:operating-points}
+  \caption{Operating points on both error rates. Sensitivity is over the identifier types the
+  conditions replace, specificity over every other token. Cost is seconds per document; the rule is
+  $\cup$ union, $\cap$ intersection, $v$ at-least-$k$ vote, $s$ a single
+  detector.}\label{tab:operating-points}
   \centering\scriptsize\setlength{\tabcolsep}{2.2pt}
   \resizebox{\textwidth}{!}{%
   \begin{tabular}{@{}l *{4}{S[table-format=1.3] S[table-format=1.4] r}@{}}
@@ -38,12 +38,12 @@ specific than the maximum, 0.9769 against 0.9670, at 191 times less cost, and En
 ensemble, because the \SI{10}{\percent} band admits all 414 candidates.
 
 Language is a separate axis, and how separate depends on what is detected. Under the recommended
-ensemble, recall over all identifier types is 0.884 on English, 0.682 on Chinese and 0.545 on
-Arabic, and the pooled 0.722 describes none of them: Arabic supplies \SI{38}{\percent} of the gold
-tokens from \SI{7}{\percent} of the documents, dominating the pooled score while being the hardest
-case. People transfer far better, at 0.991, 0.932 and 0.878, pooling to 0.935, so the
-thirty-four-point spread belongs to the other identifier classes rather than to finding people,
-which is what the attacks try to do.
+ensemble, sensitivity is 0.989 on English, 0.868 on Chinese and 0.614 on Arabic, and the pooled
+0.801 describes none of them: Arabic supplies \SI{45}{\percent} of the identifier tokens from
+\SI{7}{\percent} of the documents, dominating the pooled score while being the hardest case. People
+transfer far better, at 0.991, 0.932 and 0.878, pooling to 0.935, so the thirty-seven-point spread
+belongs to the other identifier classes rather than to finding people, which is what the attacks try
+to do.
 
 \subsection{Utility}\label{sec:results-utility}
 
@@ -71,27 +71,28 @@ configuration.
 
 \begin{table}[t]
   \caption{Leakage from the recommended 13-detector union; all columns concern people.
-  \emph{Recall} is person-token recall, \emph{Exp.} the share of people keeping a mention in clear
-  text, \emph{Frequency} the identities named from frequency alone with a public list and, bracketed,
-  with the corpus's own distribution (an upper bound, not a risk). \emph{Linkage} is Rank-1 over the
-  complete candidate list against chance $1/\text{gallery}$.}\label{tab:leakage}
+  \emph{Sens.} is person sensitivity and \emph{Spec.} the share of non-identifier tokens left
+  alone: neither is readable without the other. \emph{Exp.} is the share of people keeping a mention
+  in clear text, \emph{Frequency} the identities named from frequency alone with a public list and,
+  bracketed, with the corpus's own distribution (an upper bound, not a risk). \emph{Linkage} is
+  Rank-1 over the complete candidate list against chance $1/\text{gallery}$.}\label{tab:leakage}
   \centering\scriptsize
-  \begin{tabular}{@{}l@{\hspace{0.9em}} S[table-format=1.3]@{\hspace{0.9em}} S[table-format=2.1]@{\hspace{0.9em}} c@{\hspace{0.9em}} l@{\hspace{0.9em}} l@{\hspace{0.9em}} l@{}}
+  \begin{tabular}{@{}l@{\hspace{0.8em}} S[table-format=1.3]@{\hspace{0.8em}} S[table-format=1.3]@{\hspace{0.8em}} S[table-format=2.1]@{\hspace{0.8em}} c@{\hspace{0.8em}} l@{\hspace{0.8em}} l@{\hspace{0.8em}} l@{}}
     \toprule
-    Corpus & {Recall} & {Exp.\ (\%)} & Frequency & {Context link.} & {Learned link.} & Chance \\
+    Corpus & {Sens.} & {Spec.} & {Exp.\ (\%)} & Frequency & {Context link.} & {Learned link.} & Chance \\
     \midrule
-    CARDIO:DE & 1.000 & 0.1 & 0 (1) & $0.0000\pm0.0000$ & $0.0071\pm0.0160$ & $1/207$ \\
-    Enron     & 0.890 & 18.0 & 0 (0) & $0.0095\pm0.0012$ & $0.0407\pm0.0029$ & $1/3816$ \\
+    CARDIO:DE & 1.000 & 0.869 & 0.1 & 0 (1) & $0.0000\pm0.0000$ & $0.0071\pm0.0160$ & $1/207$ \\
+    Enron     & 0.890 & 0.624 & 18.0 & 0 (0) & $0.0095\pm0.0012$ & $0.0407\pm0.0029$ & $1/3816$ \\
     \addlinespace
-    TAB       & 0.996 & 0.8 & 0 (1) & \multicolumn{2}{l}{not measurable} & {--} \\
-    OntoNotes & 0.935 & 4.9 & 0 (1) & \multicolumn{2}{l}{not measurable} & {--} \\
+    TAB       & 0.996 & 0.850 & 0.8 & 0 (1) & \multicolumn{2}{l}{not measurable} & {--} \\
+    OntoNotes & 0.935 & 0.932 & 4.9 & 0 (1) & \multicolumn{2}{l}{not measurable} & {--} \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 Frequency matching recovers nothing. With a public name list it names no identity on any corpus;
 every name it returns is one the detector missed and the release printed in clear text, which
-measures the defender's recall rather than the adversary's inference. Even the corpus's own
+measures the defender's sensitivity rather than the adversary's inference. Even the corpus's own
 distribution, which no real attacker holds, aligns at most one identity, and raising the abstention
 threshold from $\varphi=0$ to $\varphi=0.05$ makes the attack decline all but 11 of 25,677 CARDIO:DE
 queries and all of them elsewhere, so the alignment's $c@1$ is zero at every threshold. This holds
@@ -104,9 +105,9 @@ below that ceiling. Training the metric on entity-disjoint examples raises it to
 four times the fixed attack and 155 times chance, so the residual risk belongs to an adversary who
 can learn. On CARDIO:DE, with 207 identities in the gallery, the fixed attack recovers nothing and
 the trained one $0.0071\pm0.0160$ against chance $0.0048$, not distinguishable from guessing. Recall
-bounds this: two detectors agreeing lowers Enron person recall to 0.732, raises fixed linkage
+bounds this: two detectors agreeing lowers Enron person sensitivity to 0.732, raises fixed linkage
 fivefold to 0.0500 and takes the names in clear text from 180 to 1,868, while intersection leaves
-person recall at 0.037 and linkage at 0.2380.
+person sensitivity at 0.037 and linkage at 0.2380.
 
 The third attack shows why the replacement form cannot be credited with a difference. Ranking one
 marked mention against ten candidates, a language model falls from 0.995 on unmodified TAB text to
@@ -117,17 +118,16 @@ spans, so overwriting each replaced span of the surrogate release with \texttt{[
 the placeholder release character for character, verified on all 1,268 TAB and all 5,994 OntoNotes
 documents. The placeholder release is therefore computable from the surrogate release by anyone able
 to locate those spans, and this is measured rather than argued: an adversary merely told the scheme,
-with the text left untouched, reaches 0.205, and one neutralising name-like spans with a public name
-list reaches 0.215, against the 0.290 of the rewrite itself. The surrogate buys the credulity of a
+with the text left untouched, reaches 0.165, and one neutralising name-like spans with a public name
+list reaches 0.145, against the 0.340 of the rewrite itself. The surrogate buys the credulity of a
 ranker that takes it at face value, not protection, and both forms carry the higher risk.
 
-Token recall hides exposure, and the denominator decides what a number means. The recommended
+Sensitivity hides exposure, and the denominator decides what a number means. The recommended
 release leaves one CARDIO:DE person mention of 4,396 in clear text, one entity of 1,957 and one
-patient of 270; over every identifier type rather than people alone, \SI{8.5}{\percent} of letters
-carry something and \SI{12.2}{\percent} of patients do. TAB leaves a name in 44 of 1,268 judgments
-and OntoNotes in 736 of 5,994 documents, while Enron leaves one in \SI{18.0}{\percent} of its
-people and something in \SI{45.8}{\percent} of its messages: person recall 0.890 and nearly half
-the messages carrying an identifier describe one release.
+patient of 270; over every identifier type, \SI{8.5}{\percent} of letters carry something and
+\SI{12.2}{\percent} of patients do. TAB leaves a name in 44 of 1,268 judgments and OntoNotes in 736
+of 5,994 documents, while Enron leaves one in \SI{18.0}{\percent} of its people and something in
+\SI{45.8}{\percent} of its messages.
 
 \label{sec:results-stability}%
 The key normaliser both merges and splits identities: on Enron, ORGANISATION surrogates collide at

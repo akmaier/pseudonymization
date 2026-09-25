@@ -28,6 +28,8 @@ DATA = json.loads((HERE / "data.json").read_text(encoding="utf-8"))
 CORPORA = ["cardiode", "tab", "ontonotes", "enron"]
 NICE = {"cardiode": "CARDIO:DE", "tab": "TAB", "ontonotes": "OntoNotes", "enron": "Enron"}
 RULES = ["union", "vote2", "vote3", "intersection"]
+REC_TAG = "union-single0.5-13det-1797ba"
+TAG_NICE = {REC_TAG: "recommended 13", "15det": "15-detector pool"}
 RULE_NICE = {"union": "union", "vote2": "vote 2", "vote3": "vote 3", "intersection": "intersection"}
 
 
@@ -83,29 +85,36 @@ def section_detection():
                note="Cost ∥ is the slowest member, which is what a parallel run pays; Cost Σ is the "
                     "sum, which is what a serial one pays. The paper reports only the first. "
                     "Information-weighted precision scales each masked token by how poorly its "
-                    "context predicts it.")
+                    "context predicts it. This search covers singles, pairs and triples only, so the "
+                    "recommended 13-detector ensemble lies outside it and can exceed the "
+                    "&ldquo;maximum&rdquo; row — it does on CARDIO:DE, at 0.998 against 0.992.")
 
+    br = DATA.get("both_rates") or {}
     rows = []
     for c in CORPORA:
         rec = DATA["recommended"].get(c, {})
-        for i, rule in enumerate(RULES):
-            r = rec.get(rule)
-            if not r:
+        for i, (rule, key) in enumerate((("union", "union"), ("vote2", "vote-2"),
+                                         ("vote3", "vote-3"), ("intersection", "intersection"))):
+            m = (br.get(c) or {}).get(key, {}).get("overall")
+            r = rec.get(rule) or {}
+            if not m:
                 continue
+            first = i == 0
             rows.append([
-                f"<b>{NICE[c]}</b>" if i == 0 else "", RULE_NICE[rule],
-                f(r["token_recall"], 4), f(r["entity_recall"], 4), f(r["precision"], 4),
-                num(r["replacements"]),
+                f"<b>{NICE[c]}</b>" if first else "",
+                RULE_NICE[rule] + (" <span class='sd'>(max. sensitivity)</span>" if first else ""),
+                f"<b>{f(m['sensitivity'], 4)}</b>", f"<b>{f(m['specificity'], 4)}</b>",
+                f(m["person_sensitivity"], 4), f(m["precision"], 3),
+                num(r.get("replacements")),
             ])
-    t2 = table(["Corpus", "Rule", "Token recall", "Entity recall", "Precision",
-                "Replacements"], rows,
-               note="The recommended 13-detector ensemble under each combining rule. Recall here is "
-                    "over <em>all</em> annotated identifier types, which is a different denominator "
-                    "from the person-token recall the leakage tables use. An entity counts as "
-                    "recalled only when every one of its mentions was found. Information-weighted "
-                    "precision is not repeated here: the sweep scored with a uniform weight model, "
-                    "so it coincides with plain precision. The weighted figure is the one in the "
-                    "operating-point table above.")
+    t2 = table(["Corpus", "Rule", "Sensitivity", "Specificity", "Person sensitivity",
+                "Precision", "Replacements"], rows,
+               note="The 13 detectors under each combining rule, both error rates together. "
+                    "<b>Union is the maximum-sensitivity configuration of this ensemble</b>: no "
+                    "other rule over the same members can find more, and every leakage figure on "
+                    "this page describes that release. The rows beneath it price the alternative — "
+                    "agreement buys specificity and pays for it in sensitivity. Precision mixes the "
+                    "two denominators and is reported beside them, never optimised for.")
     return t1, t2
 
 
@@ -118,12 +127,12 @@ LANG_ROWS = [
 
 
 def section_languages():
-    pl = DATA.get("per_language") or {}
-    if not pl:
+    br = DATA.get("both_rates") or {}
+    if not br:
         return "", ""
 
-    def cell(corpus, lang, ensemble="recommended13"):
-        block = pl.get(corpus, {}).get(ensemble)
+    def cell(corpus, lang, rule="union"):
+        block = (br.get(corpus) or {}).get(rule)
         if not block:
             return None
         return block["by_language"][lang] if lang else block["overall"]
@@ -136,50 +145,39 @@ def section_languages():
         rows.append([
             f"<b>{language}</b>" if language != last else "",
             NICE[corpus] + (f" <span class='sd'>({lang})</span>" if lang else ""),
-            num(m["documents"]), num(m["person_gold_tokens"]),
-            f"<b>{f(m['person_recall'], 3)}</b>",
-            num(m["gold_tokens"]), f(m["token_recall"], 3), f(m["precision"], 3),
+            num(m["documents"]),
+            f"<b>{f(m['sensitivity'], 3)}</b>", f"<b>{f(m['specificity'], 4)}</b>",
+            f(m["person_sensitivity"], 3), f(m["precision"], 3),
+            num(m["sensitivity_gold_tokens"]), num(m["total_tokens"]),
         ])
         last = language
-    t1 = table(["Language", "Source", "Docs", "Person gold tokens", "Person recall",
-                "All gold tokens", "Token recall (all types)", "Precision"], rows,
-               note="The recommended 13-detector union throughout, so these are comparable with the "
-                    "leakage tables. Only OntoNotes is multilingual; German, and the English of TAB "
-                    "and Enron, are whole corpora. <b>Person recall</b> is what the attacks act on; "
-                    "<b>token recall</b> covers every annotated identifier class and is the harder "
-                    "number.")
+    t1 = table(["Language", "Source", "Docs", "Sensitivity", "Specificity",
+                "Person sensitivity", "Precision", "Identifier tokens", "Tokens"], rows,
+               note="The 13-detector union throughout, so every row describes the release the "
+                    "attacks were run against. Only OntoNotes is multilingual; German, and the "
+                    "English of TAB and Enron, are whole corpora. Sensitivity and specificity are "
+                    "read against their own denominators — identifier tokens and everything else — "
+                    "so neither can be judged without the other.")
 
-    onto = pl.get("ontonotes", {})
+    onto = br.get("ontonotes") or {}
     rows = []
     for lang in ("english", "chinese", "arabic"):
-        r = (onto.get("recommended13") or {}).get("by_language", {}).get(lang)
-        m = (onto.get("max_sensitivity") or {}).get("by_language", {}).get(lang)
-        if not r:
-            continue
-        rows.append([
-            lang.capitalize(), num(r["documents"]),
-            f(r["person_recall"], 3), f(r["token_recall"], 3),
-            f(m["person_recall"], 3) if m else "—", f(m["token_recall"], 3) if m else "—",
-            f(r["precision"], 3),
-        ])
-    pooled_r = (onto.get("recommended13") or {}).get("overall")
-    if pooled_r:
-        m = (onto.get("max_sensitivity") or {}).get("overall")
-        rows.append([
-            "<b>pooled</b>", num(pooled_r["documents"]),
-            f"<b>{f(pooled_r['person_recall'], 3)}</b>", f"<b>{f(pooled_r['token_recall'], 3)}</b>",
-            f(m["person_recall"], 3) if m else "—", f(m["token_recall"], 3) if m else "—",
-            f(pooled_r["precision"], 3),
-        ])
-    grouped = ("<tr><th></th><th></th>"
-               "<th colspan='2' class='grp'>Recommended 13-detector union</th>"
-               "<th colspan='2' class='grp'>Max-sensitivity triple</th><th></th></tr>")
-    t2 = table(["Language", "Docs", "Person recall", "Token recall",
-                "Person recall", "Token recall", "Precision"], rows, groups=grouped,
-               note="OntoNotes split by language. Precision is for the recommended ensemble. "
-                    "Arabic supplies a large share of the gold tokens from a small share of the "
-                    "documents, so it dominates any pooled score while being the hardest case: the "
-                    "pooled row describes none of the three.")
+        for i, key in enumerate(("union", "vote-2", "vote-3", "intersection")):
+            m = (onto.get(key) or {}).get("by_language", {}).get(lang)
+            if not m:
+                continue
+            rows.append([
+                f"<b>{lang.capitalize()}</b>" if i == 0 else "",
+                key + (" <span class='sd'>(max. sens.)</span>" if key == "union" else ""),
+                f(m["sensitivity"], 3), f(m["specificity"], 4),
+                f(m["person_sensitivity"], 3), f(m["precision"], 3), num(m["documents"]),
+            ])
+    t2 = table(["Language", "Rule", "Sensitivity", "Specificity", "Person sensitivity",
+                "Precision", "Docs"], rows,
+               note="What the combining rule costs, language by language. The gap between "
+                    "sensitivity and person sensitivity is the point: the three languages differ "
+                    "far more on the full identifier set than on people, and people are what the "
+                    "attacks recover.")
     return t1, t2
 
 
@@ -241,7 +239,8 @@ def section_a4():
         cells = [r for r in DATA["a4"] if r["corpus"] == c]
         if not cells:
             continue
-        cells.sort(key=lambda r: (order.get(r["condition"], 9), r["context"]))
+        # the recommended release first: it is the one every other number on this page describes
+        cells.sort(key=lambda r: (r["tag"] != REC_TAG, order.get(r["condition"], 9), r["context"]))
         for i, r in enumerate(cells):
             chance = 1.0 / r["candidates"]
             lift = r["rank1"] / chance if chance else 0
@@ -251,11 +250,14 @@ def section_a4():
                 "yes" if r["context"] else "no",
                 f(r["rank1"]), f(r["rank5"]), f(r["map"]),
                 f"{lift:.1f}×", num(r["queries"]),
-                f"<code>{escape(str(r['tag']))}</code>",
+                escape(TAG_NICE.get(r["tag"], str(r["tag"]))),
             ])
     return table(["Corpus", "Condition", "Aux. context", "Rank-1", "Rank-5", "mAP",
                   "× chance", "Queries", "Ensemble"], rows,
                  note="Ten candidates per query, so chance is Rank-1 0.100 and Rank-5 0.500. "
+                      "The recommended 13-detector release is listed first for each corpus; the "
+                      "15-detector rows are the earlier run over the full pool, kept because they "
+                      "show the finding does not depend on the ensemble. "
                       "The two <em>attacker</em> rows are the same surrogate release read by an "
                       "adversary who knows it is pseudonymised: one simply told so, one replacing "
                       "name-like spans it finds with a public name list. Neither changes what the "
@@ -337,9 +339,11 @@ def section_linkage():
                 continue
             gallery = r.get("a3_gallery")
             chance = (1.0 / gallery) if gallery else None
+            m = ((DATA.get("both_rates") or {}).get(c) or {}).get(
+                {"union": "union", "vote2": "vote-2", "vote3": "vote-3", "intersection": "intersection"}[rule], {}).get("overall") or {}
             rows.append([
                 f"<b>{NICE[c]}</b>" if not shown else "", RULE_NICE[rule],
-                f(r["token_recall"], 3),
+                f(m.get("person_sensitivity"), 3), f(m.get("specificity"), 4),
                 f"{r['a3f_rank1']:.4f} <span class='sd'>± {r['a3f_rank1_sd']:.4f}</span>",
                 f"{r['a5_rank1']:.4f} <span class='sd'>± {r['a5_rank1_sd']:.4f}</span>",
                 f"{r['a5_rank5']:.4f} <span class='sd'>± {r['a5_rank5_sd']:.4f}</span>",
@@ -349,10 +353,11 @@ def section_linkage():
             shown = True
         if not shown:
             note = (rec.get("union") or {}).get("relational_note") or "not measurable"
-            rows.append([f"<b>{NICE[c]}</b>", "—",
-                         f(rec.get("union", {}).get("token_recall"), 3),
-                         f"<span class='ns' colspan='6'>{escape(note)}</span>", "", "", "", "", "", ""])
-    return table(["Corpus", "Rule", "Token recall", "Context linkage (Rank-1)",
+            m = ((DATA.get("both_rates") or {}).get(c) or {}).get("union", {}).get("overall") or {}
+            rows.append([f"<b>{NICE[c]}</b>", "union",
+                         f(m.get("person_sensitivity"), 3), f(m.get("specificity"), 4),
+                         f"<span class='ns'>{escape(note)}</span>", "", "", "", "", "", ""])
+    return table(["Corpus", "Rule", "Person sens.", "Specificity", "Context linkage (Rank-1)",
                   "Learned linkage (Rank-1)", "Learned (Rank-5)", "Ceiling on A",
                   "Gallery", "Queries", "Chance"], rows,
                  note="Five-fold cross-validation, mean ± one standard deviation over folds. Folds "
@@ -442,10 +447,12 @@ def headline_cards():
     enron = DATA["recommended"]["enron"]["union"]
     sweeps = [s for c in CORPORA for s in (DATA["recommended"].get(c, {}).get("_prior_sweep") or [])]
     hits = sum(s["correct_by_alignment"] for s in sweeps)
-    naive = next((r["rank1"] for r in DATA["a4"]
-                  if r["corpus"] == "tab" and r["condition"] == "B" and not r["context"]), None)
-    told = next((r["rank1"] for r in DATA["a4"]
-                 if r["corpus"] == "tab" and r["condition"] == "B-forewarned"), None)
+    def a4(condition, tag=REC_TAG):
+        return next((r["rank1"] for r in DATA["a4"]
+                     if r["corpus"] == "tab" and r["condition"] == condition
+                     and not r["context"] and r["tag"] == tag), None)
+
+    naive, told = a4("B"), a4("B-forewarned")
     cards = [
         ("Frequency matching recovers", f"{hits} of {len(sweeps)}",
          "prior-sweep cells yield a single identity between them, across three orders of magnitude "
@@ -596,9 +603,19 @@ footer p {{ max-width:78ch; }}
 
 <section id="detection">
   <h2><span class="n">01</span>Detection</h2>
-  <p class="sub">What an ensemble catches, what it wrongly catches, and what it costs. Sensitivity
-  and specificity are the detector's two error rates read against their own denominators; precision
-  mixes them, so it is reported beside them rather than optimised for.</p>
+  <p class="sub">What an ensemble catches, what it wrongly catches, and what it costs.</p>
+  <div class="callout"><p><b>The release under study is the 13-detector ensemble combined by union,
+  which is that ensemble's maximum-sensitivity configuration</b> — no other rule over the same
+  members can find more. Every leakage, exposure and language figure on this page describes that one
+  release.</p>
+  <p>Three rates, three denominators, never interchangeable. <b>Sensitivity</b> is the share of
+  identifier tokens found, over the types condition B replaces; dates, quantities and miscellaneous
+  spans pass through by design and are not in it. <b>Person sensitivity</b> is the same rate over
+  <code>PERSON</code> alone, which is what the attacks act on. <b>Specificity</b> is the share of
+  non-identifier tokens left alone. Sensitivity without specificity is unreadable — an ensemble that
+  replaces every token scores a perfect 1.0 and destroys the text — so both are given
+  throughout. <b>Precision</b> mixes the two denominators and is reported beside them, never
+  optimised for.</p></div>
   <h3>The cost–quality front, in full</h3>
   {op1}
   <div class="callout"><p><b>The fast cell is usually not the worse cell.</b> On CARDIO:DE the fast
@@ -623,9 +640,11 @@ footer p {{ max-width:78ch; }}
   <h3>OntoNotes, split three ways</h3>
   {lg2}
   <div class="callout"><p><b>The spread is in the other identifier classes, not in finding
-  people.</b> Over every annotated type the three languages differ by tens of points; person recall
-  differs by far less. That matters because the attacks try to recover <em>people</em>, so the
-  alarming pooled figure and the figure that bounds leakage are not the same number.</p></div>
+  people.</b> Sensitivity over the whole identifier set runs 0.989 on English down to 0.614 on
+  Arabic; person sensitivity runs 0.991 down to 0.878. That matters because the attacks recover
+  <em>people</em>, so the alarming figure and the figure that bounds leakage are not the same
+  number — and specificity barely moves across the three, so the spread is not over-replacement
+  either.</p></div>
 </section>
 
 <section id="utility">

@@ -2,21 +2,23 @@
 
 Four recommendations follow, and one prediction does not survive.
 
-\textbf{Prefer a large union to a consensus rule.} Agreement buys precision the release does not
-need and pays in recall, and every leakage measure follows recall. \textbf{State the attacker's
-knowledge with the number.} A corpus-internal prior is an upper bound, not a risk, and here the two
-differ by the whole result. \textbf{Report the denominator you release on.} No corpus-level score
-describes a document, a case or a language, and the three disagree on every corpus we measured.
+\textbf{Prefer a large union to a consensus rule, and price it.} Agreement buys specificity, 0.869
+against 0.986 on CARDIO:DE, and pays in sensitivity, which every leakage measure follows: two votes
+on Enron take person sensitivity from 0.890 to 0.732 and raise fixed linkage fivefold.
+\textbf{State the attacker's knowledge with the number.} A corpus-internal prior is an upper bound,
+not a risk, and here the two differ by the whole result. \textbf{Report the denominator you release
+on.} No corpus-level score describes a document, a case or a language.
 
-\textbf{Choose the replacement form for utility, not for privacy.} Since the placeholder release is
-a rewrite of the surrogate release, neither is safer against an adversary who knows the scheme:
-telling the ranker so lifts it from 0.085 to 0.205 on unchanged text. Its real advantage is that token-level tasks
-survive it and do not survive \texttt{[PERSON]}; at document level the placeholder is better.
+\textbf{Choose the replacement form for utility, not for privacy.} The placeholder release is a
+rewrite of the surrogate release, so neither is safer against an adversary who knows the scheme, and
+merely telling the ranker so lifts it from 0.110 to 0.165 on unchanged text. The surrogate's real
+advantage is that token-level tasks survive it and do not survive \texttt{[PERSON]}; at document
+level the placeholder is better.
 
-The prediction that recall moves the two attacks in opposite directions is refuted. Better detection
-was expected to starve context linkage while leaving a larger population for frequency alignment.
-Instead alignment recovered nothing at any recall and both linkage attacks fell as recall rose: the
-attacks do not trade off, and both are bounded by the identifiers the detector missed.
+The prediction that sensitivity moves the two attacks in opposite directions is refuted. Better
+detection was expected to starve context linkage while leaving a larger population for frequency
+alignment. Instead alignment recovered nothing at any sensitivity and both linkage attacks fell as
+it rose: both are bounded by the identifiers the detector missed.
 
 The limits are specific. Linkage is measurable only on Enron and CARDIO:DE, because TAB and
 OntoNotes link mentions within a document; people recur there, so those figures understate rather

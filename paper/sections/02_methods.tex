@@ -2,7 +2,7 @@
 
 \subsection{Corpora}\label{sec:corpora}
 
-Reference provenance differs, so recall denominators are not interchangeable
+Reference provenance differs, so detection denominators are not interchangeable
 (Table~\ref{tab:corpora}). TAB manually annotates identifiers and document-scoped co-reference in
 court judgments~\cite{pilan2022tab}; OntoNotes covers three languages but was annotated for
 linguistics rather than privacy. A \emph{named entity} is a predefined person, organisation,
@@ -26,13 +26,13 @@ into an already de-identified release, which makes its name distribution synthet
   \end{tabular}
 \end{table}
 
-Two denominators follow. CARDIO:DE gold covers only inserted identifiers, and \SI{84.7}{\percent}
-of its gold tokens are dates, passed through by design: sensitivity in
-Table~\ref{tab:operating-points} is scored over every annotated type including those dates, while
-replacement, exposure and the attacks are scored over the types actually replaced. Retained dates
-are themselves a re-identification channel, and a release keeping them needs date shifting. A TAB
-applicant is usually named once but has a median of 17 later role mentions, and only Enron has
-natural cross-document identity.
+One denominator follows. CARDIO:DE gold covers only inserted identifiers, and \SI{84.7}{\percent}
+of its gold tokens are dates, which the detectors do find but the conditions pass through by design.
+Sensitivity, replacement, exposure and the attacks are therefore all scored over the types actually
+replaced, and the retained types are in none of those denominators. Retained dates are themselves a
+re-identification channel, and a release keeping them needs date shifting. A TAB applicant is
+usually named once but has a median of 17 later role mentions, and only Enron has natural
+cross-document identity.
 
 \subsection{Conditions}\label{sec:conditions}
 
@@ -62,9 +62,10 @@ two orders of magnitude slower per document without improving detection. A propo
 limit truncated \SI{92}{\percent} of Chinese replies, which we corrected and re-ran rather than
 score truncation as a detection failure.
 
-Each corpus receives fast and maximum points for sensitivity, the share of identifier tokens
-detected, and specificity, the share of other tokens left untouched; an ensemble run in parallel
-costs its slowest member. A maximum point is non-dominated, the fast point the cheapest within
+Each corpus receives fast and maximum points for sensitivity, the share of replaced-type
+identifier tokens detected, and specificity, the share of all other tokens left untouched; an
+ensemble run in parallel costs its slowest member. Neither rate is readable alone, so both are given
+at every point. A maximum point is non-dominated, the fast point the cheapest within
 \SI{10}{\percent} of it, subject to a sensitivity floor that stops an empty detector winning on
 specificity. This search covers singles, pairs and triples, so the recommended 13-detector ensemble
 lies outside it and may exceed the maximum of Table~\ref{tab:operating-points}.
