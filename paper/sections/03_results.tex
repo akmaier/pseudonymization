@@ -37,13 +37,13 @@ specific than the maximum, 0.9769 against 0.9670, at 191 times less cost, and En
 \SI{0.057}{s} against \SI{25.557}{s} per message. The two OntoNotes specificity rows are one
 ensemble, because the \SI{10}{\percent} band admits all 414 candidates.
 
-Language is a separate axis, and how separate depends on what is detected. Over all identifier types
-the best triple reaches 0.983 on English, 0.710 on Chinese and 0.545 on Arabic, and its pooled
-0.747 in Table~\ref{tab:operating-points} describes none of them: Arabic supplies \SI{45}{\percent} of the gold tokens from
-\SI{7}{\percent} of the documents, dominating the pooled score while being the hardest case. People
-transfer far better, at 0.991, 0.932 and 0.878 with the recommended ensemble, pooling to 0.935, so
-the forty-point spread belongs to the other identifier classes rather than to finding people, which
-is what the attacks try to do.
+Language is a separate axis, and how separate depends on what is detected. Under the recommended
+ensemble, recall over all identifier types is 0.884 on English, 0.682 on Chinese and 0.545 on
+Arabic, and the pooled 0.722 describes none of them: Arabic supplies \SI{38}{\percent} of the gold
+tokens from \SI{7}{\percent} of the documents, dominating the pooled score while being the hardest
+case. People transfer far better, at 0.991, 0.932 and 0.878, pooling to 0.935, so the
+thirty-four-point spread belongs to the other identifier classes rather than to finding people,
+which is what the attacks try to do.
 
 \subsection{Utility}\label{sec:results-utility}
 
@@ -110,8 +110,8 @@ person recall at 0.037 and linkage at 0.2380.
 
 The third attack shows why the replacement form cannot be credited with a difference. Ranking one
 marked mention against ten candidates, a language model falls from 0.995 on unmodified TAB text to
-0.085 with surrogates, the 0.100 chance rate, but reaches 0.290 with typed placeholders; CARDIO:DE
-(0.090 against 0.135) and OntoNotes (0.310 against 0.590) order the same way. Read as protection
+0.110 with surrogates, near the 0.100 chance rate, but reaches 0.340 with typed placeholders;
+CARDIO:DE (0.085 against 0.120) and OntoNotes (0.290 against 0.630) order the same way. Read as protection
 this says surrogates defend better, and that reading is wrong. The conditions replace identical
 spans, so overwriting each replaced span of the surrogate release with \texttt{[PERSON]} reproduces
 the placeholder release character for character, verified on all 1,268 TAB and all 5,994 OntoNotes

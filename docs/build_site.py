@@ -48,11 +48,12 @@ def num(value, dash="—"):
     return dash if value is None else f"{int(value):,}"
 
 
-def table(headers, rows, cls="", note=""):
-    head = "".join(f"<th>{h}</th>" for h in headers)
+def table(headers, rows, cls="", note="", groups=""):
+    """``groups`` is an optional pre-rendered <tr> placed above the header, for paired columns."""
+    head = groups + "<tr>" + "".join(f"<th>{h}</th>" for h in headers) + "</tr>"
     body = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in rows)
     caption = f"<p class='note'>{note}</p>" if note else ""
-    return (f"<div class='tw'><table class='{cls}'><thead><tr>{head}</tr></thead>"
+    return (f"<div class='tw'><table class='{cls}'><thead>{head}</thead>"
             f"<tbody>{body}</tbody></table></div>{caption}")
 
 
@@ -94,14 +95,91 @@ def section_detection():
             rows.append([
                 f"<b>{NICE[c]}</b>" if i == 0 else "", RULE_NICE[rule],
                 f(r["token_recall"], 4), f(r["entity_recall"], 4), f(r["precision"], 4),
-                f(r["information_weighted_precision"], 4), num(r["replacements"]),
+                num(r["replacements"]),
             ])
-    t2 = table(["Corpus", "Rule", "Token recall", "Entity recall", "Precision", "IW precision",
+    t2 = table(["Corpus", "Rule", "Token recall", "Entity recall", "Precision",
                 "Replacements"], rows,
                note="The recommended 13-detector ensemble under each combining rule. Recall here is "
                     "over <em>all</em> annotated identifier types, which is a different denominator "
                     "from the person-token recall the leakage tables use. An entity counts as "
-                    "recalled only when every one of its mentions was found.")
+                    "recalled only when every one of its mentions was found. Information-weighted "
+                    "precision is not repeated here: the sweep scored with a uniform weight model, "
+                    "so it coincides with plain precision. The weighted figure is the one in the "
+                    "operating-point table above.")
+    return t1, t2
+
+
+# ---------------------------------------------------------------- languages
+LANG_ROWS = [
+    ("German", "cardiode", None), ("English", "tab", None), ("English", "enron", None),
+    ("English", "ontonotes", "english"), ("Chinese", "ontonotes", "chinese"),
+    ("Arabic", "ontonotes", "arabic"),
+]
+
+
+def section_languages():
+    pl = DATA.get("per_language") or {}
+    if not pl:
+        return "", ""
+
+    def cell(corpus, lang, ensemble="recommended13"):
+        block = pl.get(corpus, {}).get(ensemble)
+        if not block:
+            return None
+        return block["by_language"][lang] if lang else block["overall"]
+
+    rows, last = [], None
+    for language, corpus, lang in LANG_ROWS:
+        m = cell(corpus, lang)
+        if not m:
+            continue
+        rows.append([
+            f"<b>{language}</b>" if language != last else "",
+            NICE[corpus] + (f" <span class='sd'>({lang})</span>" if lang else ""),
+            num(m["documents"]), num(m["person_gold_tokens"]),
+            f"<b>{f(m['person_recall'], 3)}</b>",
+            num(m["gold_tokens"]), f(m["token_recall"], 3), f(m["precision"], 3),
+        ])
+        last = language
+    t1 = table(["Language", "Source", "Docs", "Person gold tokens", "Person recall",
+                "All gold tokens", "Token recall (all types)", "Precision"], rows,
+               note="The recommended 13-detector union throughout, so these are comparable with the "
+                    "leakage tables. Only OntoNotes is multilingual; German, and the English of TAB "
+                    "and Enron, are whole corpora. <b>Person recall</b> is what the attacks act on; "
+                    "<b>token recall</b> covers every annotated identifier class and is the harder "
+                    "number.")
+
+    onto = pl.get("ontonotes", {})
+    rows = []
+    for lang in ("english", "chinese", "arabic"):
+        r = (onto.get("recommended13") or {}).get("by_language", {}).get(lang)
+        m = (onto.get("max_sensitivity") or {}).get("by_language", {}).get(lang)
+        if not r:
+            continue
+        rows.append([
+            lang.capitalize(), num(r["documents"]),
+            f(r["person_recall"], 3), f(r["token_recall"], 3),
+            f(m["person_recall"], 3) if m else "—", f(m["token_recall"], 3) if m else "—",
+            f(r["precision"], 3),
+        ])
+    pooled_r = (onto.get("recommended13") or {}).get("overall")
+    if pooled_r:
+        m = (onto.get("max_sensitivity") or {}).get("overall")
+        rows.append([
+            "<b>pooled</b>", num(pooled_r["documents"]),
+            f"<b>{f(pooled_r['person_recall'], 3)}</b>", f"<b>{f(pooled_r['token_recall'], 3)}</b>",
+            f(m["person_recall"], 3) if m else "—", f(m["token_recall"], 3) if m else "—",
+            f(pooled_r["precision"], 3),
+        ])
+    grouped = ("<tr><th></th><th></th>"
+               "<th colspan='2' class='grp'>Recommended 13-detector union</th>"
+               "<th colspan='2' class='grp'>Max-sensitivity triple</th><th></th></tr>")
+    t2 = table(["Language", "Docs", "Person recall", "Token recall",
+                "Person recall", "Token recall", "Precision"], rows, groups=grouped,
+               note="OntoNotes split by language. Precision is for the recommended ensemble. "
+                    "Arabic supplies a large share of the gold tokens from a small share of the "
+                    "documents, so it dominates any pooled score while being the hardest case: the "
+                    "pooled row describes none of the three.")
     return t1, t2
 
 
@@ -387,6 +465,7 @@ def headline_cards():
 
 SECTIONS = [
     ("detection", "Detection"),
+    ("languages", "Languages"),
     ("utility", "Utility"),
     ("leakage", "Leakage"),
     ("exposure", "Exposure"),
@@ -397,6 +476,7 @@ SECTIONS = [
 
 def build() -> str:
     op1, op2 = section_detection()
+    lg1, lg2 = section_languages()
     ut1, ut2 = section_utility()
     a2a, a2b, a2c = section_a2()
     ex1, ex2 = section_exposure()
@@ -471,6 +551,7 @@ table {{ border-collapse:collapse; width:100%; font-size:14px;
 th,td {{ text-align:right; padding:9px 13px; border-bottom:1px solid var(--line);
   white-space:nowrap; }}
 th:first-child,td:first-child,th:nth-child(2),td:nth-child(2) {{ text-align:left; }}
+.grp {{ text-align:center !important; font-weight:600; }}
 thead th {{ position:sticky; top:0; background:var(--card); font-weight:600; font-size:12.5px;
   text-transform:uppercase; letter-spacing:.045em; color:var(--muted);
   border-bottom:1.5px solid var(--line); }}
@@ -533,8 +614,22 @@ footer p {{ max-width:78ch; }}
   document without improving detection.</p>
 </section>
 
+<section id="languages">
+  <h2><span class="n">02</span>By language</h2>
+  <p class="sub">A pooled score describes no language in particular. Scripts differ in how many
+  subword tokens they need, annotation differs in what it marks, and the detectors were not trained
+  evenly across the four.</p>
+  {lg1}
+  <h3>OntoNotes, split three ways</h3>
+  {lg2}
+  <div class="callout"><p><b>The spread is in the other identifier classes, not in finding
+  people.</b> Over every annotated type the three languages differ by tens of points; person recall
+  differs by far less. That matters because the attacks try to recover <em>people</em>, so the
+  alarming pooled figure and the figure that bounds leakage are not the same number.</p></div>
+</section>
+
 <section id="utility">
-  <h2><span class="n">02</span>Utility</h2>
+  <h2><span class="n">03</span>Utility</h2>
   <p class="sub">Three frozen models read all three conditions. The question is not whether the text
   changed but whether the task survives, so every comparison is paired per document and carries the
   original-text score beside it.</p>
@@ -550,7 +645,7 @@ footer p {{ max-width:78ch; }}
 </section>
 
 <section id="leakage">
-  <h2><span class="n">03</span>Leakage</h2>
+  <h2><span class="n">04</span>Leakage</h2>
   <p class="sub">Three attacks against the released text, all scored over the full denominator with
   collisions counted rather than dropped, because an attacker has no ground truth to drop them
   with.</p>
@@ -581,7 +676,7 @@ footer p {{ max-width:78ch; }}
 </section>
 
 <section id="exposure">
-  <h2><span class="n">04</span>Exposure</h2>
+  <h2><span class="n">05</span>Exposure</h2>
   <p class="sub">A corpus-level token rate is the least informative way to state what a
   pseudonymisation run left behind. Data-protection officers release documents and cases, and one
   unchanged mention puts a person back in the clear however many others were replaced.</p>
@@ -591,14 +686,14 @@ footer p {{ max-width:78ch; }}
 </section>
 
 <section id="stability">
-  <h2><span class="n">05</span>Stability</h2>
+  <h2><span class="n">06</span>Stability</h2>
   <p class="sub">A keyed pseudonym is only useful if it is stable, and only safe if it is not too
   stable. These are the ways the mapping fails.</p>
   {section_stability()}
 </section>
 
 <section id="about">
-  <h2><span class="n">06</span>About these numbers</h2>
+  <h2><span class="n">07</span>About these numbers</h2>
   <p>Every experiment is driven by a config plus a seed, and each result records the library
   versions, model ids and commit hash that produced it. The page is generated from
   <a href="data.json">one JSON export</a> of those result files by

@@ -26,10 +26,19 @@ plausible surrogate, or something else.
 
 **Everything uses public corpora only**, so every number here can be reproduced.
 
+### 📊 [**The full results are on the project page →**](https://akmaier.github.io/pseudonymization/)
+
+The paper has eight pages; the study produced a great deal more. Everything cut for space lives on
+the project page instead of being lost — the cost–quality front under both cost models, the utility
+grid with all sixteen paired tests, every attack cell, the prior-quality sweep, detection by
+language, exposure at three denominators, and the stability grid. It is generated from the result
+files by [`docs/build_site.py`](docs/build_site.py), so it cannot drift from the measurements.
+
 ### Where to start
 
 | you want | read |
 |---|---|
+| **every number, cleanly presented** | **[the project page](https://akmaier.github.io/pseudonymization/)** |
 | the results, in prose | this file, below |
 | what exactly was run, and why | [`experiment_plan.md`](experiment_plan.md) — the authoritative specification: thesis, gap, hypotheses, factor design, metrics, statistics, corpora, compute |
 | how the code is put together | [`ARCHITECTURE.md`](ARCHITECTURE.md) |

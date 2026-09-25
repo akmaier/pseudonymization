@@ -62,7 +62,11 @@ def main() -> int:
     log(f"{args.corpus}: {len(documents)} documents, tag {args.tag}")
 
     args.out.mkdir(parents=True, exist_ok=True)
-    destination = args.out / f"{args.corpus}_{args.tag}_{args.entity_type}_a4.jsonl"
+    # The context arm belongs in the name. Without it, two jobs on one corpus — one per arm, which
+    # is how these are parallelised — write the same path and the slower one silently overwrites the
+    # faster one's rows. That happened on 2026-09-25 and cost the TAB no-context cells their file.
+    arms = "".join(sorted(a[0] for a in args.context))
+    destination = args.out / f"{args.corpus}_{args.tag}_{args.entity_type}_a4_ctx{arms}.jsonl"
     rows: list[dict] = []
 
     for condition in args.conditions:

@@ -3523,33 +3523,9 @@
  },
  "a4": [
   {
-   "corpus": "tab",
-   "condition": "B-mask",
-   "context": false,
-   "rank1": 0.215,
-   "rank5": 0.76,
-   "map": 0.43785515873015873,
-   "queries": 200,
-   "candidates": 10,
-   "tag": "15det",
-   "adversary": "public name list over the released text, replaced spans unknown"
-  },
-  {
-   "corpus": "tab",
+   "corpus": "cardiode",
    "condition": "A",
    "context": false,
-   "rank1": 0.995,
-   "rank5": 1.0,
-   "map": 0.996,
-   "queries": 200,
-   "candidates": 10,
-   "tag": "15det",
-   "adversary": null
-  },
-  {
-   "corpus": "tab",
-   "condition": "A",
-   "context": true,
    "rank1": 1.0,
    "rank5": 1.0,
    "map": 1.0,
@@ -3559,51 +3535,87 @@
    "adversary": null
   },
   {
-   "corpus": "tab",
+   "corpus": "cardiode",
+   "condition": "A",
+   "context": true,
+   "rank1": 0.995,
+   "rank5": 1.0,
+   "map": 0.996,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "cardiode",
+   "condition": "B",
+   "context": false,
+   "rank1": 0.09,
+   "rank5": 0.51,
+   "map": 0.2753869047619051,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "cardiode",
+   "condition": "B",
+   "context": true,
+   "rank1": 0.16,
+   "rank5": 0.55,
+   "map": 0.3403551587301592,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "cardiode",
+   "condition": "C",
+   "context": false,
+   "rank1": 0.135,
+   "rank5": 0.585,
+   "map": 0.33608531746031806,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "cardiode",
+   "condition": "C",
+   "context": true,
+   "rank1": 0.22,
+   "rank5": 0.69,
+   "map": 0.4217777777777779,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "cardiode",
    "condition": "B",
    "context": false,
    "rank1": 0.085,
-   "rank5": 0.5,
-   "map": 0.2854503968253971,
+   "rank5": 0.355,
+   "map": 0.2513035714285719,
    "queries": 200,
    "candidates": 10,
-   "tag": "15det",
+   "tag": "union-single0.5-13det-1797ba",
    "adversary": null
   },
   {
-   "corpus": "tab",
-   "condition": "B",
-   "context": true,
-   "rank1": 0.12,
-   "rank5": 0.51,
-   "map": 0.3022976190476196,
-   "queries": 200,
-   "candidates": 10,
-   "tag": "15det",
-   "adversary": null
-  },
-  {
-   "corpus": "tab",
+   "corpus": "cardiode",
    "condition": "C",
    "context": false,
-   "rank1": 0.29,
-   "rank5": 0.85,
-   "map": 0.5135456349206351,
+   "rank1": 0.12,
+   "rank5": 0.55,
+   "map": 0.32220039682539736,
    "queries": 200,
    "candidates": 10,
-   "tag": "15det",
-   "adversary": null
-  },
-  {
-   "corpus": "tab",
-   "condition": "C",
-   "context": true,
-   "rank1": 0.31,
-   "rank5": 0.715,
-   "map": 0.4892242063492065,
-   "queries": 200,
-   "candidates": 10,
-   "tag": "15det",
+   "tag": "union-single0.5-13det-1797ba",
    "adversary": null
   },
   {
@@ -3679,21 +3691,33 @@
    "adversary": null
   },
   {
-   "corpus": "cardiode",
-   "condition": "A",
+   "corpus": "ontonotes",
+   "condition": "B",
    "context": false,
-   "rank1": 1.0,
-   "rank5": 1.0,
-   "map": 1.0,
+   "rank1": 0.29,
+   "rank5": 0.86,
+   "map": 0.5232162698412698,
    "queries": 200,
    "candidates": 10,
-   "tag": "15det",
+   "tag": "union-single0.5-13det-1797ba",
    "adversary": null
   },
   {
-   "corpus": "cardiode",
+   "corpus": "ontonotes",
+   "condition": "C",
+   "context": false,
+   "rank1": 0.63,
+   "rank5": 0.91,
+   "map": 0.7493769841269843,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "union-single0.5-13det-1797ba",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
    "condition": "A",
-   "context": true,
+   "context": false,
    "rank1": 0.995,
    "rank5": 1.0,
    "map": 0.996,
@@ -3703,48 +3727,36 @@
    "adversary": null
   },
   {
-   "corpus": "cardiode",
+   "corpus": "tab",
+   "condition": "A",
+   "context": true,
+   "rank1": 1.0,
+   "rank5": 1.0,
+   "map": 1.0,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
    "condition": "B",
    "context": false,
-   "rank1": 0.09,
+   "rank1": 0.085,
+   "rank5": 0.5,
+   "map": 0.2854503968253971,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
+   "condition": "B",
+   "context": true,
+   "rank1": 0.12,
    "rank5": 0.51,
-   "map": 0.2753869047619051,
-   "queries": 200,
-   "candidates": 10,
-   "tag": "15det",
-   "adversary": null
-  },
-  {
-   "corpus": "cardiode",
-   "condition": "B",
-   "context": true,
-   "rank1": 0.16,
-   "rank5": 0.55,
-   "map": 0.3403551587301592,
-   "queries": 200,
-   "candidates": 10,
-   "tag": "15det",
-   "adversary": null
-  },
-  {
-   "corpus": "cardiode",
-   "condition": "C",
-   "context": false,
-   "rank1": 0.135,
-   "rank5": 0.585,
-   "map": 0.33608531746031806,
-   "queries": 200,
-   "candidates": 10,
-   "tag": "15det",
-   "adversary": null
-  },
-  {
-   "corpus": "cardiode",
-   "condition": "C",
-   "context": true,
-   "rank1": 0.22,
-   "rank5": 0.69,
-   "map": 0.4217777777777779,
+   "map": 0.3022976190476196,
    "queries": 200,
    "candidates": 10,
    "tag": "15det",
@@ -3761,6 +3773,90 @@
    "candidates": 10,
    "tag": "15det",
    "adversary": "told the release is pseudonymised; the text itself is unchanged"
+  },
+  {
+   "corpus": "tab",
+   "condition": "B-mask",
+   "context": false,
+   "rank1": 0.215,
+   "rank5": 0.76,
+   "map": 0.43785515873015873,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": "public name list over the released text, replaced spans unknown"
+  },
+  {
+   "corpus": "tab",
+   "condition": "C",
+   "context": false,
+   "rank1": 0.29,
+   "rank5": 0.85,
+   "map": 0.5135456349206351,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
+   "condition": "C",
+   "context": true,
+   "rank1": 0.31,
+   "rank5": 0.715,
+   "map": 0.4892242063492065,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
+   "condition": "B",
+   "context": false,
+   "rank1": 0.11,
+   "rank5": 0.575,
+   "map": 0.317,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "union-single0.5-13det-1797ba",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
+   "condition": "B",
+   "context": true,
+   "rank1": 0.105,
+   "rank5": 0.565,
+   "map": 0.3197817460317467,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "union-single0.5-13det-1797ba",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
+   "condition": "C",
+   "context": false,
+   "rank1": 0.34,
+   "rank5": 0.845,
+   "map": 0.547,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "union-single0.5-13det-1797ba",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
+   "condition": "C",
+   "context": true,
+   "rank1": 0.3,
+   "rank5": 0.735,
+   "map": 0.47041666666666687,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "union-single0.5-13det-1797ba",
+   "adversary": null
   }
  ],
  "utility": {
@@ -4764,5 +4860,191 @@
    "cross_document": false,
    "scope": "within_document"
   }
- ]
+ ],
+ "per_language": {
+  "cardiode": {
+   "recommended13": {
+    "rule": "union",
+    "members": 13,
+    "overall": {
+     "token_recall": 0.9988401090297512,
+     "precision": 0.5455002036106964,
+     "information_weighted_precision": 0.5455002036106964,
+     "entity_recall": 0.9954295860322888,
+     "gold_tokens": 120701,
+     "person_recall": 0.9997725204731575,
+     "person_gold_tokens": 4396,
+     "documents": 400
+    }
+   },
+   "max_sensitivity": {
+    "rule": "union",
+    "members": 3,
+    "overall": {
+     "token_recall": 0.9395696804500377,
+     "precision": 0.8248801670024658,
+     "information_weighted_precision": 0.8248801670024658,
+     "entity_recall": 0.896294347811791,
+     "gold_tokens": 120701,
+     "person_recall": 0.9943130118289354,
+     "person_gold_tokens": 4396,
+     "documents": 400
+    }
+   }
+  },
+  "tab": {
+   "recommended13": {
+    "rule": "union",
+    "members": 13,
+    "overall": {
+     "token_recall": 0.9251262698202561,
+     "precision": 0.5440377948286362,
+     "information_weighted_precision": 0.5440377948286362,
+     "entity_recall": 0.9262515118440072,
+     "gold_tokens": 298369,
+     "person_recall": 0.9957954035187982,
+     "person_gold_tokens": 48994,
+     "documents": 1268
+    }
+   },
+   "max_sensitivity": {
+    "rule": "union",
+    "members": 3,
+    "overall": {
+     "token_recall": 0.8924519638434287,
+     "precision": 0.6338702075289345,
+     "information_weighted_precision": 0.6338702075289345,
+     "entity_recall": 0.8838018820614177,
+     "gold_tokens": 298369,
+     "person_recall": 0.981079315834592,
+     "person_gold_tokens": 48994,
+     "documents": 1268
+    }
+   }
+  },
+  "ontonotes": {
+   "recommended13": {
+    "rule": "union",
+    "members": 13,
+    "overall": {
+     "token_recall": 0.7222555862987069,
+     "precision": 0.6619469994123194,
+     "information_weighted_precision": 0.6619469994123194,
+     "entity_recall": 0.761066166935774,
+     "gold_tokens": 737653,
+     "person_recall": 0.9352167341864979,
+     "person_gold_tokens": 111819,
+     "documents": 5994
+    },
+    "by_language": {
+     "english": {
+      "token_recall": 0.883455833419601,
+      "precision": 0.7152671847124606,
+      "information_weighted_precision": 0.7152671847124606,
+      "entity_recall": 0.8599568469700992,
+      "gold_tokens": 338095,
+      "person_recall": 0.9913257965056527,
+      "person_gold_tokens": 48650,
+      "documents": 3637
+     },
+     "chinese": {
+      "token_recall": 0.6819460962495184,
+      "precision": 0.5179744902827698,
+      "information_weighted_precision": 0.5179744902827698,
+      "entity_recall": 0.6521379024743762,
+      "gold_tokens": 119398,
+      "person_recall": 0.9315481686672823,
+      "person_gold_tokens": 16245,
+      "documents": 1911
+     },
+     "arabic": {
+      "token_recall": 0.5448993432324386,
+      "precision": 0.6635357218921281,
+      "information_weighted_precision": 0.6635357218921281,
+      "entity_recall": 0.46901752955564613,
+      "gold_tokens": 280160,
+      "person_recall": 0.8783138692353593,
+      "person_gold_tokens": 46924,
+      "documents": 446
+     }
+    }
+   },
+   "max_sensitivity": {
+    "rule": "union",
+    "members": 3,
+    "overall": {
+     "token_recall": 0.5916982646312019,
+     "precision": 0.8220293654560384,
+     "information_weighted_precision": 0.8220293654560384,
+     "entity_recall": 0.6355464272866453,
+     "gold_tokens": 737653,
+     "person_recall": 0.888695123369016,
+     "person_gold_tokens": 111819,
+     "documents": 5994
+    },
+    "by_language": {
+     "english": {
+      "token_recall": 0.7389757316730505,
+      "precision": 0.8958610476644663,
+      "information_weighted_precision": 0.8958610476644663,
+      "entity_recall": 0.75771683716878,
+      "gold_tokens": 338095,
+      "person_recall": 0.9855704008221994,
+      "person_gold_tokens": 48650,
+      "documents": 3637
+     },
+     "chinese": {
+      "token_recall": 0.485267759928977,
+      "precision": 0.724576059226652,
+      "information_weighted_precision": 0.724576059226652,
+      "entity_recall": 0.461464511262627,
+      "gold_tokens": 119398,
+      "person_recall": 0.716528162511542,
+      "person_gold_tokens": 16245,
+      "documents": 1911
+     },
+     "arabic": {
+      "token_recall": 0.45932324386065104,
+      "precision": 0.7476715878521669,
+      "information_weighted_precision": 0.7476715878521669,
+      "entity_recall": 0.3836526701997554,
+      "gold_tokens": 280160,
+      "person_recall": 0.8478603699599352,
+      "person_gold_tokens": 46924,
+      "documents": 446
+     }
+    }
+   }
+  },
+  "enron": {
+   "recommended13": {
+    "rule": "union",
+    "members": 13,
+    "overall": {
+     "token_recall": 0.9766564382857266,
+     "precision": 0.45550098035514835,
+     "information_weighted_precision": 0.45550098035514835,
+     "entity_recall": 0.8775356981634156,
+     "gold_tokens": 3780657,
+     "person_recall": 0.8897884397431054,
+     "person_gold_tokens": 794100,
+     "documents": 58636
+    }
+   },
+   "max_sensitivity": {
+    "rule": "union",
+    "members": 3,
+    "overall": {
+     "token_recall": 0.9723262385347309,
+     "precision": 0.5825190656069856,
+     "information_weighted_precision": 0.5825190656069856,
+     "entity_recall": 0.8549312171826368,
+     "gold_tokens": 3780657,
+     "person_recall": 0.8699093313184737,
+     "person_gold_tokens": 794100,
+     "documents": 58636
+    }
+   }
+  }
+ }
 }
