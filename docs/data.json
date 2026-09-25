@@ -1,0 +1,4768 @@
+{
+ "ensemble": [
+  "gliner:urchade/gliner_multi-v2.1",
+  "gliner:urchade/gliner_multi_pii-v1",
+  "hf:Davlan/xlm-roberta-large-ner-hrl",
+  "hf:StanfordAIMI/stanford-deidentifier-base",
+  "hf:obi/deid_roberta_i2b2",
+  "llm:GaleneAI/Magistral-Small-2509-FP8-Dynamic",
+  "llm:Microsoft/Phi-4-mini-instruct",
+  "llm:RedHatAI/Mistral-Small-3.2-24B-Instruct-2506-FP8",
+  "llm:RedHatAI/gemma-4-31B-it-FP8-block",
+  "llm:google/gemma-4-E4B-it",
+  "llm:ibm-granite/granite-4.1-3b",
+  "presidio",
+  "privacy_tagger"
+ ],
+ "operating_points": {
+  "cardiode": {
+   "MAX-SENSITIVITY": {
+    "rule": "union",
+    "sensitivity": 0.9919319904700021,
+    "specificity": 0.9670102229583519,
+    "precision": 0.8191532850903301,
+    "information_weighted_precision": 0.790061971443917,
+    "cost_parallel_s": 57.63300814807415,
+    "cost_serial_s": 78.22202599406242,
+    "token_recall_all_gold": 0.9462804782064772,
+    "ensemble": [
+     "gliner:urchade/gliner_multi_pii-v1",
+     "llm:RedHatAI/Mistral-Small-3.2-24B-Instruct-2506-FP8",
+     "llm:RedHatAI/gemma-4-31B-it-FP8-block"
+    ],
+    "leakage": {
+     "gold_tokens": 120701,
+     "tokens": 6484,
+     "token_rate": 0.05371952179352284,
+     "tokens_per_document": 16.21,
+     "gold_entities": 30413,
+     "entities": 2973,
+     "entity_rate": 0.09775424982737645,
+     "entities_per_document": 7.4325
+    }
+   },
+   "FAST-SENSITIVITY": {
+    "rule": "union",
+    "sensitivity": 0.8947368421052632,
+    "specificity": 0.9768943348535634,
+    "precision": 0.8657519668579682,
+    "information_weighted_precision": 0.8268531037688619,
+    "cost_parallel_s": 0.30126263737678527,
+    "cost_serial_s": 0.5644275319576264,
+    "token_recall_all_gold": 0.9436044440394031,
+    "ensemble": [
+     "gliner:urchade/gliner_multi_pii-v1",
+     "hf:StanfordAIMI/stanford-deidentifier-base"
+    ],
+    "leakage": {
+     "gold_tokens": 120701,
+     "tokens": 6807,
+     "token_rate": 0.056395555960596845,
+     "tokens_per_document": 17.0175,
+     "gold_entities": 30413,
+     "entities": 4370,
+     "entity_rate": 0.1436885542366751,
+     "entities_per_document": 10.925
+    }
+   },
+   "MAX-SPECIFICITY": {
+    "rule": "vote",
+    "sensitivity": 0.523012778860732,
+    "specificity": 0.9997370342169507,
+    "precision": 0.9796146044624746,
+    "information_weighted_precision": 0.9815937365128613,
+    "cost_parallel_s": 116.87502154827118,
+    "cost_serial_s": 117.59259123206138,
+    "token_recall_all_gold": 0.08002419201166519,
+    "ensemble": [
+     "gliner:urchade/gliner_multi-v2.1",
+     "hf:Davlan/xlm-roberta-large-ner-hrl",
+     "llm:gpt-oss-120b"
+    ],
+    "leakage": {
+     "gold_tokens": 120701,
+     "tokens": 111042,
+     "token_rate": 0.9199758079883348,
+     "tokens_per_document": 277.605,
+     "gold_entities": 30413,
+     "entities": 26420,
+     "entity_rate": 0.8687074606253905,
+     "entities_per_document": 66.05
+    }
+   },
+   "FAST-SPECIFICITY": {
+    "rule": "single",
+    "sensitivity": 0.7807017543859649,
+    "specificity": 0.9862184997082519,
+    "precision": 0.9122729581851645,
+    "information_weighted_precision": 0.8807485883185682,
+    "cost_parallel_s": 0.2631648945808411,
+    "cost_serial_s": 0.2631648945808411,
+    "token_recall_all_gold": 0.9075566896711709,
+    "ensemble": [
+     "hf:StanfordAIMI/stanford-deidentifier-base"
+    ],
+    "leakage": {
+     "gold_tokens": 120701,
+     "tokens": 11158,
+     "token_rate": 0.09244331032882909,
+     "tokens_per_document": 27.895,
+     "gold_entities": 30413,
+     "entities": 6791,
+     "entity_rate": 0.22329267089731364,
+     "entities_per_document": 16.9775
+    }
+   }
+  },
+  "enron": {
+   "MAX-SENSITIVITY": {
+    "rule": "union",
+    "sensitivity": 0.9725563572680621,
+    "specificity": 0.7719922491751702,
+    "precision": 0.5789658327048046,
+    "information_weighted_precision": 0.5143704456400028,
+    "cost_parallel_s": 25.557465940894822,
+    "cost_serial_s": 25.662220647678392,
+    "token_recall_all_gold": 0.9725563572680621,
+    "ensemble": [
+     "hf:StanfordAIMI/stanford-deidentifier-base",
+     "llm:gpt-oss-120b",
+     "presidio"
+    ],
+    "leakage": {
+     "gold_tokens": 3780657,
+     "tokens": 103755,
+     "token_rate": 0.027443642731937862,
+     "tokens_per_document": 1.7694760897742001,
+     "gold_entities": 420890,
+     "entities": 60368,
+     "entity_rate": 0.14342939960559767,
+     "entities_per_document": 1.0295381676785593
+    }
+   },
+   "FAST-SENSITIVITY": {
+    "rule": "union",
+    "sensitivity": 0.8987017335875749,
+    "specificity": 0.7419265936448285,
+    "precision": 0.5288898394643113,
+    "information_weighted_precision": 0.5068390441678622,
+    "cost_parallel_s": 0.05693825925365868,
+    "cost_serial_s": 0.13374275004831618,
+    "token_recall_all_gold": 0.8987017335875749,
+    "ensemble": [
+     "hf:Davlan/xlm-roberta-large-ner-hrl",
+     "hf:StanfordAIMI/stanford-deidentifier-base",
+     "hf:obi/deid_roberta_i2b2"
+    ],
+    "leakage": {
+     "gold_tokens": 3780657,
+     "tokens": 382974,
+     "token_rate": 0.10129826641242515,
+     "tokens_per_document": 6.5313800395661366,
+     "gold_entities": 420890,
+     "entities": 126653,
+     "entity_rate": 0.3009171042315094,
+     "entities_per_document": 2.1599870386793096
+    }
+   },
+   "MAX-SPECIFICITY": {
+    "rule": "intersection",
+    "sensitivity": 0.5881448647682136,
+    "specificity": 0.9428060312086327,
+    "precision": 0.7682588865091181,
+    "information_weighted_precision": 0.7026540107074426,
+    "cost_parallel_s": 20.931386979400106,
+    "cost_serial_s": 35.78167065115025,
+    "token_recall_all_gold": 0.5881448647682136,
+    "ensemble": [
+     "llm:GaleneAI/Magistral-Small-2509-FP8-Dynamic",
+     "llm:RedHatAI/gemma-4-31B-it-FP8-block",
+     "llm:google/gemma-4-E4B-it"
+    ],
+    "leakage": {
+     "gold_tokens": 3780657,
+     "tokens": 1557083,
+     "token_rate": 0.4118551352317864,
+     "tokens_per_document": 26.555068558564706,
+     "gold_entities": 420890,
+     "entities": 276468,
+     "entity_rate": 0.6568652141889805,
+     "entities_per_document": 4.714987379766696
+    }
+   },
+   "FAST-SPECIFICITY": {
+    "rule": "single",
+    "sensitivity": 0.6740886570773281,
+    "specificity": 0.8787239278577074,
+    "precision": 0.6418202171638249,
+    "information_weighted_precision": 0.5927287236731719,
+    "cost_parallel_s": 0.025934466386818854,
+    "cost_serial_s": 0.025934466386818854,
+    "token_recall_all_gold": 0.6740886570773281,
+    "ensemble": [
+     "hf:StanfordAIMI/stanford-deidentifier-base"
+    ],
+    "leakage": {
+     "gold_tokens": 3780657,
+     "tokens": 1232159,
+     "token_rate": 0.32591134292267193,
+     "tokens_per_document": 21.013694658571527,
+     "gold_entities": 420890,
+     "entities": 383121,
+     "entity_rate": 0.9102639644562712,
+     "entities_per_document": 6.533887031857562
+    }
+   }
+  },
+  "ontonotes": {
+   "MAX-SENSITIVITY": {
+    "rule": "union",
+    "sensitivity": 0.7465669254887107,
+    "specificity": 0.9763428438776106,
+    "precision": 0.822435182171075,
+    "information_weighted_precision": 0.8449429836185717,
+    "cost_parallel_s": 9.449679761041114,
+    "cost_serial_s": 9.651369657955412,
+    "token_recall_all_gold": 0.5925333456245687,
+    "ensemble": [
+     "hf:Davlan/xlm-roberta-large-ner-hrl",
+     "llm:RedHatAI/gemma-4-31B-it-FP8-block",
+     "presidio"
+    ],
+    "leakage": {
+     "gold_tokens": 737653,
+     "tokens": 300569,
+     "token_rate": 0.4074666543754313,
+     "tokens_per_document": 50.14497831164498,
+     "gold_entities": 239062,
+     "entities": 87216,
+     "entity_rate": 0.36482586107369636,
+     "entities_per_document": 14.55055055055055
+    }
+   },
+   "FAST-SENSITIVITY": {
+    "rule": "union",
+    "sensitivity": 0.6842981293268523,
+    "specificity": 0.9731023848184267,
+    "precision": 0.7998003470602504,
+    "information_weighted_precision": 0.8264246968322811,
+    "cost_parallel_s": 5.375846266308983,
+    "cost_serial_s": 5.577536163223279,
+    "token_recall_all_gold": 0.5810821619379302,
+    "ensemble": [
+     "hf:Davlan/xlm-roberta-large-ner-hrl",
+     "llm:RedHatAI/Mistral-Small-3.2-24B-Instruct-2506-FP8",
+     "presidio"
+    ],
+    "leakage": {
+     "gold_tokens": 737653,
+     "tokens": 309016,
+     "token_rate": 0.41891783806206984,
+     "tokens_per_document": 51.55422088755422,
+     "gold_entities": 239062,
+     "entities": 82759,
+     "entity_rate": 0.34618216194961976,
+     "entities_per_document": 13.806973640306973
+    }
+   },
+   "MAX-SPECIFICITY": {
+    "rule": "union",
+    "sensitivity": 0.5034467520989836,
+    "specificity": 0.9959761249915704,
+    "precision": 0.9417299852246613,
+    "information_weighted_precision": 0.9462477670371567,
+    "cost_parallel_s": 0.1030080695877403,
+    "cost_serial_s": 0.20198920627693595,
+    "token_recall_all_gold": 0.3516667050767773,
+    "ensemble": [
+     "hf:Davlan/xlm-roberta-large-ner-hrl",
+     "hf:obi/deid_roberta_i2b2"
+    ],
+    "leakage": {
+     "gold_tokens": 737653,
+     "tokens": 478245,
+     "token_rate": 0.6483332949232227,
+     "tokens_per_document": 79.78728728728728,
+     "gold_entities": 239062,
+     "entities": 139814,
+     "entity_rate": 0.5848440990203378,
+     "entities_per_document": 23.32565899232566
+    }
+   },
+   "FAST-SPECIFICITY": {
+    "rule": "union",
+    "sensitivity": 0.5034467520989836,
+    "specificity": 0.9959761249915704,
+    "precision": 0.9417299852246613,
+    "information_weighted_precision": 0.9462477670371567,
+    "cost_parallel_s": 0.1030080695877403,
+    "cost_serial_s": 0.20198920627693595,
+    "token_recall_all_gold": 0.3516667050767773,
+    "ensemble": [
+     "hf:Davlan/xlm-roberta-large-ner-hrl",
+     "hf:obi/deid_roberta_i2b2"
+    ],
+    "leakage": {
+     "gold_tokens": 737653,
+     "tokens": 478245,
+     "token_rate": 0.6483332949232227,
+     "tokens_per_document": 79.78728728728728,
+     "gold_entities": 239062,
+     "entities": 139814,
+     "entity_rate": 0.5848440990203378,
+     "entities_per_document": 23.32565899232566
+    }
+   }
+  },
+  "tab": {
+   "MAX-SENSITIVITY": {
+    "rule": "union",
+    "sensitivity": 0.925341796875,
+    "specificity": 0.8985822229838305,
+    "precision": 0.630115986736287,
+    "information_weighted_precision": 0.6971925486574702,
+    "cost_parallel_s": 14.210042568035306,
+    "cost_serial_s": 14.639629975666383,
+    "token_recall_all_gold": 0.8954616598909404,
+    "ensemble": [
+     "gliner:urchade/gliner_multi_pii-v1",
+     "llm:RedHatAI/Mistral-Small-3.2-24B-Instruct-2506-FP8",
+     "presidio"
+    ],
+    "leakage": {
+     "gold_tokens": 298369,
+     "tokens": 31191,
+     "token_rate": 0.10453834010905959,
+     "tokens_per_document": 24.59858044164038,
+     "gold_entities": 67798,
+     "entities": 7656,
+     "entity_rate": 0.11292368506445617,
+     "entities_per_document": 6.037854889589905
+    }
+   },
+   "FAST-SENSITIVITY": {
+    "rule": "union",
+    "sensitivity": 0.892645263671875,
+    "specificity": 0.9242043797508463,
+    "precision": 0.6759305595107425,
+    "information_weighted_precision": 0.7351196880747097,
+    "cost_parallel_s": 0.21866347135429504,
+    "cost_serial_s": 0.49627622726963894,
+    "token_recall_all_gold": 0.819381370048497,
+    "ensemble": [
+     "gliner:urchade/gliner_multi_pii-v1",
+     "hf:Davlan/xlm-roberta-large-ner-hrl",
+     "hf:StanfordAIMI/stanford-deidentifier-base"
+    ],
+    "leakage": {
+     "gold_tokens": 298369,
+     "tokens": 53891,
+     "token_rate": 0.18061862995150302,
+     "tokens_per_document": 42.50078864353312,
+     "gold_entities": 67798,
+     "entities": 15022,
+     "entity_rate": 0.22156995781586478,
+     "entities_per_document": 11.847003154574132
+    }
+   },
+   "MAX-SPECIFICITY": {
+    "rule": "vote",
+    "sensitivity": 0.501361083984375,
+    "specificity": 0.9959487466333858,
+    "precision": 0.9646912954039507,
+    "information_weighted_precision": 0.9676715015244834,
+    "cost_parallel_s": 98.11002685877051,
+    "cost_serial_s": 98.3865751718121,
+    "token_recall_all_gold": 0.5736856040674467,
+    "ensemble": [
+     "gliner:urchade/gliner_multi-v2.1",
+     "hf:StanfordAIMI/stanford-deidentifier-base",
+     "llm:Qwen/Qwen3.6-35B-A3B-FP8"
+    ],
+    "leakage": {
+     "gold_tokens": 298369,
+     "tokens": 127199,
+     "token_rate": 0.4263143959325533,
+     "tokens_per_document": 100.31466876971609,
+     "gold_entities": 67798,
+     "entities": 26102,
+     "entity_rate": 0.38499660756954485,
+     "entities_per_document": 20.585173501577287
+    }
+   },
+   "FAST-SPECIFICITY": {
+    "rule": "single",
+    "sensitivity": 0.519781494140625,
+    "specificity": 0.9933770252225279,
+    "precision": 0.9454298425553453,
+    "information_weighted_precision": 0.9393410046159307,
+    "cost_parallel_s": 0.1171352803143041,
+    "cost_serial_s": 0.1171352803143041,
+    "token_recall_all_gold": 0.5947099061899862,
+    "ensemble": [
+     "hf:StanfordAIMI/stanford-deidentifier-base"
+    ],
+    "leakage": {
+     "gold_tokens": 298369,
+     "tokens": 120926,
+     "token_rate": 0.4052900938100138,
+     "tokens_per_document": 95.36750788643533,
+     "gold_entities": 67798,
+     "entities": 26196,
+     "entity_rate": 0.3863830791468775,
+     "entities_per_document": 20.65930599369085
+    }
+   }
+  }
+ },
+ "recommended": {
+  "cardiode": {
+   "union": {
+    "token_recall": 0.9988401090297512,
+    "entity_recall": 0.9954295860322888,
+    "precision": 0.5455002036106964,
+    "information_weighted_precision": 0.5455002036106964,
+    "replacements": 68869,
+    "documents_missing_a_detector": 327,
+    "a2_bound_correct_by_alignment": 1,
+    "a2_bound_undetected_recovered": 7,
+    "a2_bound_observed": 25677,
+    "a2_bound_chance": 0.00024826216484607745,
+    "a2_bound_prior_size": 4028,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 7,
+    "a2_real_observed": 25677,
+    "a2_real_chance": 1.823819077147547e-05,
+    "a2_real_prior": "German surnames",
+    "a2_real_prior_size": 54830,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.00027261751762277527,
+    "a2_real_mean_candidate_set": 54830.0,
+    "a2_rho": 0.8975424343492916,
+    "a3_ceiling_rank1": 0.0273224043715847,
+    "a3_gallery": 207,
+    "a3_queries": 138,
+    "a3f_rank1": 0.0,
+    "a3f_rank1_sd": 0.0,
+    "a3f_rank5": 0.007142857142857143,
+    "a3f_rank5_sd": 0.015971914124998498,
+    "a3f_map": 0.032576295971073116,
+    "a3f_map_sd": 0.005907450810364029,
+    "a5_rank1": 0.007142857142857143,
+    "a5_rank1_sd": 0.015971914124998498,
+    "a5_rank5": 0.050793650793650794,
+    "a5_rank5_sd": 0.07045187625768935,
+    "a5_map": 0.059189112549952926,
+    "a5_map_sd": 0.02564804725432865,
+    "a5_folds": 5,
+    "relational_note": null
+   },
+   "_bands": {
+    "1": 0.00029432540616906053,
+    "2-4": 0.0001971608832807571,
+    "20+": 0.0016246953696181965,
+    "5-19": 0.0
+   },
+   "_abstention": [
+    {
+     "prior": "corpus-internal",
+     "phi": 0.0,
+     "attempted": 25677,
+     "abstained": 0,
+     "accuracy_attempted": 0.0003115628772831717,
+     "c_at_1": 0.0003115628772831717,
+     "lift_over_chance": 0.15691468640436307
+    },
+    {
+     "prior": "corpus-internal",
+     "phi": 0.05,
+     "attempted": 0,
+     "abstained": 25677,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "corpus-internal",
+     "phi": 0.25,
+     "attempted": 0,
+     "abstained": 25677,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "corpus-internal",
+     "phi": 1.5,
+     "attempted": 0,
+     "abstained": 25677,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "German surnames",
+     "phi": 0.0,
+     "attempted": 25677,
+     "abstained": 0,
+     "accuracy_attempted": 0.00027261751762277527,
+     "c_at_1": 0.00027261751762277527,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "German surnames",
+     "phi": 0.05,
+     "attempted": 11,
+     "abstained": 25666,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "German surnames",
+     "phi": 0.25,
+     "attempted": 0,
+     "abstained": 25677,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "German surnames",
+     "phi": 1.5,
+     "attempted": 0,
+     "abstained": 25677,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "German given names (male)",
+     "phi": 0.0,
+     "attempted": 25677,
+     "abstained": 0,
+     "accuracy_attempted": 0.00027261751762277527,
+     "c_at_1": 0.00027261751762277527,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "German given names (male)",
+     "phi": 0.05,
+     "attempted": 0,
+     "abstained": 25677,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "German given names (male)",
+     "phi": 0.25,
+     "attempted": 0,
+     "abstained": 25677,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "German given names (male)",
+     "phi": 1.5,
+     "attempted": 0,
+     "abstained": 25677,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "German given names (female)",
+     "phi": 0.0,
+     "attempted": 25677,
+     "abstained": 0,
+     "accuracy_attempted": 0.00027261751762277527,
+     "c_at_1": 0.00027261751762277527,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "German given names (female)",
+     "phi": 0.05,
+     "attempted": 0,
+     "abstained": 25677,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "German given names (female)",
+     "phi": 0.25,
+     "attempted": 0,
+     "abstained": 25677,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "German given names (female)",
+     "phi": 1.5,
+     "attempted": 0,
+     "abstained": 25677,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    }
+   ],
+   "_prior_sweep": [
+    {
+     "observed": 25677,
+     "attempted": 25677,
+     "abstained": 0,
+     "correct_1_to_1": 7,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 25670,
+     "correct": 7,
+     "expected_correct": 7.0,
+     "accuracy_attempted": 0.00027261751762277527,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.00027261751762277527,
+     "chance": 0.01,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 100.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 7,
+     "by_band": {
+      "1": 0.0002354603249352484,
+      "2-4": 0.0001971608832807571,
+      "20+": 0.0016246953696181965,
+      "5-19": 0.0
+     },
+     "prior": "German surnames top-100",
+     "prior_kind": "external",
+     "prior_size": 100,
+     "prior_vintage": "2010",
+     "prior_provenance": "abydos rank order x US Census 2010 counts \u2014 a US Zipf shape on German ranks, not German counts; truncated to the 100 commonest"
+    },
+    {
+     "observed": 25677,
+     "attempted": 25677,
+     "abstained": 0,
+     "correct_1_to_1": 7,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 25670,
+     "correct": 7,
+     "expected_correct": 7.0,
+     "accuracy_attempted": 0.00027261751762277527,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.00027261751762277527,
+     "chance": 0.001,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 1000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 7,
+     "by_band": {
+      "1": 0.0002354603249352484,
+      "2-4": 0.0001971608832807571,
+      "20+": 0.0016246953696181965,
+      "5-19": 0.0
+     },
+     "prior": "German surnames top-1,000",
+     "prior_kind": "external",
+     "prior_size": 1000,
+     "prior_vintage": "2010",
+     "prior_provenance": "abydos rank order x US Census 2010 counts \u2014 a US Zipf shape on German ranks, not German counts; truncated to the 1,000 commonest"
+    },
+    {
+     "observed": 25677,
+     "attempted": 25677,
+     "abstained": 0,
+     "correct_1_to_1": 7,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 25670,
+     "correct": 7,
+     "expected_correct": 7.0,
+     "accuracy_attempted": 0.00027261751762277527,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.00027261751762277527,
+     "chance": 0.0001,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 10000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 7,
+     "by_band": {
+      "1": 0.0002354603249352484,
+      "2-4": 0.0001971608832807571,
+      "20+": 0.0016246953696181965,
+      "5-19": 0.0
+     },
+     "prior": "German surnames top-10,000",
+     "prior_kind": "external",
+     "prior_size": 10000,
+     "prior_vintage": "2010",
+     "prior_provenance": "abydos rank order x US Census 2010 counts \u2014 a US Zipf shape on German ranks, not German counts; truncated to the 10,000 commonest"
+    },
+    {
+     "observed": 25677,
+     "attempted": 25677,
+     "abstained": 0,
+     "correct_1_to_1": 7,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 25670,
+     "correct": 7,
+     "expected_correct": 7.0,
+     "accuracy_attempted": 0.00027261751762277527,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.00027261751762277527,
+     "chance": 1.823819077147547e-05,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 54830.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 7,
+     "by_band": {
+      "1": 0.0002354603249352484,
+      "2-4": 0.0001971608832807571,
+      "20+": 0.0016246953696181965,
+      "5-19": 0.0
+     },
+     "prior": "German surnames",
+     "prior_kind": "external",
+     "prior_size": 54830,
+     "prior_vintage": "2010",
+     "prior_provenance": "abydos rank order x US Census 2010 counts \u2014 a US Zipf shape on German ranks, not German counts"
+    },
+    {
+     "observed": 25677,
+     "attempted": 25677,
+     "abstained": 0,
+     "correct_1_to_1": 7,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 25670,
+     "correct": 7,
+     "expected_correct": 7.0,
+     "accuracy_attempted": 0.00027261751762277527,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.00027261751762277527,
+     "chance": 0.01,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 100.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 7,
+     "by_band": {
+      "1": 0.0002354603249352484,
+      "2-4": 0.0001971608832807571,
+      "20+": 0.0016246953696181965,
+      "5-19": 0.0
+     },
+     "prior": "German given names (male) top-100",
+     "prior_kind": "external",
+     "prior_size": 100,
+     "prior_vintage": "1930-1969",
+     "prior_provenance": "Stadt Bielefeld Einwohnermelderegister, CC BY 4.0; truncated to the 100 commonest"
+    },
+    {
+     "observed": 25677,
+     "attempted": 25677,
+     "abstained": 0,
+     "correct_1_to_1": 7,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 25670,
+     "correct": 7,
+     "expected_correct": 7.0,
+     "accuracy_attempted": 0.00027261751762277527,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.00027261751762277527,
+     "chance": 0.0018248175182481751,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 548.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 7,
+     "by_band": {
+      "1": 0.0002354603249352484,
+      "2-4": 0.0001971608832807571,
+      "20+": 0.0016246953696181965,
+      "5-19": 0.0
+     },
+     "prior": "German given names (male)",
+     "prior_kind": "external",
+     "prior_size": 548,
+     "prior_vintage": "1930-1969",
+     "prior_provenance": "Stadt Bielefeld Einwohnermelderegister, CC BY 4.0"
+    },
+    {
+     "observed": 25677,
+     "attempted": 25677,
+     "abstained": 0,
+     "correct_1_to_1": 7,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 25670,
+     "correct": 7,
+     "expected_correct": 7.0,
+     "accuracy_attempted": 0.00027261751762277527,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.00027261751762277527,
+     "chance": 0.01,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 100.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 7,
+     "by_band": {
+      "1": 0.0002354603249352484,
+      "2-4": 0.0001971608832807571,
+      "20+": 0.0016246953696181965,
+      "5-19": 0.0
+     },
+     "prior": "German given names (female) top-100",
+     "prior_kind": "external",
+     "prior_size": 100,
+     "prior_vintage": "1930-1969",
+     "prior_provenance": "Stadt Bielefeld Einwohnermelderegister, CC BY 4.0; truncated to the 100 commonest"
+    },
+    {
+     "observed": 25677,
+     "attempted": 25677,
+     "abstained": 0,
+     "correct_1_to_1": 7,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 25670,
+     "correct": 7,
+     "expected_correct": 7.0,
+     "accuracy_attempted": 0.00027261751762277527,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.00027261751762277527,
+     "chance": 0.0016750418760469012,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 597.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 7,
+     "by_band": {
+      "1": 0.0002354603249352484,
+      "2-4": 0.0001971608832807571,
+      "20+": 0.0016246953696181965,
+      "5-19": 0.0
+     },
+     "prior": "German given names (female)",
+     "prior_kind": "external",
+     "prior_size": 597,
+     "prior_vintage": "1930-1969",
+     "prior_provenance": "Stadt Bielefeld Einwohnermelderegister, CC BY 4.0"
+    }
+   ],
+   "intersection": {
+    "token_recall": 0.0001822685810390966,
+    "entity_recall": 9.864202808009732e-05,
+    "precision": 1.0,
+    "information_weighted_precision": 1.0,
+    "replacements": 22,
+    "documents_missing_a_detector": 327,
+    "a2_bound_correct_by_alignment": 0,
+    "a2_bound_undetected_recovered": 7,
+    "a2_bound_observed": 20424,
+    "a2_bound_chance": 0.05263157894736842,
+    "a2_bound_prior_size": 19,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 7,
+    "a2_real_observed": 20424,
+    "a2_real_chance": 1.823819077147547e-05,
+    "a2_real_prior": "German surnames",
+    "a2_real_prior_size": 54830,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.0003427340383862123,
+    "a2_real_mean_candidate_set": 54830.0,
+    "a2_rho": null,
+    "a3_ceiling_rank1": 0.0273224043715847,
+    "a3_gallery": 207,
+    "a3_queries": 6,
+    "a3f_rank1": 0.0,
+    "a3f_rank1_sd": 0.0,
+    "a3f_rank5": 0.1,
+    "a3f_rank5_sd": 0.22360679774997896,
+    "a3f_map": 0.05018690517142529,
+    "a3f_map_sd": 0.05665323788424045,
+    "a5_rank1": 0.0,
+    "a5_rank1_sd": 0.0,
+    "a5_rank5": 0.1,
+    "a5_rank5_sd": 0.22360679774997896,
+    "a5_map": 0.03859649122807017,
+    "a5_map_sd": 0.08630437807893925,
+    "a5_folds": 5,
+    "relational_note": null
+   },
+   "vote2": {
+    "token_recall": 0.9079543665752562,
+    "entity_recall": 0.839147732877388,
+    "precision": 0.908857946110913,
+    "information_weighted_precision": 0.908857946110913,
+    "replacements": 30276,
+    "documents_missing_a_detector": 327,
+    "a2_bound_correct_by_alignment": 1,
+    "a2_bound_undetected_recovered": 75,
+    "a2_bound_observed": 20731,
+    "a2_bound_chance": 0.0009250693802035153,
+    "a2_bound_prior_size": 1081,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 75,
+    "a2_real_observed": 20731,
+    "a2_real_chance": 1.823819077147547e-05,
+    "a2_real_prior": "German surnames",
+    "a2_real_prior_size": 54830,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.0036177704886402005,
+    "a2_real_mean_candidate_set": 54830.0,
+    "a2_rho": 0.8012841589763514,
+    "a3_ceiling_rank1": 0.0273224043715847,
+    "a3_gallery": 207,
+    "a3_queries": 73,
+    "a3f_rank1": 0.04,
+    "a3f_rank1_sd": 0.05962847939999439,
+    "a3f_rank5": 0.13428571428571429,
+    "a3f_rank5_sd": 0.1241022181277099,
+    "a3f_map": 0.11042083824349158,
+    "a3f_map_sd": 0.0727327694122356,
+    "a5_rank1": 0.04,
+    "a5_rank1_sd": 0.05962847939999439,
+    "a5_rank5": 0.1476190476190476,
+    "a5_rank5_sd": 0.14388518980702977,
+    "a5_map": 0.10978772010159765,
+    "a5_map_sd": 0.07050734315577985,
+    "a5_folds": 5,
+    "relational_note": null
+   },
+   "vote3": {
+    "token_recall": 0.9009204563342474,
+    "entity_recall": 0.8248775194818005,
+    "precision": 0.9743295671418459,
+    "information_weighted_precision": 0.9743295671418459,
+    "replacements": 26226,
+    "documents_missing_a_detector": 327,
+    "a2_bound_correct_by_alignment": 1,
+    "a2_bound_undetected_recovered": 79,
+    "a2_bound_observed": 20226,
+    "a2_bound_chance": 0.0011890606420927466,
+    "a2_bound_prior_size": 841,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 79,
+    "a2_real_observed": 20226,
+    "a2_real_chance": 1.823819077147547e-05,
+    "a2_real_prior": "German surnames",
+    "a2_real_prior_size": 54830,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.0039058637397409277,
+    "a2_real_mean_candidate_set": 54830.0,
+    "a2_rho": 0.745292407873824,
+    "a3_ceiling_rank1": 0.0273224043715847,
+    "a3_gallery": 207,
+    "a3_queries": 75,
+    "a3f_rank1": 0.026666666666666665,
+    "a3f_rank1_sd": 0.03651483716701107,
+    "a3f_rank5": 0.16,
+    "a3f_rank5_sd": 0.0760116950066092,
+    "a3f_map": 0.11176184112905503,
+    "a3f_map_sd": 0.0364463921339691,
+    "a5_rank1": 0.04,
+    "a5_rank1_sd": 0.03651483716701107,
+    "a5_rank5": 0.16,
+    "a5_rank5_sd": 0.0760116950066092,
+    "a5_map": 0.11916990950425148,
+    "a5_map_sd": 0.03266400365344309,
+    "a5_folds": 5,
+    "relational_note": null
+   }
+  },
+  "tab": {
+   "union": {
+    "token_recall": 0.9251262698202561,
+    "entity_recall": 0.9262515118440072,
+    "precision": 0.5440377948286362,
+    "information_weighted_precision": 0.5440377948286362,
+    "replacements": 162285,
+    "documents_missing_a_detector": 736,
+    "a2_bound_correct_by_alignment": 1,
+    "a2_bound_undetected_recovered": 95,
+    "a2_bound_observed": 20147,
+    "a2_bound_chance": 0.00010319917440660474,
+    "a2_bound_prior_size": 9690,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 95,
+    "a2_real_observed": 20147,
+    "a2_real_chance": 6.16370808678501e-06,
+    "a2_real_prior": "US Census 2010 surnames",
+    "a2_real_prior_size": 162240,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.004715342234575867,
+    "a2_real_mean_candidate_set": 162240.0,
+    "a2_rho": 0.8487917692165491,
+    "a3_ceiling_rank1": null,
+    "a3_gallery": null,
+    "a3_queries": null,
+    "a3f_rank1": null,
+    "a3f_rank1_sd": null,
+    "a3f_rank5": null,
+    "a3f_rank5_sd": null,
+    "a3f_map": null,
+    "a3f_map_sd": null,
+    "a5_rank1": null,
+    "a5_rank1_sd": null,
+    "a5_rank5": null,
+    "a5_rank5_sd": null,
+    "a5_map": null,
+    "a5_map_sd": null,
+    "a5_folds": null,
+    "relational_note": "no PERSON identity appears in both the gallery and the query half of the document-disjoint split (4160 and 4541 identities, 0 shared) \u2014 co-reference in this corpus is document-scoped, so a cross-document linkage attack has no true match to find"
+   },
+   "_bands": {
+    "1": 0.0022983392645314353,
+    "2-4": 0.0071130733382389014,
+    "20+": 0.015625,
+    "5-19": 0.013230429988974642
+   },
+   "_abstention": [
+    {
+     "prior": "corpus-internal",
+     "phi": 0.0,
+     "attempted": 20147,
+     "abstained": 0,
+     "accuracy_attempted": 0.004764977415992456,
+     "c_at_1": 0.004764977415992456,
+     "lift_over_chance": 0.4832435667265111
+    },
+    {
+     "prior": "corpus-internal",
+     "phi": 0.05,
+     "attempted": 0,
+     "abstained": 20147,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "corpus-internal",
+     "phi": 0.25,
+     "attempted": 0,
+     "abstained": 20147,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "corpus-internal",
+     "phi": 1.5,
+     "attempted": 0,
+     "abstained": 20147,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "US Census 2010 surnames",
+     "phi": 0.0,
+     "attempted": 20147,
+     "abstained": 0,
+     "accuracy_attempted": 0.004715342234575867,
+     "c_at_1": 0.004715342234575867,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "US Census 2010 surnames",
+     "phi": 0.05,
+     "attempted": 34,
+     "abstained": 20113,
+     "accuracy_attempted": 0.029411764705882353,
+     "c_at_1": 9.91865986912114e-05,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "US Census 2010 surnames",
+     "phi": 0.25,
+     "attempted": 27,
+     "abstained": 20120,
+     "accuracy_attempted": 0.037037037037037035,
+     "c_at_1": 9.92038442498512e-05,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "US Census 2010 surnames",
+     "phi": 1.5,
+     "attempted": 0,
+     "abstained": 20147,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "UCI given names",
+     "phi": 0.0,
+     "attempted": 20147,
+     "abstained": 0,
+     "accuracy_attempted": 0.004715342234575867,
+     "c_at_1": 0.004715342234575867,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "UCI given names",
+     "phi": 0.05,
+     "attempted": 7,
+     "abstained": 20140,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "UCI given names",
+     "phi": 0.25,
+     "attempted": 0,
+     "abstained": 20147,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "UCI given names",
+     "phi": 1.5,
+     "attempted": 0,
+     "abstained": 20147,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    }
+   ],
+   "_prior_sweep": [
+    {
+     "observed": 20147,
+     "attempted": 20147,
+     "abstained": 0,
+     "correct_1_to_1": 95,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 20052,
+     "correct": 95,
+     "expected_correct": 95.0,
+     "accuracy_attempted": 0.004715342234575867,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.004715342234575867,
+     "chance": 0.01,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 100.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 95,
+     "by_band": {
+      "1": 0.0022983392645314353,
+      "2-4": 0.006867794947265146,
+      "20+": 0.015625,
+      "5-19": 0.013230429988974642
+     },
+     "prior": "US Census 2010 surnames top-100",
+     "prior_kind": "external",
+     "prior_size": 100,
+     "prior_vintage": "2010",
+     "prior_provenance": "US Census 2010, 162,253 surnames covering 90 % of those recorded; public domain under 17 U.S.C. 105; truncated to the 100 commonest"
+    },
+    {
+     "observed": 20147,
+     "attempted": 20147,
+     "abstained": 0,
+     "correct_1_to_1": 95,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 20052,
+     "correct": 95,
+     "expected_correct": 95.0,
+     "accuracy_attempted": 0.004715342234575867,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.004715342234575867,
+     "chance": 0.001,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 1000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 95,
+     "by_band": {
+      "1": 0.0022983392645314353,
+      "2-4": 0.006867794947265146,
+      "20+": 0.015625,
+      "5-19": 0.013230429988974642
+     },
+     "prior": "US Census 2010 surnames top-1,000",
+     "prior_kind": "external",
+     "prior_size": 1000,
+     "prior_vintage": "2010",
+     "prior_provenance": "US Census 2010, 162,253 surnames covering 90 % of those recorded; public domain under 17 U.S.C. 105; truncated to the 1,000 commonest"
+    },
+    {
+     "observed": 20147,
+     "attempted": 20147,
+     "abstained": 0,
+     "correct_1_to_1": 95,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 20052,
+     "correct": 95,
+     "expected_correct": 95.0,
+     "accuracy_attempted": 0.004715342234575867,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.004715342234575867,
+     "chance": 0.0001,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 10000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 95,
+     "by_band": {
+      "1": 0.0022983392645314353,
+      "2-4": 0.006867794947265146,
+      "20+": 0.015625,
+      "5-19": 0.013230429988974642
+     },
+     "prior": "US Census 2010 surnames top-10,000",
+     "prior_kind": "external",
+     "prior_size": 10000,
+     "prior_vintage": "2010",
+     "prior_provenance": "US Census 2010, 162,253 surnames covering 90 % of those recorded; public domain under 17 U.S.C. 105; truncated to the 10,000 commonest"
+    },
+    {
+     "observed": 20147,
+     "attempted": 20147,
+     "abstained": 0,
+     "correct_1_to_1": 95,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 20052,
+     "correct": 95,
+     "expected_correct": 95.0,
+     "accuracy_attempted": 0.004715342234575867,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.004715342234575867,
+     "chance": 6.16370808678501e-06,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 162240.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 95,
+     "by_band": {
+      "1": 0.0022983392645314353,
+      "2-4": 0.006867794947265146,
+      "20+": 0.015625,
+      "5-19": 0.013230429988974642
+     },
+     "prior": "US Census 2010 surnames",
+     "prior_kind": "external",
+     "prior_size": 162240,
+     "prior_vintage": "2010",
+     "prior_provenance": "US Census 2010, 162,253 surnames covering 90 % of those recorded; public domain under 17 U.S.C. 105"
+    },
+    {
+     "observed": 20147,
+     "attempted": 20147,
+     "abstained": 0,
+     "correct_1_to_1": 95,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 20052,
+     "correct": 95,
+     "expected_correct": 95.0,
+     "accuracy_attempted": 0.004715342234575867,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.004715342234575867,
+     "chance": 0.01,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 100.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 95,
+     "by_band": {
+      "1": 0.0022983392645314353,
+      "2-4": 0.006867794947265146,
+      "20+": 0.015625,
+      "5-19": 0.013230429988974642
+     },
+     "prior": "UCI given names top-100",
+     "prior_kind": "external",
+     "prior_size": 100,
+     "prior_vintage": "1880-2019",
+     "prior_provenance": "UCI Gender by Name, CC BY 4.0, DOI 10.24432/C55G7X; truncated to the 100 commonest"
+    },
+    {
+     "observed": 20147,
+     "attempted": 20147,
+     "abstained": 0,
+     "correct_1_to_1": 95,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 20052,
+     "correct": 95,
+     "expected_correct": 95.0,
+     "accuracy_attempted": 0.004715342234575867,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.004715342234575867,
+     "chance": 0.001,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 1000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 95,
+     "by_band": {
+      "1": 0.0022983392645314353,
+      "2-4": 0.006867794947265146,
+      "20+": 0.015625,
+      "5-19": 0.013230429988974642
+     },
+     "prior": "UCI given names top-1,000",
+     "prior_kind": "external",
+     "prior_size": 1000,
+     "prior_vintage": "1880-2019",
+     "prior_provenance": "UCI Gender by Name, CC BY 4.0, DOI 10.24432/C55G7X; truncated to the 1,000 commonest"
+    },
+    {
+     "observed": 20147,
+     "attempted": 20147,
+     "abstained": 0,
+     "correct_1_to_1": 95,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 20052,
+     "correct": 95,
+     "expected_correct": 95.0,
+     "accuracy_attempted": 0.004715342234575867,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.004715342234575867,
+     "chance": 0.0001,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 10000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 95,
+     "by_band": {
+      "1": 0.0022983392645314353,
+      "2-4": 0.006867794947265146,
+      "20+": 0.015625,
+      "5-19": 0.013230429988974642
+     },
+     "prior": "UCI given names top-10,000",
+     "prior_kind": "external",
+     "prior_size": 10000,
+     "prior_vintage": "1880-2019",
+     "prior_provenance": "UCI Gender by Name, CC BY 4.0, DOI 10.24432/C55G7X; truncated to the 10,000 commonest"
+    },
+    {
+     "observed": 20147,
+     "attempted": 20147,
+     "abstained": 0,
+     "correct_1_to_1": 95,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 20052,
+     "correct": 95,
+     "expected_correct": 95.0,
+     "accuracy_attempted": 0.004715342234575867,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.004715342234575867,
+     "chance": 7.480942299492044e-06,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 133673.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 95,
+     "by_band": {
+      "1": 0.0022983392645314353,
+      "2-4": 0.006867794947265146,
+      "20+": 0.015625,
+      "5-19": 0.013230429988974642
+     },
+     "prior": "UCI given names",
+     "prior_kind": "external",
+     "prior_size": 133673,
+     "prior_vintage": "1880-2019",
+     "prior_provenance": "UCI Gender by Name, CC BY 4.0, DOI 10.24432/C55G7X"
+    }
+   ],
+   "intersection": {
+    "token_recall": 0.0032409533161957176,
+    "entity_recall": 1.474969763119856e-05,
+    "precision": 0.9928131416837782,
+    "information_weighted_precision": 0.9928131416837782,
+    "replacements": 729,
+    "documents_missing_a_detector": 736,
+    "a2_bound_correct_by_alignment": 0,
+    "a2_bound_undetected_recovered": 71,
+    "a2_bound_observed": 16832,
+    "a2_bound_chance": 0.00273224043715847,
+    "a2_bound_prior_size": 366,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 71,
+    "a2_real_observed": 16832,
+    "a2_real_chance": 6.16370808678501e-06,
+    "a2_real_prior": "US Census 2010 surnames",
+    "a2_real_prior_size": 162240,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.004218155893536121,
+    "a2_real_mean_candidate_set": 162240.0,
+    "a2_rho": 0.5767507904730114,
+    "a3_ceiling_rank1": null,
+    "a3_gallery": null,
+    "a3_queries": null,
+    "a3f_rank1": null,
+    "a3f_rank1_sd": null,
+    "a3f_rank5": null,
+    "a3f_rank5_sd": null,
+    "a3f_map": null,
+    "a3f_map_sd": null,
+    "a5_rank1": null,
+    "a5_rank1_sd": null,
+    "a5_rank5": null,
+    "a5_rank5_sd": null,
+    "a5_map": null,
+    "a5_map_sd": null,
+    "a5_folds": null,
+    "relational_note": "no PERSON identity appears in both the gallery and the query half of the document-disjoint split (4160 and 4541 identities, 0 shared) \u2014 co-reference in this corpus is document-scoped, so a cross-document linkage attack has no true match to find"
+   },
+   "vote2": {
+    "token_recall": 0.8101344308557524,
+    "entity_recall": 0.7716304315761527,
+    "precision": 0.7027287104764341,
+    "information_weighted_precision": 0.7027287104764341,
+    "replacements": 130663,
+    "documents_missing_a_detector": 736,
+    "a2_bound_correct_by_alignment": 1,
+    "a2_bound_undetected_recovered": 204,
+    "a2_bound_observed": 19456,
+    "a2_bound_chance": 0.0001336005344021376,
+    "a2_bound_prior_size": 7485,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 204,
+    "a2_real_observed": 19456,
+    "a2_real_chance": 6.16370808678501e-06,
+    "a2_real_prior": "US Census 2010 surnames",
+    "a2_real_prior_size": 162240,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.010485197368421052,
+    "a2_real_mean_candidate_set": 162240.0,
+    "a2_rho": 0.9464286226228886,
+    "a3_ceiling_rank1": null,
+    "a3_gallery": null,
+    "a3_queries": null,
+    "a3f_rank1": null,
+    "a3f_rank1_sd": null,
+    "a3f_rank5": null,
+    "a3f_rank5_sd": null,
+    "a3f_map": null,
+    "a3f_map_sd": null,
+    "a5_rank1": null,
+    "a5_rank1_sd": null,
+    "a5_rank5": null,
+    "a5_rank5_sd": null,
+    "a5_map": null,
+    "a5_map_sd": null,
+    "a5_folds": null,
+    "relational_note": "no PERSON identity appears in both the gallery and the query half of the document-disjoint split (4160 and 4541 identities, 0 shared) \u2014 co-reference in this corpus is document-scoped, so a cross-document linkage attack has no true match to find"
+   },
+   "vote3": {
+    "token_recall": 0.7380089754632686,
+    "entity_recall": 0.7186790170801498,
+    "precision": 0.8785013544621448,
+    "information_weighted_precision": 0.8785013544621448,
+    "replacements": 85093,
+    "documents_missing_a_detector": 736,
+    "a2_bound_correct_by_alignment": 1,
+    "a2_bound_undetected_recovered": 176,
+    "a2_bound_observed": 17154,
+    "a2_bound_chance": 0.00016672224074691563,
+    "a2_bound_prior_size": 5998,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 176,
+    "a2_real_observed": 17154,
+    "a2_real_chance": 6.16370808678501e-06,
+    "a2_real_prior": "US Census 2010 surnames",
+    "a2_real_prior_size": 162240,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.010259997668182348,
+    "a2_real_mean_candidate_set": 162240.0,
+    "a2_rho": 0.946657772280946,
+    "a3_ceiling_rank1": null,
+    "a3_gallery": null,
+    "a3_queries": null,
+    "a3f_rank1": null,
+    "a3f_rank1_sd": null,
+    "a3f_rank5": null,
+    "a3f_rank5_sd": null,
+    "a3f_map": null,
+    "a3f_map_sd": null,
+    "a5_rank1": null,
+    "a5_rank1_sd": null,
+    "a5_rank5": null,
+    "a5_rank5_sd": null,
+    "a5_map": null,
+    "a5_map_sd": null,
+    "a5_folds": null,
+    "relational_note": "no PERSON identity appears in both the gallery and the query half of the document-disjoint split (4160 and 4541 identities, 0 shared) \u2014 co-reference in this corpus is document-scoped, so a cross-document linkage attack has no true match to find"
+   }
+  },
+  "ontonotes": {
+   "union": {
+    "token_recall": 0.7222555862987069,
+    "entity_recall": 0.761066166935774,
+    "precision": 0.6619469994123194,
+    "information_weighted_precision": 0.6619469994123194,
+    "replacements": 291493,
+    "documents_missing_a_detector": 3489,
+    "a2_bound_correct_by_alignment": 1,
+    "a2_bound_undetected_recovered": 166,
+    "a2_bound_observed": 28153,
+    "a2_bound_chance": 3.46092614383609e-05,
+    "a2_bound_prior_size": 28894,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 166,
+    "a2_real_observed": 28153,
+    "a2_real_chance": 6.16370808678501e-06,
+    "a2_real_prior": "US Census 2010 surnames",
+    "a2_real_prior_size": 162240,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.005896352076155294,
+    "a2_real_mean_candidate_set": 162240.0,
+    "a2_rho": 0.788787387861662,
+    "a3_ceiling_rank1": null,
+    "a3_gallery": null,
+    "a3_queries": null,
+    "a3f_rank1": null,
+    "a3f_rank1_sd": null,
+    "a3f_rank5": null,
+    "a3f_rank5_sd": null,
+    "a3f_map": null,
+    "a3f_map_sd": null,
+    "a5_rank1": null,
+    "a5_rank1_sd": null,
+    "a5_rank5": null,
+    "a5_rank5_sd": null,
+    "a5_map": null,
+    "a5_map_sd": null,
+    "a5_folds": null,
+    "relational_note": "no PERSON identity appears in both the gallery and the query half of the document-disjoint split (6661 and 6569 identities, 0 shared) \u2014 co-reference in this corpus is document-scoped, so a cross-document linkage attack has no true match to find"
+   },
+   "_bands": {
+    "1": 0.00389321468298109,
+    "2-4": 0.008243500317057704,
+    "20+": 0.010804321728691477,
+    "5-19": 0.011873350923482849
+   },
+   "_abstention": [
+    {
+     "prior": "corpus-internal",
+     "phi": 0.0,
+     "attempted": 28153,
+     "abstained": 0,
+     "accuracy_attempted": 0.005931872269385146,
+     "c_at_1": 0.005931872269385146,
+     "lift_over_chance": 1.032407903669561
+    },
+    {
+     "prior": "corpus-internal",
+     "phi": 0.05,
+     "attempted": 0,
+     "abstained": 28153,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "corpus-internal",
+     "phi": 0.25,
+     "attempted": 0,
+     "abstained": 28153,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "corpus-internal",
+     "phi": 1.5,
+     "attempted": 0,
+     "abstained": 28153,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "US Census 2010 surnames",
+     "phi": 0.0,
+     "attempted": 28153,
+     "abstained": 0,
+     "accuracy_attempted": 0.005896352076155294,
+     "c_at_1": 0.005896352076155294,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "US Census 2010 surnames",
+     "phi": 0.05,
+     "attempted": 17,
+     "abstained": 28136,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "US Census 2010 surnames",
+     "phi": 0.25,
+     "attempted": 12,
+     "abstained": 28141,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "US Census 2010 surnames",
+     "phi": 1.5,
+     "attempted": 0,
+     "abstained": 28153,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "UCI given names",
+     "phi": 0.0,
+     "attempted": 28153,
+     "abstained": 0,
+     "accuracy_attempted": 0.005896352076155294,
+     "c_at_1": 0.005896352076155294,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "UCI given names",
+     "phi": 0.05,
+     "attempted": 7,
+     "abstained": 28146,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "UCI given names",
+     "phi": 0.25,
+     "attempted": 0,
+     "abstained": 28153,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "UCI given names",
+     "phi": 1.5,
+     "attempted": 0,
+     "abstained": 28153,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    }
+   ],
+   "_prior_sweep": [
+    {
+     "observed": 28153,
+     "attempted": 28153,
+     "abstained": 0,
+     "correct_1_to_1": 166,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 27987,
+     "correct": 166,
+     "expected_correct": 166.0,
+     "accuracy_attempted": 0.005896352076155294,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.005896352076155294,
+     "chance": 0.01,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 100.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 166,
+     "by_band": {
+      "1": 0.0038375973303670747,
+      "2-4": 0.008243500317057704,
+      "20+": 0.010804321728691477,
+      "5-19": 0.011873350923482849
+     },
+     "prior": "US Census 2010 surnames top-100",
+     "prior_kind": "external",
+     "prior_size": 100,
+     "prior_vintage": "2010",
+     "prior_provenance": "US Census 2010, 162,253 surnames covering 90 % of those recorded; public domain under 17 U.S.C. 105; truncated to the 100 commonest"
+    },
+    {
+     "observed": 28153,
+     "attempted": 28153,
+     "abstained": 0,
+     "correct_1_to_1": 167,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 27986,
+     "correct": 167,
+     "expected_correct": 167.0,
+     "accuracy_attempted": 0.005931872269385146,
+     "correct_by_alignment": 1,
+     "accuracy_alignment": 3.5730875049129956e-05,
+     "c_at_1": 0.005931872269385146,
+     "chance": 0.001,
+     "lift_over_chance": 0.03573087504912995,
+     "mean_candidate_set": 1000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 166,
+     "by_band": {
+      "1": 0.0038375973303670747,
+      "2-4": 0.008402029169308814,
+      "20+": 0.010804321728691477,
+      "5-19": 0.011873350923482849
+     },
+     "prior": "US Census 2010 surnames top-1,000",
+     "prior_kind": "external",
+     "prior_size": 1000,
+     "prior_vintage": "2010",
+     "prior_provenance": "US Census 2010, 162,253 surnames covering 90 % of those recorded; public domain under 17 U.S.C. 105; truncated to the 1,000 commonest"
+    },
+    {
+     "observed": 28153,
+     "attempted": 28153,
+     "abstained": 0,
+     "correct_1_to_1": 166,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 27987,
+     "correct": 166,
+     "expected_correct": 166.0,
+     "accuracy_attempted": 0.005896352076155294,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.005896352076155294,
+     "chance": 0.0001,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 10000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 166,
+     "by_band": {
+      "1": 0.0038375973303670747,
+      "2-4": 0.008243500317057704,
+      "20+": 0.010804321728691477,
+      "5-19": 0.011873350923482849
+     },
+     "prior": "US Census 2010 surnames top-10,000",
+     "prior_kind": "external",
+     "prior_size": 10000,
+     "prior_vintage": "2010",
+     "prior_provenance": "US Census 2010, 162,253 surnames covering 90 % of those recorded; public domain under 17 U.S.C. 105; truncated to the 10,000 commonest"
+    },
+    {
+     "observed": 28153,
+     "attempted": 28153,
+     "abstained": 0,
+     "correct_1_to_1": 166,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 27987,
+     "correct": 166,
+     "expected_correct": 166.0,
+     "accuracy_attempted": 0.005896352076155294,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.005896352076155294,
+     "chance": 6.16370808678501e-06,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 162240.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 166,
+     "by_band": {
+      "1": 0.0038375973303670747,
+      "2-4": 0.008243500317057704,
+      "20+": 0.010804321728691477,
+      "5-19": 0.011873350923482849
+     },
+     "prior": "US Census 2010 surnames",
+     "prior_kind": "external",
+     "prior_size": 162240,
+     "prior_vintage": "2010",
+     "prior_provenance": "US Census 2010, 162,253 surnames covering 90 % of those recorded; public domain under 17 U.S.C. 105"
+    },
+    {
+     "observed": 28153,
+     "attempted": 28153,
+     "abstained": 0,
+     "correct_1_to_1": 166,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 27987,
+     "correct": 166,
+     "expected_correct": 166.0,
+     "accuracy_attempted": 0.005896352076155294,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.005896352076155294,
+     "chance": 0.01,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 100.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 166,
+     "by_band": {
+      "1": 0.0038375973303670747,
+      "2-4": 0.008243500317057704,
+      "20+": 0.010804321728691477,
+      "5-19": 0.011873350923482849
+     },
+     "prior": "UCI given names top-100",
+     "prior_kind": "external",
+     "prior_size": 100,
+     "prior_vintage": "1880-2019",
+     "prior_provenance": "UCI Gender by Name, CC BY 4.0, DOI 10.24432/C55G7X; truncated to the 100 commonest"
+    },
+    {
+     "observed": 28153,
+     "attempted": 28153,
+     "abstained": 0,
+     "correct_1_to_1": 166,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 27987,
+     "correct": 166,
+     "expected_correct": 166.0,
+     "accuracy_attempted": 0.005896352076155294,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.005896352076155294,
+     "chance": 0.001,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 1000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 166,
+     "by_band": {
+      "1": 0.0038375973303670747,
+      "2-4": 0.008243500317057704,
+      "20+": 0.010804321728691477,
+      "5-19": 0.011873350923482849
+     },
+     "prior": "UCI given names top-1,000",
+     "prior_kind": "external",
+     "prior_size": 1000,
+     "prior_vintage": "1880-2019",
+     "prior_provenance": "UCI Gender by Name, CC BY 4.0, DOI 10.24432/C55G7X; truncated to the 1,000 commonest"
+    },
+    {
+     "observed": 28153,
+     "attempted": 28153,
+     "abstained": 0,
+     "correct_1_to_1": 166,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 27987,
+     "correct": 166,
+     "expected_correct": 166.0,
+     "accuracy_attempted": 0.005896352076155294,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.005896352076155294,
+     "chance": 0.0001,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 10000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 166,
+     "by_band": {
+      "1": 0.0038375973303670747,
+      "2-4": 0.008243500317057704,
+      "20+": 0.010804321728691477,
+      "5-19": 0.011873350923482849
+     },
+     "prior": "UCI given names top-10,000",
+     "prior_kind": "external",
+     "prior_size": 10000,
+     "prior_vintage": "1880-2019",
+     "prior_provenance": "UCI Gender by Name, CC BY 4.0, DOI 10.24432/C55G7X; truncated to the 10,000 commonest"
+    },
+    {
+     "observed": 28153,
+     "attempted": 28153,
+     "abstained": 0,
+     "correct_1_to_1": 166,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 27987,
+     "correct": 166,
+     "expected_correct": 166.0,
+     "accuracy_attempted": 0.005896352076155294,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.005896352076155294,
+     "chance": 7.480942299492044e-06,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 133673.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 166,
+     "by_band": {
+      "1": 0.0038375973303670747,
+      "2-4": 0.008243500317057704,
+      "20+": 0.010804321728691477,
+      "5-19": 0.011873350923482849
+     },
+     "prior": "UCI given names",
+     "prior_kind": "external",
+     "prior_size": 133673,
+     "prior_vintage": "1880-2019",
+     "prior_provenance": "UCI Gender by Name, CC BY 4.0, DOI 10.24432/C55G7X"
+    }
+   ],
+   "intersection": {
+    "token_recall": 0.002025342539107141,
+    "entity_recall": 0.0003220921769248145,
+    "precision": 0.9907161803713528,
+    "information_weighted_precision": 0.9907161803713528,
+    "replacements": 1259,
+    "documents_missing_a_detector": 3489,
+    "a2_bound_correct_by_alignment": 0,
+    "a2_bound_undetected_recovered": 127,
+    "a2_bound_observed": 34976,
+    "a2_bound_chance": 0.0017391304347826088,
+    "a2_bound_prior_size": 575,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 127,
+    "a2_real_observed": 34976,
+    "a2_real_chance": 6.16370808678501e-06,
+    "a2_real_prior": "US Census 2010 surnames",
+    "a2_real_prior_size": 162240,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.003631061299176578,
+    "a2_real_mean_candidate_set": 162240.0,
+    "a2_rho": 0.3896159456640396,
+    "a3_ceiling_rank1": null,
+    "a3_gallery": null,
+    "a3_queries": null,
+    "a3f_rank1": null,
+    "a3f_rank1_sd": null,
+    "a3f_rank5": null,
+    "a3f_rank5_sd": null,
+    "a3f_map": null,
+    "a3f_map_sd": null,
+    "a5_rank1": null,
+    "a5_rank1_sd": null,
+    "a5_rank5": null,
+    "a5_rank5_sd": null,
+    "a5_map": null,
+    "a5_map_sd": null,
+    "a5_folds": null,
+    "relational_note": "no PERSON identity appears in both the gallery and the query half of the document-disjoint split (6661 and 6569 identities, 0 shared) \u2014 co-reference in this corpus is document-scoped, so a cross-document linkage attack has no true match to find"
+   },
+   "vote2": {
+    "token_recall": 0.49598117271942227,
+    "entity_recall": 0.5261480285448963,
+    "precision": 0.8367724081147222,
+    "information_weighted_precision": 0.8367724081147222,
+    "replacements": 178224,
+    "documents_missing_a_detector": 3489,
+    "a2_bound_correct_by_alignment": 0,
+    "a2_bound_undetected_recovered": 284,
+    "a2_bound_observed": 32950,
+    "a2_bound_chance": 4.6724605177086255e-05,
+    "a2_bound_prior_size": 21402,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 284,
+    "a2_real_observed": 32950,
+    "a2_real_chance": 6.16370808678501e-06,
+    "a2_real_prior": "US Census 2010 surnames",
+    "a2_real_prior_size": 162240,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.008619119878603945,
+    "a2_real_mean_candidate_set": 162240.0,
+    "a2_rho": 0.9200500268904476,
+    "a3_ceiling_rank1": null,
+    "a3_gallery": null,
+    "a3_queries": null,
+    "a3f_rank1": null,
+    "a3f_rank1_sd": null,
+    "a3f_rank5": null,
+    "a3f_rank5_sd": null,
+    "a3f_map": null,
+    "a3f_map_sd": null,
+    "a5_rank1": null,
+    "a5_rank1_sd": null,
+    "a5_rank5": null,
+    "a5_rank5_sd": null,
+    "a5_map": null,
+    "a5_map_sd": null,
+    "a5_folds": null,
+    "relational_note": "no PERSON identity appears in both the gallery and the query half of the document-disjoint split (6661 and 6569 identities, 0 shared) \u2014 co-reference in this corpus is document-scoped, so a cross-document linkage attack has no true match to find"
+   },
+   "vote3": {
+    "token_recall": 0.36945691266760927,
+    "entity_recall": 0.4121524960052204,
+    "precision": 0.9026267590939652,
+    "information_weighted_precision": 0.9026267590939652,
+    "replacements": 129934,
+    "documents_missing_a_detector": 3489,
+    "a2_bound_correct_by_alignment": 0,
+    "a2_bound_undetected_recovered": 322,
+    "a2_bound_observed": 31760,
+    "a2_bound_chance": 5.299136240792751e-05,
+    "a2_bound_prior_size": 18871,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 322,
+    "a2_real_observed": 31760,
+    "a2_real_chance": 6.16370808678501e-06,
+    "a2_real_prior": "US Census 2010 surnames",
+    "a2_real_prior_size": 162240,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.010138539042821158,
+    "a2_real_mean_candidate_set": 162240.0,
+    "a2_rho": 0.9158102915100802,
+    "a3_ceiling_rank1": null,
+    "a3_gallery": null,
+    "a3_queries": null,
+    "a3f_rank1": null,
+    "a3f_rank1_sd": null,
+    "a3f_rank5": null,
+    "a3f_rank5_sd": null,
+    "a3f_map": null,
+    "a3f_map_sd": null,
+    "a5_rank1": null,
+    "a5_rank1_sd": null,
+    "a5_rank5": null,
+    "a5_rank5_sd": null,
+    "a5_map": null,
+    "a5_map_sd": null,
+    "a5_folds": null,
+    "relational_note": "no PERSON identity appears in both the gallery and the query half of the document-disjoint split (6661 and 6569 identities, 0 shared) \u2014 co-reference in this corpus is document-scoped, so a cross-document linkage attack has no true match to find"
+   }
+  },
+  "enron": {
+   "intersection": {
+    "token_recall": 0.007773252109355596,
+    "entity_recall": 0.0002304640167264606,
+    "precision": 0.8378617248752673,
+    "information_weighted_precision": 0.8378617248752673,
+    "replacements": 34402,
+    "documents_missing_a_detector": 12505,
+    "a2_bound_correct_by_alignment": 0,
+    "a2_bound_undetected_recovered": 735,
+    "a2_bound_observed": 90019,
+    "a2_bound_chance": 0.0007855459544383347,
+    "a2_bound_prior_size": 1273,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 735,
+    "a2_real_observed": 90019,
+    "a2_real_chance": 6.16370808678501e-06,
+    "a2_real_prior": "US Census 2010 surnames",
+    "a2_real_prior_size": 162240,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.008164942956486964,
+    "a2_real_mean_candidate_set": 162240.0,
+    "a2_rho": 0.4408479289722474,
+    "a3_ceiling_rank1": 0.705720920413764,
+    "a3_gallery": 3816,
+    "a3_queries": 496,
+    "a3f_rank1": 0.23795959595959598,
+    "a3f_rank1_sd": 0.039872539500049944,
+    "a3f_rank5": 0.4072323232323233,
+    "a3f_rank5_sd": 0.038462545566935936,
+    "a3f_map": 0.31556882174937256,
+    "a3f_map_sd": 0.03622612879982926,
+    "a5_rank1": 0.26816161616161616,
+    "a5_rank1_sd": 0.04561310168584822,
+    "a5_rank5": 0.4736969696969697,
+    "a5_rank5_sd": 0.05416447571562018,
+    "a5_map": 0.3614185467326007,
+    "a5_map_sd": 0.041359178549997884,
+    "a5_folds": 5,
+    "relational_note": null
+   },
+   "union": {
+    "token_recall": 0.9766564382857266,
+    "entity_recall": 0.8775356981634156,
+    "precision": 0.45550098035514835,
+    "information_weighted_precision": 0.45550098035514835,
+    "replacements": 1487379,
+    "documents_missing_a_detector": 12505,
+    "a2_bound_correct_by_alignment": 0,
+    "a2_bound_undetected_recovered": 180,
+    "a2_bound_observed": 106587,
+    "a2_bound_chance": 1.4461943395953548e-05,
+    "a2_bound_prior_size": 69147,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 180,
+    "a2_real_observed": 106587,
+    "a2_real_chance": 6.16370808678501e-06,
+    "a2_real_prior": "US Census 2010 surnames",
+    "a2_real_prior_size": 162240,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.001688761293591151,
+    "a2_real_mean_candidate_set": 162240.0,
+    "a2_rho": 0.7303485633583007,
+    "a3_ceiling_rank1": 0.705720920413764,
+    "a3_gallery": 3816,
+    "a3_queries": 19971,
+    "a3f_rank1": 0.009513857770385239,
+    "a3f_rank1_sd": 0.0012012983120966516,
+    "a3f_rank5": 0.012768614749408217,
+    "a3f_rank5_sd": 0.0014283059529682088,
+    "a3f_map": 0.011854250665274322,
+    "a3f_map_sd": 0.001138805152157919,
+    "a5_rank1": 0.04065893583804994,
+    "a5_rank1_sd": 0.0029334304458573613,
+    "a5_rank5": 0.061890019008487694,
+    "a5_rank5_sd": 0.0045642977000129896,
+    "a5_map": 0.05359902151136674,
+    "a5_map_sd": 0.002909990765203932,
+    "a5_folds": 5,
+    "relational_note": null
+   },
+   "_bands": {
+    "1": 0.0006318026478274604,
+    "2-4": 0.0013530637228581861,
+    "20+": 0.006562342251388188,
+    "5-19": 0.002907278579586751
+   },
+   "_abstention": [
+    {
+     "prior": "corpus-internal",
+     "phi": 0.0,
+     "attempted": 106587,
+     "abstained": 0,
+     "accuracy_attempted": 0.001688761293591151,
+     "c_at_1": 0.001688761293591151,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "corpus-internal",
+     "phi": 0.05,
+     "attempted": 0,
+     "abstained": 106587,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "corpus-internal",
+     "phi": 0.25,
+     "attempted": 0,
+     "abstained": 106587,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "corpus-internal",
+     "phi": 1.5,
+     "attempted": 0,
+     "abstained": 106587,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "US Census 2010 surnames",
+     "phi": 0.0,
+     "attempted": 106587,
+     "abstained": 0,
+     "accuracy_attempted": 0.001688761293591151,
+     "c_at_1": 0.001688761293591151,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "US Census 2010 surnames",
+     "phi": 0.05,
+     "attempted": 15,
+     "abstained": 106572,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "US Census 2010 surnames",
+     "phi": 0.25,
+     "attempted": 8,
+     "abstained": 106579,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "US Census 2010 surnames",
+     "phi": 1.5,
+     "attempted": 0,
+     "abstained": 106587,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "UCI given names",
+     "phi": 0.0,
+     "attempted": 106587,
+     "abstained": 0,
+     "accuracy_attempted": 0.001688761293591151,
+     "c_at_1": 0.001688761293591151,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "UCI given names",
+     "phi": 0.05,
+     "attempted": 4,
+     "abstained": 106583,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "UCI given names",
+     "phi": 0.25,
+     "attempted": 0,
+     "abstained": 106587,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    },
+    {
+     "prior": "UCI given names",
+     "phi": 1.5,
+     "attempted": 0,
+     "abstained": 106587,
+     "accuracy_attempted": 0.0,
+     "c_at_1": 0.0,
+     "lift_over_chance": 0.0
+    }
+   ],
+   "_prior_sweep": [
+    {
+     "observed": 106587,
+     "attempted": 106587,
+     "abstained": 0,
+     "correct_1_to_1": 180,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 106407,
+     "correct": 180,
+     "expected_correct": 180.0,
+     "accuracy_attempted": 0.001688761293591151,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.001688761293591151,
+     "chance": 0.01,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 100.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 180,
+     "by_band": {
+      "1": 0.0006318026478274604,
+      "2-4": 0.0013530637228581861,
+      "20+": 0.006562342251388188,
+      "5-19": 0.002907278579586751
+     },
+     "prior": "US Census 2010 surnames top-100",
+     "prior_kind": "external",
+     "prior_size": 100,
+     "prior_vintage": "2010",
+     "prior_provenance": "US Census 2010, 162,253 surnames covering 90 % of those recorded; public domain under 17 U.S.C. 105; truncated to the 100 commonest"
+    },
+    {
+     "observed": 106587,
+     "attempted": 106587,
+     "abstained": 0,
+     "correct_1_to_1": 180,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 106407,
+     "correct": 180,
+     "expected_correct": 180.0,
+     "accuracy_attempted": 0.001688761293591151,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.001688761293591151,
+     "chance": 0.001,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 1000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 180,
+     "by_band": {
+      "1": 0.0006318026478274604,
+      "2-4": 0.0013530637228581861,
+      "20+": 0.006562342251388188,
+      "5-19": 0.002907278579586751
+     },
+     "prior": "US Census 2010 surnames top-1,000",
+     "prior_kind": "external",
+     "prior_size": 1000,
+     "prior_vintage": "2010",
+     "prior_provenance": "US Census 2010, 162,253 surnames covering 90 % of those recorded; public domain under 17 U.S.C. 105; truncated to the 1,000 commonest"
+    },
+    {
+     "observed": 106587,
+     "attempted": 106587,
+     "abstained": 0,
+     "correct_1_to_1": 180,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 106407,
+     "correct": 180,
+     "expected_correct": 180.0,
+     "accuracy_attempted": 0.001688761293591151,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.001688761293591151,
+     "chance": 0.0001,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 10000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 180,
+     "by_band": {
+      "1": 0.0006318026478274604,
+      "2-4": 0.0013530637228581861,
+      "20+": 0.006562342251388188,
+      "5-19": 0.002907278579586751
+     },
+     "prior": "US Census 2010 surnames top-10,000",
+     "prior_kind": "external",
+     "prior_size": 10000,
+     "prior_vintage": "2010",
+     "prior_provenance": "US Census 2010, 162,253 surnames covering 90 % of those recorded; public domain under 17 U.S.C. 105; truncated to the 10,000 commonest"
+    },
+    {
+     "observed": 106587,
+     "attempted": 106587,
+     "abstained": 0,
+     "correct_1_to_1": 180,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 106407,
+     "correct": 180,
+     "expected_correct": 180.0,
+     "accuracy_attempted": 0.001688761293591151,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.001688761293591151,
+     "chance": 6.16370808678501e-06,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 162240.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 180,
+     "by_band": {
+      "1": 0.0006318026478274604,
+      "2-4": 0.0013530637228581861,
+      "20+": 0.006562342251388188,
+      "5-19": 0.002907278579586751
+     },
+     "prior": "US Census 2010 surnames",
+     "prior_kind": "external",
+     "prior_size": 162240,
+     "prior_vintage": "2010",
+     "prior_provenance": "US Census 2010, 162,253 surnames covering 90 % of those recorded; public domain under 17 U.S.C. 105"
+    },
+    {
+     "observed": 106587,
+     "attempted": 106587,
+     "abstained": 0,
+     "correct_1_to_1": 180,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 106407,
+     "correct": 180,
+     "expected_correct": 180.0,
+     "accuracy_attempted": 0.001688761293591151,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.001688761293591151,
+     "chance": 0.01,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 100.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 180,
+     "by_band": {
+      "1": 0.0006318026478274604,
+      "2-4": 0.0013530637228581861,
+      "20+": 0.006562342251388188,
+      "5-19": 0.002907278579586751
+     },
+     "prior": "UCI given names top-100",
+     "prior_kind": "external",
+     "prior_size": 100,
+     "prior_vintage": "1880-2019",
+     "prior_provenance": "UCI Gender by Name, CC BY 4.0, DOI 10.24432/C55G7X; truncated to the 100 commonest"
+    },
+    {
+     "observed": 106587,
+     "attempted": 106587,
+     "abstained": 0,
+     "correct_1_to_1": 180,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 106407,
+     "correct": 180,
+     "expected_correct": 180.0,
+     "accuracy_attempted": 0.001688761293591151,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.001688761293591151,
+     "chance": 0.001,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 1000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 180,
+     "by_band": {
+      "1": 0.0006318026478274604,
+      "2-4": 0.0013530637228581861,
+      "20+": 0.006562342251388188,
+      "5-19": 0.002907278579586751
+     },
+     "prior": "UCI given names top-1,000",
+     "prior_kind": "external",
+     "prior_size": 1000,
+     "prior_vintage": "1880-2019",
+     "prior_provenance": "UCI Gender by Name, CC BY 4.0, DOI 10.24432/C55G7X; truncated to the 1,000 commonest"
+    },
+    {
+     "observed": 106587,
+     "attempted": 106587,
+     "abstained": 0,
+     "correct_1_to_1": 180,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 106407,
+     "correct": 180,
+     "expected_correct": 180.0,
+     "accuracy_attempted": 0.001688761293591151,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.001688761293591151,
+     "chance": 0.0001,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 10000.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 180,
+     "by_band": {
+      "1": 0.0006318026478274604,
+      "2-4": 0.0013530637228581861,
+      "20+": 0.006562342251388188,
+      "5-19": 0.002907278579586751
+     },
+     "prior": "UCI given names top-10,000",
+     "prior_kind": "external",
+     "prior_size": 10000,
+     "prior_vintage": "1880-2019",
+     "prior_provenance": "UCI Gender by Name, CC BY 4.0, DOI 10.24432/C55G7X; truncated to the 10,000 commonest"
+    },
+    {
+     "observed": 106587,
+     "attempted": 106587,
+     "abstained": 0,
+     "correct_1_to_1": 180,
+     "correct_1_to_many": 0,
+     "correct_many_to_1": 0,
+     "correct_many_to_many": 0,
+     "wrong": 106407,
+     "correct": 180,
+     "expected_correct": 180.0,
+     "accuracy_attempted": 0.001688761293591151,
+     "correct_by_alignment": 0,
+     "accuracy_alignment": 0.0,
+     "c_at_1": 0.001688761293591151,
+     "chance": 7.480942299492044e-06,
+     "lift_over_chance": 0.0,
+     "mean_candidate_set": 133673.0,
+     "eccentricity": 0.0,
+     "undetected_recovered": 180,
+     "by_band": {
+      "1": 0.0006318026478274604,
+      "2-4": 0.0013530637228581861,
+      "20+": 0.006562342251388188,
+      "5-19": 0.002907278579586751
+     },
+     "prior": "UCI given names",
+     "prior_kind": "external",
+     "prior_size": 133673,
+     "prior_vintage": "1880-2019",
+     "prior_provenance": "UCI Gender by Name, CC BY 4.0, DOI 10.24432/C55G7X"
+    }
+   ],
+   "vote2": {
+    "token_recall": 0.8679539032501494,
+    "entity_recall": 0.6401363776758773,
+    "precision": 0.5987979282629193,
+    "information_weighted_precision": 0.5987979282629193,
+    "replacements": 1319373,
+    "documents_missing_a_detector": 12505,
+    "a2_bound_correct_by_alignment": 1,
+    "a2_bound_undetected_recovered": 1868,
+    "a2_bound_observed": 115000,
+    "a2_bound_chance": 2.5334414268342115e-05,
+    "a2_bound_prior_size": 39472,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 1868,
+    "a2_real_observed": 115000,
+    "a2_real_chance": 6.16370808678501e-06,
+    "a2_real_prior": "US Census 2010 surnames",
+    "a2_real_prior_size": 162240,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.016243478260869564,
+    "a2_real_mean_candidate_set": 162240.0,
+    "a2_rho": 0.8929196580319054,
+    "a3_ceiling_rank1": 0.705720920413764,
+    "a3_gallery": 3816,
+    "a3_queries": 9846,
+    "a3f_rank1": 0.04996919253505477,
+    "a3f_rank1_sd": 0.006436657808497447,
+    "a3f_rank5": 0.0659146723452086,
+    "a3f_rank5_sd": 0.006197573957004578,
+    "a3f_map": 0.058929276616468705,
+    "a3f_map_sd": 0.006063111644074282,
+    "a5_rank1": 0.10755615595022339,
+    "a5_rank1_sd": 0.01003573802912851,
+    "a5_rank5": 0.1645330542185603,
+    "a5_rank5_sd": 0.01106549648394759,
+    "a5_map": 0.13665152982076795,
+    "a5_map_sd": 0.010820969862699531,
+    "a5_folds": 5,
+    "relational_note": null
+   },
+   "vote3": {
+    "token_recall": 0.7605603999516486,
+    "entity_recall": 0.5253249067452304,
+    "precision": 0.6296820732033128,
+    "information_weighted_precision": 0.6296820732033128,
+    "replacements": 1146795,
+    "documents_missing_a_detector": 12505,
+    "a2_bound_correct_by_alignment": 1,
+    "a2_bound_undetected_recovered": 1934,
+    "a2_bound_observed": 110243,
+    "a2_bound_chance": 2.7842744180866465e-05,
+    "a2_bound_prior_size": 35916,
+    "a2_real_correct_by_alignment": 0,
+    "a2_real_undetected_recovered": 1934,
+    "a2_real_observed": 110243,
+    "a2_real_chance": 6.16370808678501e-06,
+    "a2_real_prior": "US Census 2010 surnames",
+    "a2_real_prior_size": 162240,
+    "a2_real_prior_vintage": "2010",
+    "a2_real_c_at_1": 0.017543063958709398,
+    "a2_real_mean_candidate_set": 162240.0,
+    "a2_rho": 0.9029463641080513,
+    "a3_ceiling_rank1": 0.705720920413764,
+    "a3_gallery": 3816,
+    "a3_queries": 9826,
+    "a3f_rank1": 0.06370792013853836,
+    "a3f_rank1_sd": 0.007029348219024887,
+    "a3f_rank5": 0.08141644599411367,
+    "a3f_rank5_sd": 0.004589601661214973,
+    "a3f_map": 0.07391930611393907,
+    "a3f_map_sd": 0.005929372952317095,
+    "a5_rank1": 0.12232895612175429,
+    "a5_rank1_sd": 0.00670903945139841,
+    "a5_rank5": 0.1827808624478734,
+    "a5_rank5_sd": 0.005610101585647546,
+    "a5_map": 0.15337949777449827,
+    "a5_map_sd": 0.006097959466928226,
+    "a5_folds": 5,
+    "relational_note": null
+   }
+  }
+ },
+ "exposure": {
+  "cardiode": {
+   "replaced": {
+    "findings_per_document": {
+     "0": {
+      "documents": 366,
+      "rate": 0.915
+     },
+     "1": {
+      "documents": 32,
+      "rate": 0.08
+     },
+     "2": {
+      "documents": 2,
+      "rate": 0.005
+     },
+     "3-5": {
+      "documents": 0,
+      "rate": 0.0
+     },
+     "6-10": {
+      "documents": 0,
+      "rate": 0.0
+     },
+     "11+": {
+      "documents": 0,
+      "rate": 0.0
+     }
+    },
+    "findings_total": 36,
+    "findings_per_document_sd": 0.3035297774758456,
+    "findings_per_document_iqr": [
+     0.0,
+     0.0
+    ],
+    "tokens_per_document_sd": 0.3035297774758456,
+    "tokens_per_document_iqr": [
+     0.0,
+     0.0
+    ],
+    "dispersion_unit": "document",
+    "findings_per_document_mean": 0.09,
+    "findings_per_document_median": 0.0,
+    "types_scored": [
+     "CODE",
+     "DEMOGRAPHIC",
+     "LOC",
+     "ORG",
+     "PERSON"
+    ],
+    "documents": 400,
+    "tokens_gold": 18468,
+    "tokens_leaked": 36,
+    "tokens_per_document_mean": 0.09,
+    "tokens_per_document_median": 0.0,
+    "documents_exposed": 34,
+    "documents_exposed_rate": 0.085,
+    "entities": 9055,
+    "entities_exposed": 36,
+    "entities_exposed_rate": 0.0039757040309221425,
+    "cases": 270,
+    "cases_are_documents": false,
+    "cases_exposed": 33,
+    "cases_exposed_rate": 0.12222222222222222,
+    "tokens_per_case_mean": 0.13333333333333333,
+    "per_type": {
+     "CODE": {
+      "gold": 2072,
+      "leaked": 0,
+      "rate": 0.0
+     },
+     "DEMOGRAPHIC": {
+      "gold": 6314,
+      "leaked": 23,
+      "rate": 0.003642698764649984
+     },
+     "LOC": {
+      "gold": 1686,
+      "leaked": 0,
+      "rate": 0.0
+     },
+     "ORG": {
+      "gold": 4000,
+      "leaked": 12,
+      "rate": 0.003
+     },
+     "PERSON": {
+      "gold": 4396,
+      "leaked": 1,
+      "rate": 0.00022747952684258417
+     }
+    },
+    "per_identifier_class": {}
+   },
+   "person": {
+    "findings_per_document": {
+     "0": {
+      "documents": 399,
+      "rate": 0.9975
+     },
+     "1": {
+      "documents": 1,
+      "rate": 0.0025
+     },
+     "2": {
+      "documents": 0,
+      "rate": 0.0
+     },
+     "3-5": {
+      "documents": 0,
+      "rate": 0.0
+     },
+     "6-10": {
+      "documents": 0,
+      "rate": 0.0
+     },
+     "11+": {
+      "documents": 0,
+      "rate": 0.0
+     }
+    },
+    "findings_total": 1,
+    "findings_per_document_sd": 0.05,
+    "findings_per_document_iqr": [
+     0.0,
+     0.0
+    ],
+    "tokens_per_document_sd": 0.05,
+    "tokens_per_document_iqr": [
+     0.0,
+     0.0
+    ],
+    "dispersion_unit": "document",
+    "findings_per_document_mean": 0.0025,
+    "findings_per_document_median": 0.0,
+    "types_scored": [
+     "PERSON"
+    ],
+    "documents": 400,
+    "tokens_gold": 4396,
+    "tokens_leaked": 1,
+    "tokens_per_document_mean": 0.0025,
+    "tokens_per_document_median": 0.0,
+    "documents_exposed": 1,
+    "documents_exposed_rate": 0.0025,
+    "entities": 1957,
+    "entities_exposed": 1,
+    "entities_exposed_rate": 0.000510986203372509,
+    "cases": 270,
+    "cases_are_documents": false,
+    "cases_exposed": 1,
+    "cases_exposed_rate": 0.003703703703703704,
+    "tokens_per_case_mean": 0.003703703703703704,
+    "per_type": {
+     "PERSON": {
+      "gold": 4396,
+      "leaked": 1,
+      "rate": 0.00022747952684258417
+     }
+    },
+    "per_identifier_class": {}
+   },
+   "retained": {
+    "findings_per_document": {
+     "0": {
+      "documents": 318,
+      "rate": 0.795
+     },
+     "1": {
+      "documents": 70,
+      "rate": 0.175
+     },
+     "2": {
+      "documents": 11,
+      "rate": 0.0275
+     },
+     "3-5": {
+      "documents": 1,
+      "rate": 0.0025
+     },
+     "6-10": {
+      "documents": 0,
+      "rate": 0.0
+     },
+     "11+": {
+      "documents": 0,
+      "rate": 0.0
+     }
+    },
+    "findings_total": 95,
+    "findings_per_document_sd": 0.5017200989038711,
+    "findings_per_document_iqr": [
+     0.0,
+     0.0
+    ],
+    "tokens_per_document_sd": 0.5017200989038711,
+    "tokens_per_document_iqr": [
+     0.0,
+     0.0
+    ],
+    "dispersion_unit": "document",
+    "findings_per_document_mean": 0.2375,
+    "findings_per_document_median": 0.0,
+    "types_scored": [
+     "DATETIME",
+     "MISC",
+     "QUANTITY"
+    ],
+    "documents": 400,
+    "tokens_gold": 102234,
+    "tokens_leaked": 95,
+    "tokens_per_document_mean": 0.2375,
+    "tokens_per_document_median": 0.0,
+    "documents_exposed": 82,
+    "documents_exposed_rate": 0.205,
+    "entities": 21358,
+    "entities_exposed": 95,
+    "entities_exposed_rate": 0.0044479820207884635,
+    "cases": 270,
+    "cases_are_documents": false,
+    "cases_exposed": 72,
+    "cases_exposed_rate": 0.26666666666666666,
+    "tokens_per_case_mean": 0.35185185185185186,
+    "per_type": {
+     "DATETIME": {
+      "gold": 102234,
+      "leaked": 95,
+      "rate": 0.0009292407613905355
+     }
+    },
+    "per_identifier_class": {}
+   }
+  },
+  "tab": {
+   "replaced": {
+    "findings_per_document": {
+     "0": {
+      "documents": 553,
+      "rate": 0.4361198738170347
+     },
+     "1": {
+      "documents": 284,
+      "rate": 0.22397476340694006
+     },
+     "2": {
+      "documents": 132,
+      "rate": 0.10410094637223975
+     },
+     "3-5": {
+      "documents": 163,
+      "rate": 0.12854889589905363
+     },
+     "6-10": {
+      "documents": 67,
+      "rate": 0.0528391167192429
+     },
+     "11+": {
+      "documents": 69,
+      "rate": 0.05441640378548896
+     }
+    },
+    "findings_total": 3185,
+    "findings_per_document_sd": 6.261899331050128,
+    "findings_per_document_iqr": [
+     0.0,
+     2.0
+    ],
+    "tokens_per_document_sd": 12.200395018433325,
+    "tokens_per_document_iqr": [
+     0.0,
+     4.0
+    ],
+    "dispersion_unit": "document",
+    "findings_per_document_mean": 2.5118296529968456,
+    "findings_per_document_median": 1.0,
+    "types_scored": [
+     "CODE",
+     "DEMOGRAPHIC",
+     "LOC",
+     "ORG",
+     "PERSON"
+    ],
+    "documents": 1268,
+    "tokens_gold": 164110,
+    "tokens_leaked": 5992,
+    "tokens_per_document_mean": 4.725552050473186,
+    "tokens_per_document_median": 1.0,
+    "documents_exposed": 715,
+    "documents_exposed_rate": 0.5638801261829653,
+    "entities": 30468,
+    "entities_exposed": 1936,
+    "entities_exposed_rate": 0.06354207693317579,
+    "cases": 1268,
+    "cases_are_documents": true,
+    "cases_exposed": 715,
+    "cases_exposed_rate": 0.5638801261829653,
+    "tokens_per_case_mean": 4.725552050473186,
+    "per_type": {
+     "CODE": {
+      "gold": 8824,
+      "leaked": 124,
+      "rate": 0.014052583862194016
+     },
+     "DEMOGRAPHIC": {
+      "gold": 9617,
+      "leaked": 3790,
+      "rate": 0.3940937922429032
+     },
+     "LOC": {
+      "gold": 9816,
+      "leaked": 133,
+      "rate": 0.013549307253463733
+     },
+     "ORG": {
+      "gold": 86828,
+      "leaked": 1775,
+      "rate": 0.020442714331782373
+     },
+     "PERSON": {
+      "gold": 49025,
+      "leaked": 182,
+      "rate": 0.003712391636919939
+     }
+    },
+    "per_identifier_class": {}
+   },
+   "person": {
+    "findings_per_document": {
+     "0": {
+      "documents": 1224,
+      "rate": 0.9652996845425867
+     },
+     "1": {
+      "documents": 28,
+      "rate": 0.022082018927444796
+     },
+     "2": {
+      "documents": 7,
+      "rate": 0.005520504731861199
+     },
+     "3-5": {
+      "documents": 5,
+      "rate": 0.003943217665615142
+     },
+     "6-10": {
+      "documents": 2,
+      "rate": 0.0015772870662460567
+     },
+     "11+": {
+      "documents": 2,
+      "rate": 0.0015772870662460567
+     }
+    },
+    "findings_total": 125,
+    "findings_per_document_sd": 1.0744494174905672,
+    "findings_per_document_iqr": [
+     0.0,
+     0.0
+    ],
+    "tokens_per_document_sd": 1.4532648304456715,
+    "tokens_per_document_iqr": [
+     0.0,
+     0.0
+    ],
+    "dispersion_unit": "document",
+    "findings_per_document_mean": 0.09858044164037855,
+    "findings_per_document_median": 0.0,
+    "types_scored": [
+     "PERSON"
+    ],
+    "documents": 1268,
+    "tokens_gold": 49025,
+    "tokens_leaked": 182,
+    "tokens_per_document_mean": 0.14353312302839116,
+    "tokens_per_document_median": 0.0,
+    "documents_exposed": 44,
+    "documents_exposed_rate": 0.03470031545741325,
+    "entities": 8701,
+    "entities_exposed": 67,
+    "entities_exposed_rate": 0.007700264337432479,
+    "cases": 1268,
+    "cases_are_documents": true,
+    "cases_exposed": 44,
+    "cases_exposed_rate": 0.03470031545741325,
+    "tokens_per_case_mean": 0.14353312302839116,
+    "per_type": {
+     "PERSON": {
+      "gold": 49025,
+      "leaked": 182,
+      "rate": 0.003712391636919939
+     }
+    },
+    "per_identifier_class": {}
+   },
+   "retained": {
+    "findings_per_document": {
+     "0": {
+      "documents": 477,
+      "rate": 0.37618296529968454
+     },
+     "1": {
+      "documents": 256,
+      "rate": 0.20189274447949526
+     },
+     "2": {
+      "documents": 154,
+      "rate": 0.12145110410094637
+     },
+     "3-5": {
+      "documents": 191,
+      "rate": 0.15063091482649843
+     },
+     "6-10": {
+      "documents": 97,
+      "rate": 0.07649842271293375
+     },
+     "11+": {
+      "documents": 93,
+      "rate": 0.07334384858044164
+     }
+    },
+    "findings_total": 3878,
+    "findings_per_document_sd": 6.110898398177098,
+    "findings_per_document_iqr": [
+     0.0,
+     3.0
+    ],
+    "tokens_per_document_sd": 48.3147652879795,
+    "tokens_per_document_iqr": [
+     0.0,
+     8.0
+    ],
+    "dispersion_unit": "document",
+    "findings_per_document_mean": 3.058359621451104,
+    "findings_per_document_median": 1.0,
+    "types_scored": [
+     "DATETIME",
+     "MISC",
+     "QUANTITY"
+    ],
+    "documents": 1268,
+    "tokens_gold": 135079,
+    "tokens_leaked": 15375,
+    "tokens_per_document_mean": 12.125394321766562,
+    "tokens_per_document_median": 2.0,
+    "documents_exposed": 791,
+    "documents_exposed_rate": 0.6238170347003155,
+    "entities": 37356,
+    "entities_exposed": 2855,
+    "entities_exposed_rate": 0.07642681229253667,
+    "cases": 1268,
+    "cases_are_documents": true,
+    "cases_exposed": 791,
+    "cases_exposed_rate": 0.6238170347003155,
+    "tokens_per_case_mean": 12.125394321766562,
+    "per_type": {
+     "DATETIME": {
+      "gold": 101799,
+      "leaked": 498,
+      "rate": 0.004891993045118321
+     },
+     "MISC": {
+      "gold": 21962,
+      "leaked": 12822,
+      "rate": 0.5838266095983973
+     },
+     "QUANTITY": {
+      "gold": 11318,
+      "leaked": 2201,
+      "rate": 0.1944689874536137
+     }
+    },
+    "per_identifier_class": {}
+   }
+  },
+  "ontonotes": {
+   "replaced": {
+    "findings_per_document": {
+     "0": {
+      "documents": 3952,
+      "rate": 0.659325992659326
+     },
+     "1": {
+      "documents": 717,
+      "rate": 0.11961961961961962
+     },
+     "2": {
+      "documents": 293,
+      "rate": 0.04888221554888222
+     },
+     "3-5": {
+      "documents": 332,
+      "rate": 0.05538872205538872
+     },
+     "6-10": {
+      "documents": 233,
+      "rate": 0.038872205538872204
+     },
+     "11+": {
+      "documents": 467,
+      "rate": 0.07791124457791125
+     }
+    },
+    "findings_total": 15515,
+    "findings_per_document_sd": 7.497790279846535,
+    "findings_per_document_iqr": [
+     0.0,
+     1.0
+    ],
+    "tokens_per_document_sd": 55.06621972557733,
+    "tokens_per_document_iqr": [
+     0.0,
+     1.0
+    ],
+    "dispersion_unit": "document",
+    "findings_per_document_mean": 2.588421755088422,
+    "findings_per_document_median": 0.0,
+    "types_scored": [
+     "CODE",
+     "DEMOGRAPHIC",
+     "LOC",
+     "ORG",
+     "PERSON"
+    ],
+    "documents": 5994,
+    "tokens_gold": 475230,
+    "tokens_leaked": 80598,
+    "tokens_per_document_mean": 13.446446446446446,
+    "tokens_per_document_median": 0.0,
+    "documents_exposed": 2042,
+    "documents_exposed_rate": 0.340674007340674,
+    "entities": 145119,
+    "entities_exposed": 13538,
+    "entities_exposed_rate": 0.09328895596028088,
+    "cases": 5994,
+    "cases_are_documents": true,
+    "cases_exposed": 2042,
+    "cases_exposed_rate": 0.340674007340674,
+    "tokens_per_case_mean": 13.446446446446446,
+    "per_type": {
+     "DEMOGRAPHIC": {
+      "gold": 61814,
+      "leaked": 32033,
+      "rate": 0.5182159381369916
+     },
+     "LOC": {
+      "gold": 126455,
+      "leaked": 14560,
+      "rate": 0.11513977304179353
+     },
+     "ORG": {
+      "gold": 175142,
+      "leaked": 27824,
+      "rate": 0.15886537780772172
+     },
+     "PERSON": {
+      "gold": 111819,
+      "leaked": 6181,
+      "rate": 0.055276831307738396
+     }
+    },
+    "per_identifier_class": {}
+   },
+   "person": {
+    "findings_per_document": {
+     "0": {
+      "documents": 5258,
+      "rate": 0.8772105438772105
+     },
+     "1": {
+      "documents": 318,
+      "rate": 0.05305305305305305
+     },
+     "2": {
+      "documents": 136,
+      "rate": 0.022689356022689355
+     },
+     "3-5": {
+      "documents": 169,
+      "rate": 0.02819486152819486
+     },
+     "6-10": {
+      "documents": 80,
+      "rate": 0.01334668001334668
+     },
+     "11+": {
+      "documents": 33,
+      "rate": 0.0055055055055055055
+     }
+    },
+    "findings_total": 2324,
+    "findings_per_document_sd": 1.7643093919442652,
+    "findings_per_document_iqr": [
+     0.0,
+     0.0
+    ],
+    "tokens_per_document_sd": 5.292529989131437,
+    "tokens_per_document_iqr": [
+     0.0,
+     0.0
+    ],
+    "dispersion_unit": "document",
+    "findings_per_document_mean": 0.38772105438772103,
+    "findings_per_document_median": 0.0,
+    "types_scored": [
+     "PERSON"
+    ],
+    "documents": 5994,
+    "tokens_gold": 111819,
+    "tokens_leaked": 6181,
+    "tokens_per_document_mean": 1.0311978645311979,
+    "tokens_per_document_median": 0.0,
+    "documents_exposed": 736,
+    "documents_exposed_rate": 0.12278945612278945,
+    "entities": 39240,
+    "entities_exposed": 1906,
+    "entities_exposed_rate": 0.04857288481141692,
+    "cases": 5994,
+    "cases_are_documents": true,
+    "cases_exposed": 736,
+    "cases_exposed_rate": 0.12278945612278945,
+    "tokens_per_case_mean": 1.0311978645311979,
+    "per_type": {
+     "PERSON": {
+      "gold": 111819,
+      "leaked": 6181,
+      "rate": 0.055276831307738396
+     }
+    },
+    "per_identifier_class": {}
+   },
+   "retained": {
+    "findings_per_document": {
+     "0": {
+      "documents": 1281,
+      "rate": 0.21371371371371373
+     },
+     "1": {
+      "documents": 850,
+      "rate": 0.14180847514180847
+     },
+     "2": {
+      "documents": 659,
+      "rate": 0.10994327660994328
+     },
+     "3-5": {
+      "documents": 1222,
+      "rate": 0.20387053720387055
+     },
+     "6-10": {
+      "documents": 958,
+      "rate": 0.1598264931598265
+     },
+     "11+": {
+      "documents": 1024,
+      "rate": 0.1708375041708375
+     }
+    },
+    "findings_total": 40123,
+    "findings_per_document_sd": 12.37105853522901,
+    "findings_per_document_iqr": [
+     1.0,
+     7.0
+    ],
+    "tokens_per_document_sd": 38.16781522013013,
+    "tokens_per_document_iqr": [
+     1.0,
+     15.0
+    ],
+    "dispersion_unit": "document",
+    "findings_per_document_mean": 6.693860527193861,
+    "findings_per_document_median": 3.0,
+    "types_scored": [
+     "DATETIME",
+     "MISC",
+     "QUANTITY"
+    ],
+    "documents": 5994,
+    "tokens_gold": 262423,
+    "tokens_leaked": 100986,
+    "tokens_per_document_mean": 16.84784784784785,
+    "tokens_per_document_median": 5.0,
+    "documents_exposed": 4713,
+    "documents_exposed_rate": 0.7862862862862863,
+    "entities": 94230,
+    "entities_exposed": 39227,
+    "entities_exposed_rate": 0.41628992889737876,
+    "cases": 5994,
+    "cases_are_documents": true,
+    "cases_exposed": 4713,
+    "cases_exposed_rate": 0.7862862862862863,
+    "tokens_per_case_mean": 16.84784784784785,
+    "per_type": {
+     "DATETIME": {
+      "gold": 109493,
+      "leaked": 26478,
+      "rate": 0.2418236782260053
+     },
+     "MISC": {
+      "gold": 44489,
+      "leaked": 23594,
+      "rate": 0.5303333408258221
+     },
+     "QUANTITY": {
+      "gold": 108441,
+      "leaked": 50914,
+      "rate": 0.4695087651349582
+     }
+    },
+    "per_identifier_class": {}
+   }
+  },
+  "enron": {
+   "replaced": {
+    "findings_per_document": {
+     "0": {
+      "documents": 31768,
+      "rate": 0.5417832048570844
+     },
+     "1": {
+      "documents": 12198,
+      "rate": 0.20802919708029197
+     },
+     "2": {
+      "documents": 5531,
+      "rate": 0.09432771676103417
+     },
+     "3-5": {
+      "documents": 5893,
+      "rate": 0.10050139845828501
+     },
+     "6-10": {
+      "documents": 2172,
+      "rate": 0.037042090183505016
+     },
+     "11+": {
+      "documents": 1074,
+      "rate": 0.01831639265979944
+     }
+    },
+    "findings_total": 83109,
+    "findings_per_document_sd": 4.1470881338480945,
+    "findings_per_document_iqr": [
+     0.0,
+     2.0
+    ],
+    "tokens_per_document_sd": 4.223779498163499,
+    "tokens_per_document_iqr": [
+     0.0,
+     2.0
+    ],
+    "dispersion_unit": "document",
+    "findings_per_document_mean": 1.4173715805989495,
+    "findings_per_document_median": 0.0,
+    "types_scored": [
+     "CODE",
+     "DEMOGRAPHIC",
+     "LOC",
+     "ORG",
+     "PERSON"
+    ],
+    "documents": 58636,
+    "tokens_gold": 3780764,
+    "tokens_leaked": 85321,
+    "tokens_per_document_mean": 1.4550958455556313,
+    "tokens_per_document_median": 0.0,
+    "documents_exposed": 26868,
+    "documents_exposed_rate": 0.45821679514291563,
+    "entities": 420890,
+    "entities_exposed": 50879,
+    "entities_exposed_rate": 0.12088431656727411,
+    "cases": 16,
+    "cases_are_documents": false,
+    "cases_exposed": 16,
+    "cases_exposed_rate": 1.0,
+    "tokens_per_case_mean": 5332.5625,
+    "per_type": {
+     "CODE": {
+      "gold": 2986557,
+      "leaked": 316,
+      "rate": 0.00010580745654611648
+     },
+     "PERSON": {
+      "gold": 794207,
+      "leaked": 85025,
+      "rate": 0.10705647268281443
+     }
+    },
+    "per_identifier_class": {}
+   },
+   "person": {
+    "findings_per_document": {
+     "0": {
+      "documents": 31772,
+      "rate": 0.5418514223344021
+     },
+     "1": {
+      "documents": 12201,
+      "rate": 0.20808036018828024
+     },
+     "2": {
+      "documents": 5540,
+      "rate": 0.09448120608499898
+     },
+     "3-5": {
+      "documents": 5894,
+      "rate": 0.10051845282761443
+     },
+     "6-10": {
+      "documents": 2166,
+      "rate": 0.03693976396752848
+     },
+     "11+": {
+      "documents": 1063,
+      "rate": 0.018128794597175795
+     }
+    },
+    "findings_total": 82796,
+    "findings_per_document_sd": 4.104541759208971,
+    "findings_per_document_iqr": [
+     0.0,
+     2.0
+    ],
+    "tokens_per_document_sd": 4.181351324536212,
+    "tokens_per_document_iqr": [
+     0.0,
+     2.0
+    ],
+    "dispersion_unit": "document",
+    "findings_per_document_mean": 1.4120335629988403,
+    "findings_per_document_median": 0.0,
+    "types_scored": [
+     "PERSON"
+    ],
+    "documents": 58636,
+    "tokens_gold": 794207,
+    "tokens_leaked": 85005,
+    "tokens_per_document_mean": 1.4497066648475339,
+    "tokens_per_document_median": 0.0,
+    "documents_exposed": 26864,
+    "documents_exposed_rate": 0.4581485776655979,
+    "entities": 281476,
+    "entities_exposed": 50596,
+    "entities_exposed_rate": 0.17975244781082578,
+    "cases": 16,
+    "cases_are_documents": false,
+    "cases_exposed": 16,
+    "cases_exposed_rate": 1.0,
+    "tokens_per_case_mean": 5312.8125,
+    "per_type": {
+     "PERSON": {
+      "gold": 794207,
+      "leaked": 85025,
+      "rate": 0.10705647268281443
+     }
+    },
+    "per_identifier_class": {}
+   },
+   "retained": {
+    "findings_per_document": {
+     "0": {
+      "documents": 58636,
+      "rate": 1.0
+     },
+     "1": {
+      "documents": 0,
+      "rate": 0.0
+     },
+     "2": {
+      "documents": 0,
+      "rate": 0.0
+     },
+     "3-5": {
+      "documents": 0,
+      "rate": 0.0
+     },
+     "6-10": {
+      "documents": 0,
+      "rate": 0.0
+     },
+     "11+": {
+      "documents": 0,
+      "rate": 0.0
+     }
+    },
+    "findings_total": 0,
+    "findings_per_document_sd": 0.0,
+    "findings_per_document_iqr": [
+     0.0,
+     0.0
+    ],
+    "tokens_per_document_sd": 0.0,
+    "tokens_per_document_iqr": [
+     0.0,
+     0.0
+    ],
+    "dispersion_unit": "document",
+    "findings_per_document_mean": 0.0,
+    "findings_per_document_median": 0.0,
+    "types_scored": [
+     "DATETIME",
+     "MISC",
+     "QUANTITY"
+    ],
+    "documents": 58636,
+    "tokens_gold": 0,
+    "tokens_leaked": 0,
+    "tokens_per_document_mean": 0.0,
+    "tokens_per_document_median": 0.0,
+    "documents_exposed": 0,
+    "documents_exposed_rate": 0.0,
+    "entities": 0,
+    "entities_exposed": 0,
+    "entities_exposed_rate": 0.0,
+    "cases": 16,
+    "cases_are_documents": false,
+    "cases_exposed": 0,
+    "cases_exposed_rate": 0.0,
+    "tokens_per_case_mean": 0.0,
+    "per_type": {},
+    "per_identifier_class": {}
+   }
+  }
+ },
+ "a4": [
+  {
+   "corpus": "tab",
+   "condition": "B-mask",
+   "context": false,
+   "rank1": 0.215,
+   "rank5": 0.76,
+   "map": 0.43785515873015873,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": "public name list over the released text, replaced spans unknown"
+  },
+  {
+   "corpus": "tab",
+   "condition": "A",
+   "context": false,
+   "rank1": 0.995,
+   "rank5": 1.0,
+   "map": 0.996,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
+   "condition": "A",
+   "context": true,
+   "rank1": 1.0,
+   "rank5": 1.0,
+   "map": 1.0,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
+   "condition": "B",
+   "context": false,
+   "rank1": 0.085,
+   "rank5": 0.5,
+   "map": 0.2854503968253971,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
+   "condition": "B",
+   "context": true,
+   "rank1": 0.12,
+   "rank5": 0.51,
+   "map": 0.3022976190476196,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
+   "condition": "C",
+   "context": false,
+   "rank1": 0.29,
+   "rank5": 0.85,
+   "map": 0.5135456349206351,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
+   "condition": "C",
+   "context": true,
+   "rank1": 0.31,
+   "rank5": 0.715,
+   "map": 0.4892242063492065,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "ontonotes",
+   "condition": "A",
+   "context": false,
+   "rank1": 0.99,
+   "rank5": 0.995,
+   "map": 0.9932142857142857,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "ontonotes",
+   "condition": "A",
+   "context": true,
+   "rank1": 0.985,
+   "rank5": 0.995,
+   "map": 0.9905555555555555,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "ontonotes",
+   "condition": "B",
+   "context": false,
+   "rank1": 0.31,
+   "rank5": 0.9,
+   "map": 0.5484325396825396,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "ontonotes",
+   "condition": "B",
+   "context": true,
+   "rank1": 0.365,
+   "rank5": 0.915,
+   "map": 0.5895297619047619,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "ontonotes",
+   "condition": "C",
+   "context": false,
+   "rank1": 0.59,
+   "rank5": 0.9,
+   "map": 0.7334325396825396,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "ontonotes",
+   "condition": "C",
+   "context": true,
+   "rank1": 0.66,
+   "rank5": 0.925,
+   "map": 0.7803392857142856,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "cardiode",
+   "condition": "A",
+   "context": false,
+   "rank1": 1.0,
+   "rank5": 1.0,
+   "map": 1.0,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "cardiode",
+   "condition": "A",
+   "context": true,
+   "rank1": 0.995,
+   "rank5": 1.0,
+   "map": 0.996,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "cardiode",
+   "condition": "B",
+   "context": false,
+   "rank1": 0.09,
+   "rank5": 0.51,
+   "map": 0.2753869047619051,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "cardiode",
+   "condition": "B",
+   "context": true,
+   "rank1": 0.16,
+   "rank5": 0.55,
+   "map": 0.3403551587301592,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "cardiode",
+   "condition": "C",
+   "context": false,
+   "rank1": 0.135,
+   "rank5": 0.585,
+   "map": 0.33608531746031806,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "cardiode",
+   "condition": "C",
+   "context": true,
+   "rank1": 0.22,
+   "rank5": 0.69,
+   "map": 0.4217777777777779,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": null
+  },
+  {
+   "corpus": "tab",
+   "condition": "B-forewarned",
+   "context": false,
+   "rank1": 0.205,
+   "rank5": 0.655,
+   "map": 0.40754166666666697,
+   "queries": 200,
+   "candidates": 10,
+   "tag": "15det",
+   "adversary": "told the release is pseudonymised; the text itself is unchanged"
+  }
+ ],
+ "utility": {
+  "union": {
+   "medication_ie": {
+    "A": {
+     "mean": 0.366753292044266,
+     "sd": 0.18144589918064133,
+     "n": 390,
+     "median": 0.36363636363636365
+    },
+    "B": {
+     "mean": 0.34640498031345446,
+     "sd": 0.18032460437875106,
+     "n": 390,
+     "median": 0.3421602787456446
+    },
+    "C": {
+     "mean": 0.3138429095217451,
+     "sd": 0.19924901309256732,
+     "n": 390,
+     "median": 0.31968864468864466
+    }
+   },
+   "medication_ie:in_narrative": {
+    "A": {
+     "mean": 0.0362211877770257,
+     "sd": 0.06578874252307311,
+     "n": 328,
+     "median": 0.0
+    },
+    "B": {
+     "mean": 0.030212995875389063,
+     "sd": 0.05732843505852417,
+     "n": 328,
+     "median": 0.0
+    },
+    "C": {
+     "mean": 0.015580506310581126,
+     "sd": 0.03909931504015294,
+     "n": 328,
+     "median": 0.0
+    }
+   },
+   "medication_ie:listed": {
+    "A": {
+     "mean": 0.37646645905541853,
+     "sd": 0.19008180442652975,
+     "n": 389,
+     "median": 0.38
+    },
+    "B": {
+     "mean": 0.3568139690829608,
+     "sd": 0.1888760143259998,
+     "n": 389,
+     "median": 0.3584905660377358
+    },
+    "C": {
+     "mean": 0.331396274467304,
+     "sd": 0.20703330698000796,
+     "n": 389,
+     "median": 0.3448275862068966
+    }
+   },
+   "section_classification": {
+    "A": {
+     "mean": 0.7492546251585532,
+     "sd": 0.09283138206452367,
+     "n": 400,
+     "median": 0.75
+    },
+    "B": {
+     "mean": 0.6770928836278101,
+     "sd": 0.09736005900697943,
+     "n": 400,
+     "median": 0.6666666666666666
+    },
+    "C": {
+     "mean": 0.7113011410351774,
+     "sd": 0.10342109844360782,
+     "n": 400,
+     "median": 0.7272727272727273
+    }
+   },
+   "ner_agreement": {
+    "A": {
+     "mean": 1.0,
+     "sd": 0.0,
+     "n": 400,
+     "median": 1.0
+    },
+    "B": {
+     "mean": 0.6107026046499481,
+     "sd": 0.08158086718100307,
+     "n": 400,
+     "median": 0.6225240742190558
+    },
+    "C": {
+     "mean": 0.003526841944170967,
+     "sd": 0.0077362879379523075,
+     "n": 400,
+     "median": 0.0
+    }
+   }
+  },
+  "vote": {
+   "medication_ie": {
+    "A": {
+     "mean": 0.3714427560321267,
+     "sd": 0.18211298712911514,
+     "n": 390,
+     "median": 0.36363636363636365
+    },
+    "B": {
+     "mean": 0.3638132025246152,
+     "sd": 0.18925178840759688,
+     "n": 390,
+     "median": 0.3454907161803713
+    },
+    "C": {
+     "mean": 0.38121096665302867,
+     "sd": 0.18639133198235328,
+     "n": 390,
+     "median": 0.37932292426674447
+    }
+   },
+   "medication_ie:in_narrative": {
+    "A": {
+     "mean": 0.041346195383436125,
+     "sd": 0.07290141762609406,
+     "n": 328,
+     "median": 0.0
+    },
+    "B": {
+     "mean": 0.036480317480015706,
+     "sd": 0.06858139517217883,
+     "n": 328,
+     "median": 0.0
+    },
+    "C": {
+     "mean": 0.03901960712315794,
+     "sd": 0.0711977007161312,
+     "n": 328,
+     "median": 0.0
+    }
+   },
+   "medication_ie:listed": {
+    "A": {
+     "mean": 0.3785712991974257,
+     "sd": 0.189475183543318,
+     "n": 389,
+     "median": 0.3809523809523809
+    },
+    "B": {
+     "mean": 0.3729744421118753,
+     "sd": 0.19770512506829432,
+     "n": 389,
+     "median": 0.36363636363636365
+    },
+    "C": {
+     "mean": 0.3901568860568582,
+     "sd": 0.19524379634798972,
+     "n": 389,
+     "median": 0.39999999999999997
+    }
+   },
+   "section_classification": {
+    "A": {
+     "mean": 0.752268518590113,
+     "sd": 0.0904269271975863,
+     "n": 400,
+     "median": 0.75
+    },
+    "B": {
+     "mean": 0.7088105517311206,
+     "sd": 0.08949158853331018,
+     "n": 400,
+     "median": 0.7142857142857143
+    },
+    "C": {
+     "mean": 0.7175180227731505,
+     "sd": 0.0901301471616429,
+     "n": 400,
+     "median": 0.7272727272727273
+    }
+   },
+   "ner_agreement": {
+    "A": {
+     "mean": 1.0,
+     "sd": 0.0,
+     "n": 400,
+     "median": 1.0
+    },
+    "B": {
+     "mean": 0.9733322646783801,
+     "sd": 0.01854397529358048,
+     "n": 400,
+     "median": 0.9785924713584288
+    },
+    "C": {
+     "mean": 0.6740487674889263,
+     "sd": 0.08201710090265713,
+     "n": 400,
+     "median": 0.674886018237082
+    }
+   }
+  }
+ },
+ "statistics": [
+  {
+   "span_source": "union",
+   "task": "medication_ie",
+   "condition": "B",
+   "n": 390,
+   "test": "wilcoxon",
+   "q_value": 0.005562762015271986,
+   "significant": true,
+   "effect": -0.16587390815532302,
+   "effect_name": "rank_biserial",
+   "reference_mean": 0.366753292044266,
+   "reference_sd": 0.1816789704381608,
+   "condition_mean": 0.3464049803134545,
+   "condition_sd": 0.18055623530837828,
+   "mean_difference": -0.020348311730811516,
+   "difference_sd": 0.18239315264139544,
+   "median_difference": -0.015628815628815684
+  },
+  {
+   "span_source": "union",
+   "task": "medication_ie",
+   "condition": "C",
+   "n": 390,
+   "test": "wilcoxon",
+   "q_value": 5.708338438423041e-07,
+   "significant": true,
+   "effect": -0.30626737967914436,
+   "effect_name": "rank_biserial",
+   "reference_mean": 0.366753292044266,
+   "reference_sd": 0.1816789704381608,
+   "condition_mean": 0.3138429095217451,
+   "condition_sd": 0.1995049528423809,
+   "mean_difference": -0.05291038252252091,
+   "difference_sd": 0.20463747931065612,
+   "median_difference": -0.03528391334286776
+  },
+  {
+   "span_source": "union",
+   "task": "medication_ie:listed",
+   "condition": "B",
+   "n": 389,
+   "test": "wilcoxon",
+   "q_value": 0.014735032449421974,
+   "significant": true,
+   "effect": -0.1473014447189161,
+   "effect_name": "rank_biserial",
+   "reference_mean": 0.3764664590554186,
+   "reference_sd": 0.1903265975793808,
+   "condition_mean": 0.35681396908296087,
+   "condition_sd": 0.18911925462553447,
+   "mean_difference": -0.01965248997245773,
+   "difference_sd": 0.1906724804403054,
+   "median_difference": -0.009534706331044918
+  },
+  {
+   "span_source": "union",
+   "task": "medication_ie:listed",
+   "condition": "C",
+   "n": 389,
+   "test": "wilcoxon",
+   "q_value": 7.066677018325862e-05,
+   "significant": true,
+   "effect": -0.24879227053140096,
+   "effect_name": "rank_biserial",
+   "reference_mean": 0.3764664590554186,
+   "reference_sd": 0.1903265975793808,
+   "condition_mean": 0.3313962744673041,
+   "condition_sd": 0.20729993079554737,
+   "mean_difference": -0.04507018458811451,
+   "difference_sd": 0.21410919157599614,
+   "median_difference": -0.02405300302462904
+  },
+  {
+   "span_source": "union",
+   "task": "ner_agreement",
+   "condition": "B",
+   "n": 400,
+   "test": "wilcoxon",
+   "q_value": 2.729752294832392e-67,
+   "significant": true,
+   "effect": -1.0,
+   "effect_name": "rank_biserial",
+   "reference_mean": 1.0,
+   "reference_sd": 0.0,
+   "condition_mean": 0.6107026046499481,
+   "condition_sd": 0.0816830348693542,
+   "mean_difference": -0.389297395350052,
+   "difference_sd": 0.0816830348693542,
+   "median_difference": -0.37747592578094424
+  },
+  {
+   "span_source": "union",
+   "task": "ner_agreement",
+   "condition": "C",
+   "n": 400,
+   "test": "wilcoxon",
+   "q_value": 3.0257378125018234e-73,
+   "significant": true,
+   "effect": -1.0,
+   "effect_name": "rank_biserial",
+   "reference_mean": 1.0,
+   "reference_sd": 0.0,
+   "condition_mean": 0.0035268419441709664,
+   "condition_sd": 0.007745976467657264,
+   "mean_difference": -0.996473158055829,
+   "difference_sd": 0.007745976467657263,
+   "median_difference": -1.0
+  },
+  {
+   "span_source": "union",
+   "task": "section_classification",
+   "condition": "B",
+   "n": 400,
+   "test": "wilcoxon",
+   "q_value": 1.5791408834190577e-37,
+   "significant": true,
+   "effect": -0.8463132958246965,
+   "effect_name": "rank_biserial",
+   "reference_mean": 0.7492546251585531,
+   "reference_sd": 0.09294763931992804,
+   "condition_mean": 0.67709288362781,
+   "condition_sd": 0.09748198774480964,
+   "mean_difference": -0.07216174153074309,
+   "difference_sd": 0.08550298073784177,
+   "median_difference": -0.07692307692307687
+  },
+  {
+   "span_source": "union",
+   "task": "section_classification",
+   "condition": "C",
+   "n": 400,
+   "test": "wilcoxon",
+   "q_value": 2.570140369391001e-14,
+   "significant": true,
+   "effect": -0.5314563781717067,
+   "effect_name": "rank_biserial",
+   "reference_mean": 0.7492546251585531,
+   "reference_sd": 0.09294763931992804,
+   "condition_mean": 0.7113011410351774,
+   "condition_sd": 0.10355061771595479,
+   "mean_difference": -0.037953484123375764,
+   "difference_sd": 0.08902798897887693,
+   "median_difference": 0.0
+  },
+  {
+   "span_source": "vote",
+   "task": "medication_ie",
+   "condition": "B",
+   "n": 390,
+   "test": "wilcoxon",
+   "q_value": 0.7979097180446482,
+   "significant": false,
+   "effect": -0.015465229433340819,
+   "effect_name": "rank_biserial",
+   "reference_mean": 0.3714427560321266,
+   "reference_sd": 0.18234691527581054,
+   "condition_mean": 0.3638132025246151,
+   "condition_sd": 0.1894948865019112,
+   "mean_difference": -0.007629553507511488,
+   "difference_sd": 0.1775096765722376,
+   "median_difference": 0.0
+  },
+  {
+   "span_source": "vote",
+   "task": "medication_ie",
+   "condition": "C",
+   "n": 390,
+   "test": "wilcoxon",
+   "q_value": 0.23467748144399034,
+   "significant": false,
+   "effect": 0.09471624266144814,
+   "effect_name": "rank_biserial",
+   "reference_mean": 0.3714427560321266,
+   "reference_sd": 0.18234691527581054,
+   "condition_mean": 0.3812109666530286,
+   "condition_sd": 0.18663075575732987,
+   "mean_difference": 0.009768210620902018,
+   "difference_sd": 0.1754481323107879,
+   "median_difference": 0.002634781151405176
+  },
+  {
+   "span_source": "vote",
+   "task": "medication_ie:listed",
+   "condition": "B",
+   "n": 389,
+   "test": "wilcoxon",
+   "q_value": 0.9473415486400709,
+   "significant": false,
+   "effect": 0.004016620498614959,
+   "effect_name": "rank_biserial",
+   "reference_mean": 0.37857129919742566,
+   "reference_sd": 0.18971919547126936,
+   "condition_mean": 0.37297444211187536,
+   "condition_sd": 0.19795973576628453,
+   "mean_difference": -0.005596857085550382,
+   "difference_sd": 0.1829700478042764,
+   "median_difference": 0.0
+  },
+  {
+   "span_source": "vote",
+   "task": "medication_ie:listed",
+   "condition": "C",
+   "n": 389,
+   "test": "wilcoxon",
+   "q_value": 0.18483921059121516,
+   "significant": false,
+   "effect": 0.1023391812865497,
+   "effect_name": "rank_biserial",
+   "reference_mean": 0.37857129919742566,
+   "reference_sd": 0.18971919547126936,
+   "condition_mean": 0.3901568860568583,
+   "condition_sd": 0.19549523727168477,
+   "mean_difference": 0.011585586859432544,
+   "difference_sd": 0.18297853772540412,
+   "median_difference": 0.0
+  },
+  {
+   "span_source": "vote",
+   "task": "ner_agreement",
+   "condition": "B",
+   "n": 400,
+   "test": "wilcoxon",
+   "q_value": 1.790860632484196e-66,
+   "significant": true,
+   "effect": -1.0,
+   "effect_name": "rank_biserial",
+   "reference_mean": 1.0,
+   "reference_sd": 0.0,
+   "condition_mean": 0.9733322646783802,
+   "condition_sd": 0.01856719881588482,
+   "mean_difference": -0.02666773532161991,
+   "difference_sd": 0.01856719881588482,
+   "median_difference": -0.02140752864157125
+  },
+  {
+   "span_source": "vote",
+   "task": "ner_agreement",
+   "condition": "C",
+   "n": 400,
+   "test": "wilcoxon",
+   "q_value": 5.458793901272145e-67,
+   "significant": true,
+   "effect": -1.0,
+   "effect_name": "rank_biserial",
+   "reference_mean": 1.0,
+   "reference_sd": 0.0,
+   "condition_mean": 0.6740487674889263,
+   "condition_sd": 0.08211981490771783,
+   "mean_difference": -0.3259512325110737,
+   "difference_sd": 0.08211981490771782,
+   "median_difference": -0.32511398176291795
+  },
+  {
+   "span_source": "vote",
+   "task": "section_classification",
+   "condition": "B",
+   "n": 400,
+   "test": "wilcoxon",
+   "q_value": 4.355602990623361e-25,
+   "significant": true,
+   "effect": -0.7455895455895456,
+   "effect_name": "rank_biserial",
+   "reference_mean": 0.752268518590113,
+   "reference_sd": 0.09054017323719968,
+   "condition_mean": 0.7088105517311206,
+   "condition_sd": 0.08960366320281613,
+   "mean_difference": -0.0434579668589924,
+   "difference_sd": 0.06846437244690719,
+   "median_difference": -0.0625
+  },
+  {
+   "span_source": "vote",
+   "task": "section_classification",
+   "condition": "C",
+   "n": 400,
+   "test": "wilcoxon",
+   "q_value": 2.286135292314031e-16,
+   "significant": true,
+   "effect": -0.5877932877932878,
+   "effect_name": "rank_biserial",
+   "reference_mean": 0.752268518590113,
+   "reference_sd": 0.09054017323719968,
+   "condition_mean": 0.7175180227731505,
+   "condition_sd": 0.09024302152918083,
+   "mean_difference": -0.03475049581696254,
+   "difference_sd": 0.07809740451835419,
+   "median_difference": 0.0
+  }
+ ],
+ "stability": [
+  {
+   "corpus": "cardiode",
+   "rule": "union",
+   "entity_type": "PERSON",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 1549,
+   "surfaces": 1123,
+   "collision_rate": 0.10114068441064639,
+   "fragmentation_rate": 0.014848289218850872,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "cardiode",
+   "rule": "union",
+   "entity_type": "PERSON",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 1277,
+   "surfaces": 1123,
+   "collision_rate": 0.10114068441064639,
+   "fragmentation_rate": 0.014848289218850872,
+   "drift_rate": 0.050117462803445575,
+   "cross_document": true,
+   "scope": "across_documents"
+  },
+  {
+   "corpus": "cardiode",
+   "rule": "union",
+   "entity_type": "LOC",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 1652,
+   "surfaces": 1579,
+   "collision_rate": 0.0,
+   "fragmentation_rate": 0.010895883777239709,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "cardiode",
+   "rule": "union",
+   "entity_type": "LOC",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 1548,
+   "surfaces": 1579,
+   "collision_rate": 0.0,
+   "fragmentation_rate": 0.010895883777239709,
+   "drift_rate": 0.006459948320413436,
+   "cross_document": true,
+   "scope": "across_documents"
+  },
+  {
+   "corpus": "cardiode",
+   "rule": "union",
+   "entity_type": "ORG",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 944,
+   "surfaces": 819,
+   "collision_rate": 0.009453781512605041,
+   "fragmentation_rate": 0.019067796610169493,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "cardiode",
+   "rule": "union",
+   "entity_type": "ORG",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 812,
+   "surfaces": 819,
+   "collision_rate": 0.009453781512605041,
+   "fragmentation_rate": 0.019067796610169493,
+   "drift_rate": 0.029556650246305417,
+   "cross_document": true,
+   "scope": "across_documents"
+  },
+  {
+   "corpus": "cardiode",
+   "rule": "vote",
+   "entity_type": "PERSON",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 1347,
+   "surfaces": 733,
+   "collision_rate": 0.09380378657487091,
+   "fragmentation_rate": 0.0066815144766146995,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "cardiode",
+   "rule": "vote",
+   "entity_type": "PERSON",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 1056,
+   "surfaces": 733,
+   "collision_rate": 0.09380378657487091,
+   "fragmentation_rate": 0.0066815144766146995,
+   "drift_rate": 0.04071969696969697,
+   "cross_document": true,
+   "scope": "across_documents"
+  },
+  {
+   "corpus": "cardiode",
+   "rule": "vote",
+   "entity_type": "LOC",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 474,
+   "surfaces": 471,
+   "collision_rate": 0.0,
+   "fragmentation_rate": 0.0,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "cardiode",
+   "rule": "vote",
+   "entity_type": "LOC",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 473,
+   "surfaces": 471,
+   "collision_rate": 0.0,
+   "fragmentation_rate": 0.0,
+   "drift_rate": 0.0021141649048625794,
+   "cross_document": true,
+   "scope": "across_documents"
+  },
+  {
+   "corpus": "cardiode",
+   "rule": "vote",
+   "entity_type": "ORG",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 449,
+   "surfaces": 436,
+   "collision_rate": 0.0,
+   "fragmentation_rate": 0.0,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "cardiode",
+   "rule": "vote",
+   "entity_type": "ORG",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 430,
+   "surfaces": 436,
+   "collision_rate": 0.0,
+   "fragmentation_rate": 0.0,
+   "drift_rate": 0.004651162790697674,
+   "cross_document": true,
+   "scope": "across_documents"
+  },
+  {
+   "corpus": "enron",
+   "rule": "union",
+   "entity_type": "PERSON",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 290893,
+   "surfaces": 34754,
+   "collision_rate": 0.0006811890372045162,
+   "fragmentation_rate": 0.3595995778516499,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "enron",
+   "rule": "union",
+   "entity_type": "PERSON",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 12624,
+   "surfaces": 34754,
+   "collision_rate": 0.0006811890372045162,
+   "fragmentation_rate": 0.3595995778516499,
+   "drift_rate": 0.37658428390367554,
+   "cross_document": true,
+   "scope": "across_documents"
+  },
+  {
+   "corpus": "enron",
+   "rule": "union",
+   "entity_type": "LOC",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 3797,
+   "surfaces": 916,
+   "collision_rate": 0.0017044071098125152,
+   "fragmentation_rate": 0.06347116144324466,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "enron",
+   "rule": "union",
+   "entity_type": "LOC",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 417,
+   "surfaces": 916,
+   "collision_rate": 0.0017044071098125152,
+   "fragmentation_rate": 0.06347116144324466,
+   "drift_rate": 0.23741007194244604,
+   "cross_document": true,
+   "scope": "across_documents"
+  },
+  {
+   "corpus": "enron",
+   "rule": "union",
+   "entity_type": "ORG",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 64827,
+   "surfaces": 4679,
+   "collision_rate": 0.17308231467982504,
+   "fragmentation_rate": 0.28494300214416834,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "enron",
+   "rule": "union",
+   "entity_type": "ORG",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 2894,
+   "surfaces": 4679,
+   "collision_rate": 0.17308231467982504,
+   "fragmentation_rate": 0.28494300214416834,
+   "drift_rate": 0.4861782999308915,
+   "cross_document": true,
+   "scope": "across_documents"
+  },
+  {
+   "corpus": "enron",
+   "rule": "vote",
+   "entity_type": "PERSON",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 199536,
+   "surfaces": 10148,
+   "collision_rate": 0.004260453891493016,
+   "fragmentation_rate": 0.08232098468446797,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "enron",
+   "rule": "vote",
+   "entity_type": "PERSON",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 5319,
+   "surfaces": 10148,
+   "collision_rate": 0.004260453891493016,
+   "fragmentation_rate": 0.08232098468446797,
+   "drift_rate": 0.4459484865576236,
+   "cross_document": true,
+   "scope": "across_documents"
+  },
+  {
+   "corpus": "enron",
+   "rule": "vote",
+   "entity_type": "LOC",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 231,
+   "surfaces": 74,
+   "collision_rate": 0.0,
+   "fragmentation_rate": 0.08658008658008658,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "enron",
+   "rule": "vote",
+   "entity_type": "LOC",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 16,
+   "surfaces": 74,
+   "collision_rate": 0.0,
+   "fragmentation_rate": 0.08658008658008658,
+   "drift_rate": 0.625,
+   "cross_document": true,
+   "scope": "across_documents"
+  },
+  {
+   "corpus": "enron",
+   "rule": "vote",
+   "entity_type": "ORG",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 2429,
+   "surfaces": 545,
+   "collision_rate": 0.00036153289949385393,
+   "fragmentation_rate": 0.09510086455331412,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "enron",
+   "rule": "vote",
+   "entity_type": "ORG",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 144,
+   "surfaces": 545,
+   "collision_rate": 0.00036153289949385393,
+   "fragmentation_rate": 0.09510086455331412,
+   "drift_rate": 0.4583333333333333,
+   "cross_document": true,
+   "scope": "across_documents"
+  },
+  {
+   "corpus": "ontonotes",
+   "rule": "union",
+   "entity_type": "PERSON",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 12076,
+   "surfaces": 8508,
+   "collision_rate": 0.1370425364660669,
+   "fragmentation_rate": 0.11510433918516065,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "ontonotes",
+   "rule": "union",
+   "entity_type": "LOC",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 9846,
+   "surfaces": 2880,
+   "collision_rate": 0.16009992051776994,
+   "fragmentation_rate": 0.13843185049766402,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "ontonotes",
+   "rule": "union",
+   "entity_type": "ORG",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 6709,
+   "surfaces": 3928,
+   "collision_rate": 0.07649744086318994,
+   "fragmentation_rate": 0.16962289461916827,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "ontonotes",
+   "rule": "vote",
+   "entity_type": "PERSON",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 6870,
+   "surfaces": 4886,
+   "collision_rate": 0.06649262899262899,
+   "fragmentation_rate": 0.036244541484716154,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "ontonotes",
+   "rule": "vote",
+   "entity_type": "LOC",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 2671,
+   "surfaces": 915,
+   "collision_rate": 0.025112443778110945,
+   "fragmentation_rate": 0.027704979408461252,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "ontonotes",
+   "rule": "vote",
+   "entity_type": "ORG",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 1860,
+   "surfaces": 912,
+   "collision_rate": 0.02147074610842727,
+   "fragmentation_rate": 0.02956989247311828,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "tab",
+   "rule": "union",
+   "entity_type": "PERSON",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 9070,
+   "surfaces": 6601,
+   "collision_rate": 0.023024445707788516,
+   "fragmentation_rate": 0.1461962513781698,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "tab",
+   "rule": "union",
+   "entity_type": "LOC",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 5703,
+   "surfaces": 2850,
+   "collision_rate": 0.026845637583892617,
+   "fragmentation_rate": 0.13098369279326671,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "tab",
+   "rule": "union",
+   "entity_type": "ORG",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 11222,
+   "surfaces": 3502,
+   "collision_rate": 0.01342882721575649,
+   "fragmentation_rate": 0.2212618071644983,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "tab",
+   "rule": "vote",
+   "entity_type": "PERSON",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 8155,
+   "surfaces": 5063,
+   "collision_rate": 0.01520290024558531,
+   "fragmentation_rate": 0.0621704475781729,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "tab",
+   "rule": "vote",
+   "entity_type": "LOC",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 3756,
+   "surfaces": 1468,
+   "collision_rate": 0.019401778496362168,
+   "fragmentation_rate": 0.00718849840255591,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  },
+  {
+   "corpus": "tab",
+   "rule": "vote",
+   "entity_type": "ORG",
+   "condition": "B",
+   "policy": "deterministic",
+   "chains": 5335,
+   "surfaces": 696,
+   "collision_rate": 0.011915844349283188,
+   "fragmentation_rate": 0.01874414245548266,
+   "drift_rate": null,
+   "cross_document": false,
+   "scope": "within_document"
+  }
+ ]
+}
