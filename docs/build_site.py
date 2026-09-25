@@ -103,9 +103,8 @@ def section_detection():
                        f"these triples were chosen by the {num(regold['sweep_sources'])}-source "
                        "sweep as it scored on the superseded gold, so a fresh sweep could pick "
                        "different members. The rows say what these ensembles achieve now, not "
-                       "that they would still win. Their information-weighted precision is left "
-                       "blank rather than filled, because it was "
-                       f"{escape(regold['information_weighted_precision_note'])}."
+                       "that they would still win. Every column, the weighted one included, is "
+                       f"re-scored under the sweep's own weight model ({escape(regold['weight_model'])})."
                        if regold else ""))
 
     br = DATA.get("both_rates") or {}

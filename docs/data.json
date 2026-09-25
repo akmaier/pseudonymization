@@ -120,7 +120,7 @@
     "sensitivity": 0.996766948372044,
     "specificity": 0.7745200983265216,
     "precision": 0.5762484831024987,
-    "information_weighted_precision": null,
+    "information_weighted_precision": 0.5081117118490986,
     "cost_parallel_s": 25.557465940894822,
     "cost_serial_s": 25.662220647678392,
     "ensemble": [
@@ -131,7 +131,6 @@
     "gold": "corrected 2026-09-25",
     "sweep_sources": 1743,
     "selection_rerun": false,
-    "information_weighted_precision_note": "not re-scored: the rescoring job used a uniform weight model, under which this metric degenerates to precision; the sweep used unigram:enron",
     "superseded": {
      "sensitivity": 0.9725563572680621,
      "specificity": 0.7719922491751702,
@@ -148,14 +147,15 @@
       "entity_rate": 0.14342939960559767,
       "entities_per_document": 1.0295381676785593
      }
-    }
+    },
+    "weight_model": "unigram:enron"
    },
    "FAST-SENSITIVITY": {
     "rule": "union",
     "sensitivity": 0.9222118732895938,
     "specificity": 0.7420067963110943,
     "precision": 0.5237190619999847,
-    "information_weighted_precision": null,
+    "information_weighted_precision": 0.49883949822438156,
     "cost_parallel_s": 0.05693825925365868,
     "cost_serial_s": 0.13374275004831618,
     "ensemble": [
@@ -166,7 +166,6 @@
     "gold": "corrected 2026-09-25",
     "sweep_sources": 1743,
     "selection_rerun": false,
-    "information_weighted_precision_note": "not re-scored: the rescoring job used a uniform weight model, under which this metric degenerates to precision; the sweep used unigram:enron",
     "superseded": {
      "sensitivity": 0.8987017335875749,
      "specificity": 0.7419265936448285,
@@ -183,14 +182,15 @@
       "entity_rate": 0.3009171042315094,
       "entities_per_document": 2.1599870386793096
      }
-    }
+    },
+    "weight_model": "unigram:enron"
    },
    "MAX-SPECIFICITY": {
     "rule": "intersection",
     "sensitivity": 0.5292397244053049,
     "specificity": 0.9447789816056418,
     "precision": 0.7467216871220809,
-    "information_weighted_precision": null,
+    "information_weighted_precision": 0.6718197107212109,
     "cost_parallel_s": 20.931386979400106,
     "cost_serial_s": 35.78167065115025,
     "ensemble": [
@@ -201,7 +201,6 @@
     "gold": "corrected 2026-09-25",
     "sweep_sources": 1743,
     "selection_rerun": false,
-    "information_weighted_precision_note": "not re-scored: the rescoring job used a uniform weight model, under which this metric degenerates to precision; the sweep used unigram:enron",
     "superseded": {
      "sensitivity": 0.5881448647682136,
      "specificity": 0.9428060312086327,
@@ -218,14 +217,15 @@
       "entity_rate": 0.6568652141889805,
       "entities_per_document": 4.714987379766696
      }
-    }
+    },
+    "weight_model": "unigram:enron"
    },
    "FAST-SPECIFICITY": {
     "rule": "single",
     "sensitivity": 0.6919892682969616,
     "specificity": 0.878058907040323,
     "precision": 0.6357900993141068,
-    "information_weighted_precision": null,
+    "information_weighted_precision": 0.5847487840386945,
     "cost_parallel_s": 0.025934466386818854,
     "cost_serial_s": 0.025934466386818854,
     "ensemble": [
@@ -234,7 +234,6 @@
     "gold": "corrected 2026-09-25",
     "sweep_sources": 1743,
     "selection_rerun": false,
-    "information_weighted_precision_note": "not re-scored: the rescoring job used a uniform weight model, under which this metric degenerates to precision; the sweep used unigram:enron",
     "superseded": {
      "sensitivity": 0.6740886570773281,
      "specificity": 0.8787239278577074,
@@ -251,7 +250,8 @@
       "entity_rate": 0.9102639644562712,
       "entities_per_document": 6.533887031857562
      }
-    }
+    },
+    "weight_model": "unigram:enron"
    }
   },
   "ontonotes": {
