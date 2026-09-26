@@ -85,3 +85,7 @@ paper/*.synctex.gz
 paper/*.toc
 paper/*.lof
 paper/*.lot
+
+# The arXiv package is derived from the review copy by paper/make_arxiv.py — the script is
+# versioned, the package is not.
+paper/arxiv/
