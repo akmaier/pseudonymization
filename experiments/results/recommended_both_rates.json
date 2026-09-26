@@ -1,0 +1,434 @@
+{
+ "cardiode": {
+  "union": {
+   "rule": "union",
+   "k": null,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.9977799436863765,
+    "sensitivity_gold_tokens": 18468,
+    "person_sensitivity": 0.9997725204731575,
+    "person_gold_tokens": 4396,
+    "specificity": 0.8685838311367187,
+    "precision": 0.5455002036106964,
+    "all_gold_tokens": 120701,
+    "total_tokens": 885059,
+    "predicted_tokens": 221010,
+    "documents": 400
+   }
+  },
+  "vote-2": {
+   "rule": "vote",
+   "k": 2,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.651667749620966,
+    "sensitivity_gold_tokens": 18468,
+    "person_sensitivity": 0.578252957233849,
+    "person_gold_tokens": 4396,
+    "specificity": 0.985621920618349,
+    "precision": 0.908857946110913,
+    "all_gold_tokens": 120701,
+    "total_tokens": 885059,
+    "predicted_tokens": 120581,
+    "documents": 400
+   }
+  },
+  "vote-3": {
+   "rule": "vote",
+   "k": 3,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.6234026424084904,
+    "sensitivity_gold_tokens": 18468,
+    "person_sensitivity": 0.5625568698817106,
+    "person_gold_tokens": 4396,
+    "specificity": 0.996251756375939,
+    "precision": 0.9743295671418459,
+    "all_gold_tokens": 120701,
+    "total_tokens": 885059,
+    "predicted_tokens": 111607,
+    "documents": 400
+   }
+  },
+  "intersection": {
+   "rule": "intersection",
+   "k": null,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.0011912497292614252,
+    "sensitivity_gold_tokens": 18468,
+    "person_sensitivity": 0.004549590536851683,
+    "person_gold_tokens": 4396,
+    "specificity": 1.0,
+    "precision": 1.0,
+    "all_gold_tokens": 120701,
+    "total_tokens": 885059,
+    "predicted_tokens": 22,
+    "documents": 400
+   }
+  }
+ },
+ "tab": {
+  "union": {
+   "rule": "union",
+   "k": null,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.961395263671875,
+    "sensitivity_gold_tokens": 163840,
+    "person_sensitivity": 0.9957954035187982,
+    "person_gold_tokens": 48994,
+    "specificity": 0.8504030237287697,
+    "precision": 0.5440377948286362,
+    "all_gold_tokens": 298369,
+    "total_tokens": 1844804,
+    "predicted_tokens": 507371,
+    "documents": 1268
+   }
+  },
+  "vote-2": {
+   "rule": "vote",
+   "k": 2,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.85379638671875,
+    "sensitivity_gold_tokens": 163840,
+    "person_sensitivity": 0.9601787974037638,
+    "person_gold_tokens": 48994,
+    "specificity": 0.9338782425384837,
+    "precision": 0.7027287104764341,
+    "all_gold_tokens": 298369,
+    "total_tokens": 1844804,
+    "predicted_tokens": 343972,
+    "documents": 1268
+   }
+  },
+  "vote-3": {
+   "rule": "vote",
+   "k": 3,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.77113037109375,
+    "sensitivity_gold_tokens": 163840,
+    "person_sensitivity": 0.948075274523411,
+    "person_gold_tokens": 48994,
+    "specificity": 0.9803069640819045,
+    "precision": 0.8785013544621448,
+    "all_gold_tokens": 298369,
+    "total_tokens": 1844804,
+    "predicted_tokens": 250653,
+    "documents": 1268
+   }
+  },
+  "intersection": {
+   "rule": "intersection",
+   "k": null,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.005902099609375,
+    "sensitivity_gold_tokens": 163840,
+    "person_sensitivity": 0.01973711066661224,
+    "person_gold_tokens": 48994,
+    "specificity": 0.9999954734599256,
+    "precision": 0.9928131416837782,
+    "all_gold_tokens": 298369,
+    "total_tokens": 1844804,
+    "predicted_tokens": 974,
+    "documents": 1268
+   }
+  }
+ },
+ "ontonotes": {
+  "union": {
+   "rule": "union",
+   "k": null,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.8010963112598111,
+    "sensitivity_gold_tokens": 475230,
+    "person_sensitivity": 0.9352167341864979,
+    "person_gold_tokens": 111819,
+    "specificity": 0.9317901668638368,
+    "precision": 0.6619469994123194,
+    "all_gold_tokens": 737653,
+    "total_tokens": 4726594,
+    "predicted_tokens": 804859,
+    "documents": 5994
+   },
+   "by_language": {
+    "english": {
+     "sensitivity": 0.9890358792482045,
+     "sensitivity_gold_tokens": 191169,
+     "person_sensitivity": 0.9913257965056527,
+     "person_gold_tokens": 48650,
+     "specificity": 0.9358671204578185,
+     "precision": 0.7152671847124606,
+     "all_gold_tokens": 338095,
+     "total_tokens": 2192105,
+     "predicted_tokens": 417595,
+     "documents": 3637
+    },
+    "chinese": {
+     "sensitivity": 0.8679511278195489,
+     "sensitivity_gold_tokens": 68096,
+     "person_sensitivity": 0.9315481686672823,
+     "person_gold_tokens": 16245,
+     "specificity": 0.9136532912759877,
+     "precision": 0.5179744902827698,
+     "all_gold_tokens": 119398,
+     "total_tokens": 996930,
+     "predicted_tokens": 157195,
+     "documents": 1911
+    },
+    "arabic": {
+     "sensitivity": 0.6136549903919617,
+     "sensitivity_gold_tokens": 215965,
+     "person_sensitivity": 0.8783138692353593,
+     "person_gold_tokens": 46924,
+     "specificity": 0.9384364072183929,
+     "precision": 0.6635357218921281,
+     "all_gold_tokens": 280160,
+     "total_tokens": 1537559,
+     "predicted_tokens": 230069,
+     "documents": 446
+    }
+   }
+  },
+  "vote-2": {
+   "rule": "vote",
+   "k": 2,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.6153609831029185,
+    "sensitivity_gold_tokens": 475230,
+    "person_sensitivity": 0.8635741689694953,
+    "person_gold_tokens": 111819,
+    "specificity": 0.982108534570955,
+    "precision": 0.8367724081147222,
+    "all_gold_tokens": 737653,
+    "total_tokens": 4726594,
+    "predicted_tokens": 437230,
+    "documents": 5994
+   },
+   "by_language": {
+    "english": {
+     "sensitivity": 0.8674994376703336,
+     "sensitivity_gold_tokens": 191169,
+     "person_sensitivity": 0.9492086330935252,
+     "person_gold_tokens": 48650,
+     "specificity": 0.9762886931569948,
+     "precision": 0.8333459698391879,
+     "all_gold_tokens": 338095,
+     "total_tokens": 2192105,
+     "predicted_tokens": 263786,
+     "documents": 3637
+    },
+    "chinese": {
+     "sensitivity": 0.6279664003759399,
+     "sensitivity_gold_tokens": 68096,
+     "person_sensitivity": 0.8394582948599569,
+     "person_gold_tokens": 16245,
+     "specificity": 0.9815414138743659,
+     "precision": 0.7700715421303657,
+     "all_gold_tokens": 119398,
+     "total_tokens": 996930,
+     "predicted_tokens": 70448,
+     "documents": 1911
+    },
+    "arabic": {
+     "sensitivity": 0.3881971615771074,
+     "sensitivity_gold_tokens": 215965,
+     "person_sensitivity": 0.783138692353593,
+     "person_gold_tokens": 46924,
+     "specificity": 0.9910855663158632,
+     "precision": 0.8911705308944037,
+     "all_gold_tokens": 280160,
+     "total_tokens": 1537559,
+     "predicted_tokens": 102996,
+     "documents": 446
+    }
+   }
+  },
+  "vote-3": {
+   "rule": "vote",
+   "k": 3,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.4993624139890158,
+    "sensitivity_gold_tokens": 475230,
+    "person_sensitivity": 0.7825145994866705,
+    "person_gold_tokens": 111819,
+    "specificity": 0.9926296227494966,
+    "precision": 0.9026267590939652,
+    "all_gold_tokens": 737653,
+    "total_tokens": 4726594,
+    "predicted_tokens": 301931,
+    "documents": 5994
+   },
+   "by_language": {
+    "english": {
+     "sensitivity": 0.8076257133740303,
+     "sensitivity_gold_tokens": 191169,
+     "person_sensitivity": 0.9362384378211717,
+     "person_gold_tokens": 48650,
+     "specificity": 0.9889045905901263,
+     "precision": 0.8970853094794982,
+     "all_gold_tokens": 338095,
+     "total_tokens": 2192105,
+     "predicted_tokens": 199884,
+     "documents": 3637
+    },
+    "chinese": {
+     "sensitivity": 0.4335203242481203,
+     "sensitivity_gold_tokens": 68096,
+     "person_sensitivity": 0.6507848568790398,
+     "person_gold_tokens": 16245,
+     "specificity": 0.9944514843903128,
+     "precision": 0.8807815675424207,
+     "all_gold_tokens": 119398,
+     "total_tokens": 996930,
+     "predicted_tokens": 40841,
+     "documents": 1911
+    },
+    "arabic": {
+     "sensitivity": 0.24725302711087443,
+     "sensitivity_gold_tokens": 215965,
+     "person_sensitivity": 0.6687409428011252,
+     "person_gold_tokens": 46924,
+     "specificity": 0.9968506416817573,
+     "precision": 0.9353004607391432,
+     "all_gold_tokens": 280160,
+     "total_tokens": 1537559,
+     "predicted_tokens": 61206,
+     "documents": 446
+    }
+   }
+  },
+  "intersection": {
+   "rule": "intersection",
+   "k": null,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.003143740925446626,
+    "sensitivity_gold_tokens": 475230,
+    "person_sensitivity": 0.013280390631288063,
+    "person_gold_tokens": 111819,
+    "specificity": 0.9999964902965474,
+    "precision": 0.9907161803713528,
+    "all_gold_tokens": 737653,
+    "total_tokens": 4726594,
+    "predicted_tokens": 1508,
+    "documents": 5994
+   },
+   "by_language": {
+    "english": {
+     "sensitivity": 0.007815074619838991,
+     "sensitivity_gold_tokens": 191169,
+     "person_sensitivity": 0.03052415210688592,
+     "person_gold_tokens": 48650,
+     "specificity": 0.9999924488001682,
+     "precision": 0.9907161803713528,
+     "all_gold_tokens": 338095,
+     "total_tokens": 2192105,
+     "predicted_tokens": 1508,
+     "documents": 3637
+    },
+    "chinese": {
+     "sensitivity": 0.0,
+     "sensitivity_gold_tokens": 68096,
+     "person_sensitivity": 0.0,
+     "person_gold_tokens": 16245,
+     "specificity": 1.0,
+     "precision": NaN,
+     "all_gold_tokens": 119398,
+     "total_tokens": 996930,
+     "predicted_tokens": 0,
+     "documents": 1911
+    },
+    "arabic": {
+     "sensitivity": 0.0,
+     "sensitivity_gold_tokens": 215965,
+     "person_sensitivity": 0.0,
+     "person_gold_tokens": 46924,
+     "specificity": 1.0,
+     "precision": NaN,
+     "all_gold_tokens": 280160,
+     "total_tokens": 1537559,
+     "predicted_tokens": 0,
+     "documents": 446
+    }
+   }
+  }
+ },
+ "enron": {
+  "union": {
+   "rule": "union",
+   "k": null,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.9980892240018244,
+    "sensitivity_gold_tokens": 3648256,
+    "person_sensitivity": 0.9905757753903209,
+    "person_gold_tokens": 661699,
+    "specificity": 0.6235172330694896,
+    "precision": 0.4491949787854945,
+    "all_gold_tokens": 3648256,
+    "total_tokens": 15507925,
+    "predicted_tokens": 8106246,
+    "documents": 58636
+   }
+  },
+  "vote-2": {
+   "rule": "vote",
+   "k": 2,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.8909051338502562,
+    "sensitivity_gold_tokens": 3648256,
+    "person_sensitivity": 0.8310137993256753,
+    "person_gold_tokens": 661699,
+    "specificity": 0.811985562160293,
+    "precision": 0.5931070928509815,
+    "all_gold_tokens": 3648256,
+    "total_tokens": 15507925,
+    "predicted_tokens": 5480039,
+    "documents": 58636
+   }
+  },
+  "vote-3": {
+   "rule": "vote",
+   "k": 3,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.7827208397656304,
+    "sensitivity_gold_tokens": 3648256,
+    "person_sensitivity": 0.8223996106991245,
+    "person_gold_tokens": 661699,
+    "specificity": 0.8557384695980975,
+    "precision": 0.6253347231772532,
+    "all_gold_tokens": 3648256,
+    "total_tokens": 15507925,
+    "predicted_tokens": 4566460,
+    "documents": 58636
+   }
+  },
+  "intersection": {
+   "rule": "intersection",
+   "k": null,
+   "members": 13,
+   "overall": {
+    "sensitivity": 0.008048229071644096,
+    "sensitivity_gold_tokens": 3648256,
+    "person_sensitivity": 0.044328312419997615,
+    "person_gold_tokens": 661699,
+    "specificity": 0.9995182833517529,
+    "precision": 0.8371204561653599,
+    "all_gold_tokens": 3648256,
+    "total_tokens": 15507925,
+    "predicted_tokens": 35075,
+    "documents": 58636
+   }
+  }
+ }
+}
