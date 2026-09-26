@@ -1,0 +1,42 @@
+{
+ "enron": {
+  "documents": 58636,
+  "identities": 3886,
+  "mean_documents_per_identity": 55.672156459083894,
+  "identities_in_one_document": 232,
+  "identities_in_one_document_share": 0.05970149253731343,
+  "identities_in_both_split_halves": 3338,
+  "identities_in_both_split_halves_share": 0.8589809572825527,
+  "gallery_profiles": 3697,
+  "mean_cosine_between_different_profiles": 0.06419448361786279,
+  "median_cosine_between_different_profiles": 0.026330549099565025,
+  "cosine_estimate": "100,000 pairs sampled at seed 0",
+  "mean_context_words_per_profile": 124.35244793075466,
+  "unmodified_text_rank1": 0.7198024247867085,
+  "split_documents": [
+   29318,
+   29318
+  ],
+  "seed": 0
+ },
+ "cardiode": {
+  "documents": 400,
+  "identities": 308,
+  "mean_documents_per_identity": 6.353896103896104,
+  "identities_in_one_document": 173,
+  "identities_in_one_document_share": 0.5616883116883117,
+  "identities_in_both_split_halves": 100,
+  "identities_in_both_split_halves_share": 0.3246753246753247,
+  "gallery_profiles": 207,
+  "mean_cosine_between_different_profiles": 0.30493317895262384,
+  "median_cosine_between_different_profiles": 0.29172275101804873,
+  "cosine_estimate": "exhaustive over 21,321 pairs",
+  "mean_context_words_per_profile": 73.79710144927536,
+  "unmodified_text_rank1": 0.0273224043715847,
+  "split_documents": [
+   200,
+   200
+  ],
+  "seed": 0
+ }
+}
