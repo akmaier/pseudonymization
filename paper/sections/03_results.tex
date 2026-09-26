@@ -63,7 +63,7 @@ The other two tasks retain their original-text baselines and support paired comp
     \toprule
     Corpus & {Sens.} & {Spec.} & {Exp.\ (\%)} & Frequency & {Context link.} & {Learned link.} & Chance \\
     \midrule
-    CARDIO:DE & 0.9998 & 0.8686 & 0.05 & 0 (1) & $0.00\pm0.00$ & $0.71\pm1.60$ & $1/207$ \\
+    CARDIO:DE & 0.9998 & 0.8686 & 0.05 & 0 (1) & $0$ & $0.71\pm1.60$ & $1/207$ \\
     Enron     & 0.9906 & 0.6235 & 1.60 & 0 (0) & $0.93\pm0.10$ & $3.94\pm0.30$ & $1/3697$ \\
     \addlinespace
     TAB       & 0.9958 & 0.8504 & 0.83 & 0 (1) & \multicolumn{2}{l}{no links $\rightarrow$ not measurable} & {--} \\
@@ -86,7 +86,8 @@ text and $0.93\pm0.10$\,\% after replacement. The latter is 34 times the $1/3697
 but two orders of magnitude below the unmodified-text rate. Entity-disjoint training raises recovery to
 $3.94\pm0.30$\,\%, four times the fixed attack and 146 times chance, so a trained adversary carries
 the residual risk. CARDIO:DE has 207 attacker's reference identities; fixed linkage recovery is zero, and
-learned linkage $0.71\pm1.60$\,\% against chance \SI{0.48}{\percent} is consistent with guessing.
+learned linkage $0.71\pm1.60$\,\% over 138 queries against chance $1/207$ is consistent with
+guessing.
 Across the tested Enron configurations, linkage rises as person sensitivity falls. Agreement
 between two detectors lowers sensitivity to 0.8310, raises fixed linkage fivefold to \SI{5.09}{\percent} and
 increases clear-text names from 152 to 1,816; intersection yields 0.0443 sensitivity and \SI{25.51}{\percent}
