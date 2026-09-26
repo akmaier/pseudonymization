@@ -1,0 +1,30 @@
+{
+ "release": {
+  "uncovered_person_mentions": 4097,
+  "person_mentions": 272503,
+  "replacements": 1487379,
+  "a3_rank1": 0.009286951046749568,
+  "a3_rank5": 0.012749881945537542,
+  "a3_queries": 19059,
+  "a5_rank1": 0.039351308949104366,
+  "a5_rank1_sd": 0.0030055517790447852,
+  "a5_folds": 5,
+  "gallery": 3697,
+  "seed": 0
+ },
+ "oracle-person": {
+  "uncovered_person_mentions": 0,
+  "person_mentions": 272503,
+  "replacements": 1489746,
+  "a3_rank1": 0.010465724751439037,
+  "a3_rank5": 0.014233385661957091,
+  "a3_queries": 19110,
+  "a5_rank1": 0.04395604395604395,
+  "a5_rank1_sd": 0.0013967920266916946,
+  "a5_folds": 5,
+  "gallery": 3697,
+  "seed": 0
+ },
+ "chance": 0.0002704895861509332,
+ "note": "arm \"release\" is the shipped 13-detector union and must reproduce the sweep; arm \"oracle-person\" adds the corpus PERSON annotations to it, so no person mention survives in clear text and any remaining recovery is carried by context rather than by the leak"
+}

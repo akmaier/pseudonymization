@@ -22,10 +22,24 @@ cluster.toml
 CLAUDE.md
 
 # No corpus data in git — corpora are licensed/DUA-bound and some are personal data.
-data/corpora/
-data/raw/
+#
+# data/ is ignored WHOLESALE and re-admitted piece by piece, for the same reason results/ is
+# below. The old rules named only data/corpora/ and data/raw/, which left data/conditionA/
+# exposed — it holds enron_A.jsonl.gz, 36 MB of real names from a non-consenting corpus. Since
+# 2026-09-26 the cluster work directory is a checkout of this repository, and this repository is
+# public, so a single `git add -A` run there would have published that file.
+data/*
+!data/*.md
 *.zip
 *.tar.gz
+
+# The cluster work directory holds these and this repository must never carry them: model and
+# dataset caches, the virtualenv, job logs, and the staging directories.
+hf_cache/
+models/
+logs/
+_stage/
+_sync/
 
 # Third-party agreement forms and generated fill-in sheets: local only.
 applications/forms/
@@ -40,6 +54,10 @@ applications/forms/
 # DUA-restricted clinical text into a repository the plan intends to release publicly.
 results/
 !results/*.md
+# ...and experiments/results/ is not that tree. The rule above has no leading slash, so it matches
+# at any depth, and it was silently swallowing the small summary artefacts that do belong here —
+# enron_leak_ablation.json was skipped by `git add experiments/` on 2026-09-25 without a word.
+!experiments/results/
 __pycache__/
 .venv/
 *.pyc
