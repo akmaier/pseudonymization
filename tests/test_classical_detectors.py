@@ -469,13 +469,52 @@ def test_run_detector_resumes_and_retries_failures(tmp_path):
     cache = DetectorCache(tmp_path, "tab")
     documents = [doc(doc_id="a"), doc(doc_id="b")]
     first = StubDetector({}, fail={"b"})
-    run_detector(first, documents, cache)
+    run_detector(first, documents, cache, retries=0)
     assert first.seen == ["a", "b"]
 
     second = StubDetector({})
-    report = run_detector(second, documents, cache)
+    report = run_detector(second, documents, cache, retries=0)
     assert second.seen == ["b"], "a was cached; b errored and must be retried"
     assert report.skipped == 1
+
+
+def test_a_transient_failure_is_retried_in_place(tmp_path):
+    """The GPU faults on this cluster came in bursts and cleared on their own.
+
+    Both privacy-tagger repairs died on an NVML assertion inside torch's caching allocator, and a
+    bare re-run recovered 8 of Enron's 24 failures while losing 16 new ones to the same assertion.
+    That is a transient fault, not a document the detector cannot read, and re-running a
+    58,636-document pass to reach a handful of them is the expensive way to find out.
+    """
+
+    class FlakyDetector(StubDetector):
+        def __init__(self, fail_times: int) -> None:
+            super().__init__({})
+            self.remaining = fail_times
+
+        def detect(self, document):
+            if self.remaining:
+                self.remaining -= 1
+                raise RuntimeError("NVML_SUCCESS == DriverAPI::get()->nvmlInit_v2_()")
+            return super().detect(document)
+
+    cache = DetectorCache(tmp_path, "tab")
+    detector = FlakyDetector(fail_times=2)
+    report = run_detector(detector, [doc(doc_id="a")], cache, retries=2, retry_wait=0.0)
+    assert (report.written, report.failed) == (1, 0)
+    assert detector.remaining == 0, "both transient failures were consumed by the retries"
+
+
+def test_a_persistent_failure_still_fails_and_says_how_often_it_was_tried(tmp_path):
+    """Retrying must not turn a real failure into silence — §2 says report faithfully."""
+    import json
+
+    cache = DetectorCache(tmp_path, "tab")
+    report = run_detector(StubDetector({}, fail={"a"}), [doc(doc_id="a")], cache,
+                          retries=2, retry_wait=0.0)
+    assert (report.written, report.failed) == (0, 1)
+    record = json.loads(cache.path("stub").read_text(encoding="utf-8").splitlines()[0])
+    assert "after 3 attempts" in record["error"]
 
 
 def test_run_detector_records_the_family_with_every_record(tmp_path):

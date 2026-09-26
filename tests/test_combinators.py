@@ -168,3 +168,65 @@ def test_ground_snippets_consumes_repeated_surfaces_left_to_right():
     text = "Weber called Weber."
     spans = ground_snippets(text, [("Weber", "PERSON"), ("Weber", "PERSON")])
     assert [(s.start, s.end) for s in spans] == [(0, 5), (13, 18)]
+
+
+def test_union_covers_everything_its_members_covered():
+    """`union` emits the cluster envelope, so it never loses coverage a member had.
+
+    It used to emit the widest single member: A(0,10) with B(8,20) yielded (8,20) and the eight
+    characters only A flagged were dropped. That made the rule non-monotone — adding a detector could
+    *reduce* covered tokens — while its docstring claimed it maximised recall. Measured cost before
+    the fix: 0.32 % of identifier tokens on CARDIO:DE, 0.04 % on TAB.
+    """
+    rule = COMBINATORS.create("union")
+    a = DetectorOutput("d", "A", (Span(0, 10, "Anna Marie", "PERSON"),))
+    b = DetectorOutput("d", "B", (Span(8, 20, "ie Schmidt X", "PERSON"),))
+
+    combined = rule.combine([a, b])
+    assert [(s.start, s.end) for s in combined] == [(0, 20)]
+
+    covered = lambda spans: {i for s in spans for i in range(s.start, s.end)}
+    assert covered(combined) == covered(rule.combine([a])) | covered(rule.combine([b]))
+
+
+def test_union_splices_the_surface_from_its_members():
+    """The envelope's text is spliced from the members, so no document is needed and it stays exact."""
+    rule = COMBINATORS.create("union")
+    a = DetectorOutput("d", "A", (Span(0, 10, "Anna Marie", "PERSON"),))
+    b = DetectorOutput("d", "B", (Span(8, 20, "ie Schmidt X", "PERSON"),))
+    span = rule.combine([a, b])[0]
+    assert span.text == "Anna Marie Schmidt X"[:20]
+    assert len(span.text) == span.end - span.start
+
+
+def test_union_chains_transitively_under_single_linkage():
+    """A(0,10), B(8,20), C(18,30) are one cluster, and the envelope now covers all thirty."""
+    rule = COMBINATORS.create("union")
+    outputs = [
+        DetectorOutput("d", "A", (Span(0, 10, "0123456789", "PERSON"),)),
+        DetectorOutput("d", "B", (Span(8, 20, "89abcdefghij", "PERSON"),)),
+        DetectorOutput("d", "C", (Span(18, 30, "ijklmnopqrst", "PERSON"),)),
+    ]
+    combined = rule.combine(outputs)
+    assert [(s.start, s.end) for s in combined] == [(0, 30)]
+    assert combined[0].text == "0123456789abcdefghijklmnopqrst"
+
+
+def test_a_member_whose_text_disagrees_with_its_offsets_falls_back():
+    """Rather than fabricate a surface, the envelope degrades to the widest member."""
+    rule = COMBINATORS.create("union")
+    outputs = [
+        DetectorOutput("d", "A", (Span(0, 10, "short", "PERSON"),)),
+        DetectorOutput("d", "B", (Span(8, 20, "ie Schmidt X", "PERSON"),)),
+    ]
+    assert [(s.start, s.end) for s in rule.combine(outputs)] == [(8, 20)]
+
+
+def test_union_clusters_per_entity_type():
+    """Overlapping spans of different types are different entities and both survive."""
+    rule = COMBINATORS.create("union")
+    outputs = [
+        DetectorOutput("d", "A", (Span(0, 12, "Weber Clinic", "PERSON"),)),
+        DetectorOutput("d", "B", (Span(0, 12, "Weber Clinic", "ORG"),)),
+    ]
+    assert len(rule.combine(outputs)) == 2

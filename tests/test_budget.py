@@ -40,9 +40,15 @@ def test_a_reasoning_model_gets_far_more_for_the_same_input():
     assert reasoning > 4 * plain
 
 
-def test_a_plain_model_gets_much_less_than_the_old_constant():
-    """Every plain-model truncation on the sweep was a runaway; a loose cap only pays for more of it."""
-    assert TokenBudget.for_model(PLAIN).max_tokens(6000) < 16384 / 4
+def test_a_plain_model_is_still_bounded_well_below_the_old_constant():
+    """The cap is looser than it was, and still far from the 16,384 it replaced.
+
+    The original reasoning — every plain-model truncation on the CARDIO:DE sweep was a runaway, so a
+    loose cap only pays for more of it — held while the only corpus was German clinical text. It did
+    not survive OntoNotes: Phi-4-mini, a plain model, truncated 55.9 % of documents at ratio 1.0, and
+    a truncated reply is discarded whole rather than kept short. Doubled to 2.0 (AM, 2026-09-21).
+    """
+    assert TokenBudget.for_model(PLAIN).max_tokens(6000) < 16384 / 2
 
 
 def test_the_window_is_what_the_family_can_actually_answer():
@@ -113,3 +119,91 @@ def test_an_explicit_max_tokens_still_wins():
     from pseudonymkit.detectors.llm import LlmDetector
 
     assert "max_tokens" in LlmDetector.__init__.__annotations__
+
+
+def test_chars_per_token_follows_the_script():
+    """One constant is wrong by a factor on CJK and Arabic, and the cap is derived from it."""
+    from pseudonymkit.detectors.budget import chars_per_token
+
+    assert chars_per_token("The applicant lived in Bonn.") == pytest.approx(2.5)
+    assert chars_per_token("被告人张伟于二零零三年在北京") == pytest.approx(1.0, abs=0.2)
+    assert chars_per_token("المدعي يعيش في القاهرة") == pytest.approx(1.5, abs=0.3)
+    # Mixed scripts land between, weighted by how much of each is present.
+    mixed = chars_per_token("Beijing 北京 2003")
+    assert 1.0 < mixed < 2.5
+
+
+def test_a_chinese_document_is_not_starved_of_output_budget():
+    """The defect: a CJK document was costed at 2.5 chars/token and capped at a fraction of need.
+
+    Measured on OntoNotes, Chinese runs at 1.18 characters per token against the constant's 2.5, so a
+    1,341-character document was scored as 536 prompt tokens rather than 1,138 and received roughly
+    half the cap an English document of the same true size would get. 92.2 % of Qwen3.6's Chinese
+    replies truncated, on the *shortest* documents in the corpus, and a truncated reply is discarded
+    whole.
+    """
+    from pseudonymkit.detectors.budget import TokenBudget
+
+    budget = TokenBudget.for_model("Qwen/Qwen3.6-35B-A3B-FP8")
+    # Long enough that the ratio decides rather than the reasoning floor, which now covers both.
+    chinese = "被告人张伟于二零零三年在北京市海淀区" * 84      # ~1,500 CJK characters
+    blind = budget.max_tokens(len(chinese))
+    aware = budget.max_tokens(len(chinese), chinese)
+    assert aware > blind * 2, (blind, aware)
+
+
+def test_latin_text_is_unchanged_by_the_script_awareness():
+    """English and German must keep the cap they had — only CJK and Arabic were mis-costed."""
+    from pseudonymkit.detectors.budget import TokenBudget
+
+    budget = TokenBudget.for_model("Qwen/Qwen3.6-35B-A3B-FP8")
+    german = "Der Patient wurde am 3. Januar in der Klinik aufgenommen. " * 20
+    assert budget.max_tokens(len(german), german) == budget.max_tokens(len(german))
+
+
+def test_phi_4_mini_is_budgeted_as_a_reasoning_model():
+    """Classified by what it emits, not by what it is called (AM, 2026-09-21).
+
+    Phi-4-mini is not marketed as a reasoning model and was budgeted as plain. It truncated 55.9 % of
+    OntoNotes and 78.2 % of CARDIO:DE — the worst in the pool — and 88.9 % of its first Chinese and
+    Arabic replies even after the plain ratio was doubled. `Family` is a budget class here, not an
+    architectural claim.
+    """
+    from pseudonymkit.detectors.budget import RATIO, TokenBudget, family_of
+
+    assert family_of("Microsoft/Phi-4-mini-instruct") == "reasoning"
+    chinese = "被告人张伟于二零零三年在北京市海淀区" * 75
+    budget = TokenBudget.for_model("Microsoft/Phi-4-mini-instruct")
+    plain_cap = int(len(chinese) * RATIO["plain"]) + 512
+    assert budget.max_tokens(len(chinese), chinese) > plain_cap * 2
+
+
+def test_a_reasoning_model_gets_a_floor_not_just_a_ratio():
+    """A short document must not starve a model whose thinking is fixed cost.
+
+    Qwen3.6 emits a mean of 4,708 completion tokens on OntoNotes Chinese whether the document is 400
+    characters or 1,400 — most of the answer is reasoning, which does not scale with the question. A
+    ratio-only budget therefore starved exactly the short documents, and 68.8 % of Chinese replies
+    truncated even after the ratio was doubled and the character rate corrected.
+    """
+    from pseudonymkit.detectors.budget import FAMILY_FLOOR, TokenBudget
+
+    budget = TokenBudget.for_model(REASONING)
+    short_chinese = "被告人张伟于二零零三年" * 36          # ~400 CJK characters
+    assert budget.max_tokens(len(short_chinese), short_chinese) >= FAMILY_FLOOR["reasoning"]
+
+
+def test_the_floor_does_not_shrink_a_larger_ratio_grant():
+    """It is a floor, not a grant: a long document still gets ratio x prompt."""
+    from pseudonymkit.detectors.budget import TokenBudget
+
+    budget = TokenBudget.for_model(REASONING)
+    long_latin = "The applicant lived in Bonn and worked for the ministry. " * 60
+    assert budget.max_tokens(len(long_latin), long_latin) > 8192
+
+
+def test_a_plain_model_keeps_the_small_floor():
+    """Only reasoning models pay for thinking; a plain model on a stub still asks for very little."""
+    from pseudonymkit.detectors.budget import FLOOR, TokenBudget
+
+    assert TokenBudget.for_model(PLAIN).max_tokens(80, "a short note") < FLOOR * 4
