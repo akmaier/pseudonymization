@@ -43,20 +43,20 @@
 \maketitle
 
 \begin{abstract}
-Medical images are released with the free text that describes them, and protecting the image does
+Medical images are released with the reports that describe them, and protecting the image does
 not protect the report. This paper measures the text component of such releases. We measure identifier detection, downstream utility and residual identity
 leakage on the same documents, with the pseudonymisation policy as the variable under test: 15
-detectors, three release conditions and four corpora of clinical letters, legal judgments, news and
-other genres, and e-mail, in German, English, Chinese and Arabic. A fixed 13-detector union replaces
-almost every person mention in the clinical letters at specificity \num{0.869}, and \num{0.991} of
-them in e-mail at specificity \num{0.624}. With this ensemble, frequency matching with a public name
-list recovers zero identities across the four corpora; its returned names were missed by the detector
-and printed in clear text. Cross-document linkage reaches \num{0.0093}
-without training and \num{0.0394} with it on e-mail, against $1/3697$ chance and a \num{0.720}
-ceiling on unmodified text. The tested replacement forms expose the same reachable text to a
-scheme-aware adversary: the typed-placeholder release is a character-for-character rewrite of the
-surrogate release. Under this ensemble, residual exposure is set by identifiers the detector missed
-and must be reported per document, per case and per language.
+detectors, three release conditions and four corpora of medical reports, legal judgments, news and
+other genres, and e-mail, in German, English, Chinese and Arabic. A fixed 13-detector union
+reaches a person sensitivity of \num{0.9998} at specificity \num{0.8686} on the medical reports,
+\num{0.9958} at \num{0.8504} on the legal judgments, \num{0.9352} at \num{0.9318} on news and
+other genres, and \num{0.9906} at \num{0.6235} on e-mail. With this ensemble, frequency matching
+with a public name list recovers zero identities by alignment across the four corpora; the names it
+got right were ones the detector missed, left in clear text. Cross-document linkage ranks the
+correct person first for \SI{0.93}{\percent} of e-mail queries without training and
+\SI{3.94}{\percent} with it, against $1/3697$ chance and \SI{71.98}{\percent} on unmodified text.
+On the medical reports it recovers nothing without training and \SI{0.71}{\percent} of 138 queries
+with it, against $1/207$ chance and a \SI{2.73}{\percent} ceiling on unmodified text.
 \end{abstract}
 
 \begin{keywords}
