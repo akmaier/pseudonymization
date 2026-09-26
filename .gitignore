@@ -40,6 +40,8 @@ models/
 logs/
 _stage/
 _sync/
+/*.log
+/*.jsonl
 
 # Third-party agreement forms and generated fill-in sheets: local only.
 applications/forms/
