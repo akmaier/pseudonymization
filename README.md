@@ -15,7 +15,7 @@ plausible surrogate, or something else.
   reproduces the placeholder release character for character — verified on every TAB and OntoNotes
   document. A release cannot be safer than a text anyone can compute from it, so a surrogate buys
   nothing against an adversary who knows the scheme. Telling a candidate-ranking attacker that much,
-  **without changing one character of the text**, lifts it from 0.085 to 0.205.
+  **without changing one character of the text**, lifts it from 0.110 to 0.165.
 - **The cheap option is often not the worse option.** On CARDIO:DE the fast-sensitivity ensemble
   gives up 0.097 of sensitivity but is *more* specific than the maximum (0.9769 against 0.9670) and
   **191× cheaper**. Catching the last identifiers means over-detecting, and over-detection has its
@@ -204,12 +204,19 @@ the **original** text, so it cannot measure a loss.
 All figures are for the **recommended 13-detector union**, and all concern people: identity is
 `PERSON`, and the other identifier classes are what linkage exploits rather than what it names.
 
-| corpus | person recall | people still named in clear | frequency matching (public / oracle) | context linkage | learned linkage | chance |
-|---|---:|---:|---:|---:|---:|---:|
-| CARDIO:DE | 1.000 | 0.1 % | 0 / 1 | 0.0000 ± 0.0000 | 0.0071 ± 0.0160 | 1/207 |
-| TAB | 0.996 | 0.8 % | 0 / 1 | — | — | — |
-| OntoNotes | 0.935 | 4.9 % | 0 / 1 | — | — | — |
-| Enron | 0.890 | 18.0 % | 0 / 0 | 0.0095 ± 0.0012 | 0.0407 ± 0.0029 | 1/3816 |
+Sensitivity is over `PERSON` tokens, specificity over every other token; neither is readable
+without the other. *Still named* is the risk that a person is named in clear text in a given
+document after processing — person–document pairs, not documents and not people. Linkage is the
+share of queries that rank the correct person first against chance `1/gallery`; TAB and OntoNotes
+carry no cross-document identity links, so there is nothing there to link and the attack is not
+measurable rather than unsuccessful.
+
+| corpus | person sensitivity | specificity | still named | frequency matching (public / oracle) | context linkage | learned linkage | chance |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| CARDIO:DE | 0.9998 | 0.8686 | 0.05 % | 0 / 1 | 0 | 0.71 ± 1.60 % | 1/207 |
+| TAB | 0.9958 | 0.8504 | 0.83 % | 0 / 1 | not measurable | not measurable | — |
+| OntoNotes | 0.9352 | 0.9318 | 5.43 % | 0 / 1 | not measurable | not measurable | — |
+| Enron | 0.9906 | 0.6235 | 1.60 % | 0 / 0 | 0.93 ± 0.10 % | 3.94 ± 0.30 % | 1/3697 |
 
 - **Frequency matching recovers nothing.** With a public name-frequency list it names no identity on
   any corpus. Every name it returns is one the *detector missed* and the release printed in clear
@@ -217,24 +224,31 @@ All figures are for the **recommended 13-detector union**, and all concern peopl
   be added into one rate. Even the corpus's own distribution, which no real attacker holds, aligns
   at most one identity.
 - **Linkage succeeds where identity is real, and needs its anchors.** On Enron the same fixed
-  similarity recovers **0.706** of held-out people from *unmodified* text; after the recommended
-  release it recovers 0.0095 — still 36× chance, but two orders of magnitude below that ceiling.
-  Training the metric raises it to 0.0407, four times the fixed attack. The residual risk belongs to
-  an adversary who can learn.
-- **Recall bounds all of it.** On Enron, two votes lower person recall from 0.890 to 0.732, raise
-  fixed linkage fivefold to 0.0500 and take the names left in clear text from 180 to 1,868;
-  intersection leaves person recall at 0.037 and linkage at 0.2380.
+  similarity recovers **71.98 %** of held-out people from *unmodified* text; after replacement it
+  recovers 0.93 ± 0.10 % — still 34× chance, but two orders of magnitude below that ceiling.
+  Training the metric raises it to 3.94 ± 0.30 %, four times the fixed attack and 146× chance. The
+  residual risk belongs to an adversary who can learn.
+- **CARDIO:DE's near-zero linkage is the corpus, not the protection.** The same attack reaches only
+  2.73 % there on *unmodified* text: 56.2 % of its people appear in a single document, so no profile
+  can be built for them from others, and discharge letters put much the same words around everyone —
+  two different profiles are a mean cosine of 0.305 apart, against 0.064 on Enron.
+- **Sensitivity bounds all of it.** On Enron, two votes lower person sensitivity from 0.9906 to
+  0.8310, raise fixed linkage fivefold to 5.09 % and take the names left in clear text from 152 to
+  1,816; intersection leaves person sensitivity at 0.0443 and linkage at 25.51 %.
 - **Surrogates are not a privacy control.** B and C replace identical spans, so the placeholder
   release is a character-for-character rewrite of the surrogate release — verified on 1268/1268 TAB
-  and 5994/5994 OntoNotes documents. A candidate-ranking LLM scores 0.085 on surrogates against
-  0.290 on placeholders, which *looks* like protection; it is the ranker believing the surrogate.
-  Told the scheme, with the text untouched, it reaches 0.205; neutralising name-like spans with a
-  public name list, 0.215. Choose the replacement form for **utility**, not for privacy.
+  and 5994/5994 OntoNotes documents. On TAB a candidate-ranking LLM scores 0.110 on surrogates
+  against 0.340 on placeholders, which *looks* like protection; it is the ranker believing the
+  surrogate. Told the scheme, with the text untouched, it reaches 0.165; neutralising name-like
+  spans with a public name list, 0.145. Choose the replacement form for **utility**, not for
+  privacy.
 
-Token recall also hides exposure, and the denominator decides what a number means. The recommended
-release leaves one CARDIO:DE person mention of 4,396 in clear text — one entity of 1,957 and **one
-patient of 270**. Counting every identifier class rather than people alone, 8.5 % of letters still
-carry something and 12.2 % of patients do.
+Sensitivity also hides exposure, and the denominator decides what a number means. The recommended
+ensemble leaves one CARDIO:DE person mention of 2,800 in clear text — one person–document pair of
+1,957, one letter of 400 and **one patient of 270**. Counting every identifier class rather than
+people alone, 9.5 % of letters still carry something and 13.3 % of patients do. TAB keeps a name in
+47 of 1,268 judgments and OntoNotes in 790 of 5,994 documents; on Enron 5.9 % of messages carry an
+identifier of some type.
 
 ## Layout
 
