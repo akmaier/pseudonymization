@@ -781,8 +781,8 @@ gazetteer, because *knowing the true distribution is not something an attacker m
 have* (AM, 2026-09-15).
 
 **Access status.** TAB, Enron, OntoNotes, CodEAlltag, MEDDOCAN, MedDeID, REDACT, AI4Privacy, E3C,
-PIIBench are on the cluster in `/cluster/shared_dataset/pseudonymization-corpora`. **CARDIO:DE is
-restricted to AM alone** — `/cluster/maier/dua-restricted/cardiode`, mode 700; every additional
+PIIBench are on the cluster under the shared corpus root (`CORPORA_ROOT`, see `scripts/fetch_corpora.sh`). **CARDIO:DE is
+restricted to AM alone** — under the restricted DUA root (`PSEUDONYMKIT_DUA`), mode 700; every additional
 person needs their own countersigned agreement before touching corpus, derived files or cluster copy.
 **BRONCO150** is unanswered; its clause 5 requires deletion by **2027-09-07** with Leser informed.
 **n2c2 2014** is blocked — registration closed, "temporarily unavailable".

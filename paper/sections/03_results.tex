@@ -71,9 +71,9 @@ The other two tasks retain their original-text baselines and support paired comp
 \end{table}
 
 Table~\ref{tab:leakage} reports the 13-detector union.
-This frequency attack with the public name list recovers zero identities across the four corpora.
-Its returned names were missed by the detector and printed in clear text, so it measures defender
-sensitivity rather than adversarial inference. The corpus distributions, unavailable to a real
+This frequency attack with the public name list recovers zero identities by alignment across the
+four corpora. The names it did get right were ones the detector missed and the release printed in
+clear text, so that count measures defender sensitivity rather than adversarial inference. The corpus distributions, unavailable to a real
 attacker, align at most one identity. Raising the abstention threshold from $\varphi=0$ to
 $\varphi=0.05$ leaves 11 of 25,677 CARDIO:DE queries and zero elsewhere; alignment $c@1$ is zero at
 every threshold. 

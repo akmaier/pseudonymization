@@ -46,7 +46,7 @@ attachments were stripped, leaving `<<>>` stubs; some messages were removed at t
 affected employees.
 
 **CARDIO:DE storage.** Not in the shared folder. The grant covers AM alone — Heidelberg confirmed one
-countersigned agreement per person — so it lives at `/cluster/maier/dua-restricted/cardiode`, mode
+countersigned agreement per person — so it lives under the restricted DUA root (`PSEUDONYMKIT_DUA`), mode
 `700`. Laptop copies were deleted after transfer; the agreement names the chair's cluster as the
 storage infrastructure. **500 letters split 400 / 100, and only the 400 carry annotations** —
 *"Annotations of CARDIO:DE100 are kept internally as held-out data for future shared task
