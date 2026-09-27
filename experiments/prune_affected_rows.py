@@ -61,14 +61,29 @@ def main() -> int:
     print(f'{len(affected)} of {audit["pool_size"]} detectors affected; '
           f'{audit["dropped_total"]:,} CODE spans dropped\n')
 
-    condemned: set[str] = set()
+    # Candidate labels come from the detection plane AND from the rows on disk. The four
+    # 13-detector recommended rules were run by hand and are absent from the size-3 enumeration, so
+    # a condemned set built from the plane alone silently spares them -- they contain affected
+    # detectors and must be recomputed like everything else.
+    name = f'{args.corpus}_{args.entity_type}.jsonl'
+    labels: set[str] = set()
     plane = args.before / f'{args.corpus}.jsonl'
     if plane.exists():
-        labels = [json.loads(line)['detector'] for line in plane.open()]
-        condemned = {label for label in labels
-                     if any(m in affected for m in members(label))}
-        print(f'span sources: {len(labels)} total, {len(condemned)} contain an affected detector, '
-              f'{len(labels) - len(condemned)} clean')
+        labels |= {json.loads(line)['detector'] for line in plane.open()}
+    on_disk: set[str] = set()
+    for destination in sorted(args.shards.glob(f'*/{name}')):
+        on_disk |= {json.loads(line)['source'] for line in destination.open()}
+    outside = sorted(on_disk - labels)
+    labels |= on_disk
+
+    condemned = {label for label in labels if any(m in affected for m in members(label))}
+    print(f'span sources: {len(labels)} total ({len(outside)} present as results but not in the '
+          f'detection enumeration), {len(condemned)} contain an affected detector, '
+          f'{len(labels) - len(condemned)} clean')
+    for label in outside:
+        verdict = 'CONDEMNED' if label in condemned else 'clean'
+        print(f'    {verdict:9s} {label.split("|")[-1]:14s} '
+              f'{len(label.split("|")[0].split("+"))} detectors')
 
     after = args.after / f'{args.corpus}.jsonl'
     if plane.exists() and after.exists():
@@ -80,7 +95,6 @@ def main() -> int:
         print(f'  of those {len(condemned)}, the detection diff says {unchanged} would in fact be '
               f'unchanged -- reported, not acted on (AM, 2026-09-27)')
 
-    name = f'{args.corpus}_{args.entity_type}.jsonl'
     total = kept = removed = 0
     plan = []
     for destination in sorted(args.shards.glob(f'*/{name}')):
