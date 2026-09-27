@@ -185,11 +185,15 @@ That last row is the important one: **the CARDIO:DE attack surface under conditi
 measured.** Enron has only 4 rows under the corrected gold (263 under the superseded gold, and
 union-heavy at 260/2/1, so it never walks the axis).
 
-**Point selection.** Reporting all 2,151 is neither necessary nor honest as a "sweep" — many are
-near-duplicates. Proposal, for AM: report the **full plane as an estimated surface** (every point, CI
-bands, no per-point tests), and pre-register a small **primary set** that carries the hypothesis
-tests — gold, maximum sensitivity, maximum specificity, the recommended 13-detector union, and the
-best interior point by the H4 criterion. See §9.
+**Point selection — settled (AM, 2026-09-27): all of them.** The Enron attack column is running as
+an eight-task Slurm array, 269 span sources each, submitted 2026-09-27 as job 778960
+(`experiments/slurm/sweep_enron_array.sbatch`). CPU only; every task is resumable, so a wall-clock
+kill costs one span source. The QOS runs four at a time, so the 2,150 complete in roughly two rounds.
+
+The **full plane is reported as an estimated surface** — every point, CI bands, no per-point tests —
+and a small **primary set** carries the hypothesis tests: gold, maximum sensitivity, maximum
+specificity, the recommended 13-detector union, and the best interior point by the H4 criterion.
+See §9.7.
 
 ---
 
@@ -213,34 +217,89 @@ already does internally.
 
 ---
 
-## 7. The adversary
+## 7. The adversary, and how it chooses
 
-**One realistic adversary, not an axis** (AM, 2026-09-26).
+**One realistic adversary, not a knowledge axis** (AM, 2026-09-26). It is the parrot: it runs its
+own detector over the released text and treats every name-like span its detector fails to tag as a
+suspected survivor. That is Kerckhoffs-consistent, it is the field's standard attacker, and its
+behaviour across the plane is the open question.
 
-It is the parrot, because it is the field's standard attacker, it is Kerckhoffs-justified, and it is
-the one whose behaviour across the plane is the open question:
+But the attacker must also **pick one of the 2,151 combinations** (AM, 2026-09-27), and that turns
+out to be the design decision the paper turns on.
 
-- **Knows:** the released corpus, and that it was pseudonymised by a published method. Holds the same
-  public gazetteers the surrogate generator draws from (US Census surnames, UCI given names, the
-  German lists) — these are public *by construction*, so withholding them would not be realistic.
-- **Computes:** runs its own detector over the released text; treats every name-like span its detector
-  fails to tag as a suspected survivor; then ranks identities for the spans it believes are real.
-- **Outputs:** a suspected-survivor set (scored as a discrimination problem) and a ranked identity list
-  per query (scored as Rank-1 / Rank-5 / mAP).
+### 7.1 Why the choice matters
 
-**Two consequences for the code.** First, the attacker must be anchored on *its own view* of the
-released text, not on the defender's patch set. Every attack in the repo today iterates
-`replacements()`, so a mention the detector **missed** never becomes a query — and a missed mention is
-precisely what HIPS claims to hide. The anchor is `capitalised_spans()`, the condition-form-agnostic
-regex A2 already uses; `_NAME_LIKE` requires a capital followed by lowercase, so it cannot match
-`[PERSON]`. Under C it returns survivors; under B it returns survivors **plus** surrogates. That set
-difference is the mechanism, expressed as something measurable.
+Write `d` for the defender's span source and `a` for the attacker's, over the candidate spans `V`
+returned by a condition-form-agnostic tagger (`capitalised_spans()`; `_NAME_LIKE` needs a capital
+followed by lowercase, so it cannot match `[PERSON]`). For a position `p`:
 
-Second, condition A stays as the ceiling, and the span-aware bound (an adversary told *which* spans
-were replaced can compute C from B, so the gap is identically zero) is stated once as an analytic
-remark. It is not an arm and not an axis.
+- a **surrogate** sits at `p` ⟺ `d` fired at `p`
+- the attacker **flags** `p` ⟺ `a` did **not** fire at `p`
+- a **survivor** sits at `p` ⟺ `gold(p)` and `d` did not fire at `p`
 
----
+So the attack's two rates are
+
+```
+recall(d, a)    = P( ¬a | gold ∧ ¬d )      — survivors the attacker flags
+precision(d, a) = P( gold ∧ ¬d | ¬a, p∈V ) — flags that are really survivors
+```
+
+and the attacker wants a detector that **misses what `d` missed** and **catches what `d` caught**.
+Both are satisfied exactly by `a = d`: then `¬a` holds on every survivor (recall 1) and on no
+surrogate (precision 1, up to the ordinary capitalised words in `V`).
+
+**So copying the defender is the dominant strategy, and it is trivially perfect.** This is not a
+finding, it is an identity — and it is why Carrell got 68 % rather than 100 %: his attacker could not
+copy, it had to *train a fresh* MIST on its own annotations of the release, so the two error sets
+were correlated but not equal (it tagged 94.8 % of surrogates against 31.9 % of leaks). An attacker
+allowed to select `d` out of our cache measures nothing.
+
+**The realistic constraint is therefore that the attacker does not know which of the 2,151 the
+defender used.** With that, picking `a` becomes a real decision problem under uncertainty, and the
+defender's choice of `d` becomes a real defence.
+
+### 7.2 Four attacker strategies
+
+| | `a` is chosen | status |
+|---|---|---|
+| **A-copy** | `a = d` | analytic ceiling; recall = precision = 1 by the identity above. **Reported, not run.** |
+| **A-oracle-response** | `argmax_a` success, knowing `d` but forbidden from copying it | upper bound on a well-informed attacker |
+| **A-minimax** | one fixed `a`, maximising worst-case success over all `d` | **the paper's headline attacker** — it knows the method, not the configuration |
+| **A-lazy** | the field's default: the strongest public ensemble, or the published recommended one | what an attacker would actually reach for |
+
+The defender's question is then the mirror image: **is there a `d` that is robust against A-minimax?**
+That is a two-player game over one shared 2,151-point space, and its saddle point is a result nobody
+in this literature has been in a position to compute.
+
+### 7.3 The variable that actually drives it is error correlation, not the operating point
+
+Two ensembles can sit at the *same* (sensitivity, specificity) and miss completely *different*
+identifiers. The attack depends on the overlap of the miss sets, not on their size. So the plan
+measures it directly — for every (`d`, `a`) pair evaluated, the Jaccard index and the φ coefficient
+between the two miss sets on gold mentions — and tests whether it predicts attack success better
+than the operating point does.
+
+Carrell 2019 collapses this into "we gave the attacker the same software" and never measures it. It
+is the hidden parameter of the whole HIPS literature, and with 2,151 interchangeable detectors on
+both sides it is finally a variable rather than a constant.
+
+### 7.4 Why this is affordable
+
+The flagging step is **pure set arithmetic over the cached spans** — no condition-B build, no model,
+no attack. Precompute one boolean row per span source over the candidate positions, pack the bits,
+and each (`d`, `a`) pair is a handful of bitwise operations.
+
+The full 2,151 × 2,151 is 4.6 M pairs and is not needed. **Evaluate every one of the 2,151 attackers
+against a defender set of about 100** — the primary cells of §9.7 plus a stratified sample spanning
+the plane — which is ~215 k pairs and runs in minutes. The expensive identity attacks (A3, A4, A5)
+are then run only where the discrimination analysis says it matters: each primary `d` crossed with
+`{A-minimax, A-oracle-response(d), a = d}`.
+
+### 7.5 What stays fixed
+
+Condition A remains the ceiling. The span-aware bound — an adversary told *which* spans were
+replaced can compute C from B, so the B-versus-C gap is identically zero — is stated once as an
+analytic remark. Neither is an arm and neither is an axis.
 
 ## 8. Measurements
 
@@ -399,7 +458,7 @@ needs re-checking). Slurm and cluster conduct per `CLAUDE.md` §6, unchanged.
 | `ner_agreement` is structurally hostile to C | never used between conditions (§8.5) |
 | under B, an unchanged-type false positive can win the overlap and publish a name C destroys | counted as its own column per operating point; rate currently unknown |
 | CARDIO:DE condition A is itself a seeded fill (resynthesis bias, cf. Yeniterzi et al. 2010) | seed stamped on every row; stated in limitations |
-| Enron detector coverage | 12,505 of 58,636 documents are missing at least one of the 13; a vote(k) over a short pool is a different operator, not a worse one |
+| Enron detector coverage | **resolved** — all 15 detectors reached 100 % cache coverage of the 58,636 documents (checked 2026-09-27), so `--min-coverage` skips nothing and every one of the 2,150 sources is the operator its label claims. The earlier "12,505 documents missing a detector" figure was stale. |
 
 ---
 
