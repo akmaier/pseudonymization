@@ -268,20 +268,65 @@ allowed to select `d` out of our cache measures nothing.
 defender used.** With that, picking `a` becomes a real decision problem under uncertainty, and the
 defender's choice of `d` becomes a real defence.
 
-### 7.2 Four attacker strategies
+### 7.2 The attacker re-tags, so the attack needs a second detection pass
 
-| | `a` is chosen | status |
+**AM, 2026-09-27.** The parrot does not read the defender's patch set; it runs a detector of its own
+over the *released* text. That is a **second detection pass**, over condition B and condition C, and
+it is new compute — the 3.9 GB span cache covers condition A only.
+
+Its cost is why the real attack is the **last** experiment, not the first: two corpora × two
+conditions × a detector pass each, with LLMs in the pool, against a defender space of 2,150 points.
+The cross product is not runnable and does not need to be.
+
+### 7.3 Two phases: choose the point cheaply, then attack it properly
+
+**Phase 1 — the safety analysis.** Determine the defender point we believe is safest, using the
+attacker variants below **computed from the same span data** — the condition-A cache — as a stand-in
+for the attacker's re-tagging (AM, 2026-09-27). This is set arithmetic, costs no model time, and
+runs over the whole plane.
+
+The stand-in is an approximation with published support: Bao et al. (arXiv 2608.03172, 2026) show by
+equivalence testing across 11 detectors, 7 benchmarks and 7 languages that surrogate substitution is
+**detection-neutral** — a detector finds a surrogate span about as readily as the original. So where
+a detector fires on condition A is a good predictor of where it fires on condition B. The
+approximation is stated as one, and phase 2 measures the error in it.
+
+**Phase 2 — the real parrot attack.** Only at the point phase 1 selects: a genuine second detection
+pass over the released text, on **CARDIO:DE and Enron, conditions B and C**, against the full
+surrogate and placeholder pools. This is the headline attack and the paper's expensive run.
+
+Nothing in phase 2 is scheduled until phase 1 has named the point.
+
+### 7.4 The four attacker variants
+
+The realistic attacker does not know which of the 2,150 the defender used, so it reaches for
+something sensible. AM's four (2026-09-27), all drawn from the same pool the defender draws from,
+because every detector in it is public:
+
+| | attacker's span source | the attacker's reasoning |
 |---|---|---|
-| **A-copy** | `a = d` | analytic ceiling; recall = precision = 1 by the identity above. **Reported, not run.** |
-| **A-oracle-response** | `argmax_a` success, knowing `d` but forbidden from copying it | upper bound on a well-informed attacker |
-| **A-minimax** | one fixed `a`, maximising worst-case success over all `d` | **the paper's headline attacker** — it knows the method, not the configuration |
-| **A-lazy** | the field's default: the strongest public ensemble, or the published recommended one | what an attacker would actually reach for |
+| **(a)** | **union-13** — the recommended ensemble | misses the least, so almost every span it fails to tag is a real survivor |
+| **(b)** | **union-3** — the max-sensitivity triple | the same instinct at a cost a real attacker would actually pay |
+| **(c)** | **a balanced point** | neither error dominates |
+| **(d)** | **max-specificity-3** | only fires on things that really are entities, so its misses are informative in the other direction |
 
-The defender's question is then the mirror image: **is there a `d` that is robust against A-minimax?**
-That is a two-player game over one shared 2,151-point space, and its saddle point is a result nobody
-in this literature has been in a position to compute.
+(a) and (b) chase recall: a high-sensitivity attacker tags nearly all the surrogates, so its
+*untagged* set is small and almost pure survivors — high precision, and recall limited by how much
+of the defender's miss set it also misses. (d) is the opposite instinct: it fires only where it is
+confident, so its untagged set is large and noisy, but everything it *does* tag is real signal.
+Which instinct wins is exactly what phase 1 measures, and it is not obvious in advance.
 
-### 7.3 The variable that actually drives it is error correlation, not the operating point
+**"Balanced" needs a definition and it is AM's to fix.** Proposed: the point maximising Youden's
+*J* = sensitivity + specificity − 1, which is the standard choice and is already computable from
+every row of the plane (§5). Alternatives are the point nearest (1, 1) in the plane, or the point
+maximising min(sensitivity, specificity). Listed in §14.
+
+Against these four sit the reference strategies of §7.1: **A-copy** (`a = d`, the analytic ceiling,
+reported not run) and **A-oracle-response** (best `a` knowing `d`). The four variants are the
+realistic middle, and one of them — whichever is worst for the defender — is what the safest point
+must be chosen against.
+
+### 7.5 The variable that drives it is error correlation, not the operating point
 
 Two ensembles can sit at the *same* (sensitivity, specificity) and miss completely *different*
 identifiers. The attack depends on the overlap of the miss sets, not on their size. So the plan
@@ -290,22 +335,20 @@ between the two miss sets on gold mentions — and tests whether it predicts att
 than the operating point does.
 
 Carrell 2019 collapses this into "we gave the attacker the same software" and never measures it. It
-is the hidden parameter of the whole HIPS literature, and with 2,151 interchangeable detectors on
+is the hidden parameter of the whole HIPS literature, and with 2,150 interchangeable span sources on
 both sides it is finally a variable rather than a constant.
 
-### 7.4 Why this is affordable
+### 7.6 Why phase 1 is affordable
 
 The flagging step is **pure set arithmetic over the cached spans** — no condition-B build, no model,
 no attack. Precompute one boolean row per span source over the candidate positions, pack the bits,
 and each (`d`, `a`) pair is a handful of bitwise operations.
 
-The full 2,151 × 2,151 is 4.6 M pairs and is not needed. **Evaluate every one of the 2,151 attackers
-against a defender set of about 100** — the primary cells of §9.7 plus a stratified sample spanning
-the plane — which is ~215 k pairs and runs in minutes. The expensive identity attacks (A3, A4, A5)
-are then run only where the discrimination analysis says it matters: each primary `d` crossed with
-`{A-minimax, A-oracle-response(d), a = d}`.
+With four attacker variants rather than all 2,150, phase 1 is 4 × 2,150 = 8,600 pairs per corpus and
+runs in minutes. The full 2,150 × 2,150 best-response matrix stays available for §7.1's
+A-oracle-response bound and for H3b, at ~215 k pairs against a stratified defender sample.
 
-### 7.5 What stays fixed
+### 7.7 What stays fixed
 
 Condition A remains the ceiling. The span-aware bound — an adversary told *which* spans were
 replaced can compute C from B, so the B-versus-C gap is identically zero — is stated once as an
@@ -423,7 +466,8 @@ transposed: **a protection claim evaluated at one operating point is not evaluat
 | A2 / A3 / A5 under B, per point | ✅ **2,140 points** | ❌ 4 points — needs re-scoring against the corrected gold |
 | condition C per point | ❌ `sweep_leakage.py` line 426 is `conditions=("B",)` | ❌ same |
 | A4 per point | ❌ never run inside the sweep | ❌ **no Enron A4 row of any kind exists** |
-| discrimination surface (§8.3) | ❌ nothing in the repo has ever asked | ❌ |
+| discrimination surface (§8.3), phase 1 | ❌ nothing in the repo has ever asked | ❌ |
+| second detection pass over B and C (§7.2), phase 2 | ❌ the cache is condition A only | ❌ the cache is condition A only |
 | utility per point | ❌ | ❌ folder classification not wired |
 
 **Engineering, in dependency order.** (1) Pin one inventory across the plane. (2) Survivor-anchored
