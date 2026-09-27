@@ -14,8 +14,14 @@
 #
 #SBATCH --job-name=sweep_enron
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=16
 #SBATCH --mem=24G
+# 16 cores, not 8, to SPREAD rather than PACK (AM, 2026-09-27). Slurm is select/cons_res with
+# CR_CORE_MEMORY and best-fit placement, so at 8 cores a task four of them land on one 32-core node
+# while lme221/222/223 sit idle. At 16 a 32-core node takes exactly two, so ten tasks occupy five
+# or six nodes and each gets its own memory bandwidth and L3 rather than sharing one node's.
+# The controller knows ten nodes in one partition -- there is no hidden partition -- and lme51 is
+# down with lme52 drained, so eight are usable and six of those have 32 cores.
 #SBATCH --time=24:00:00
 #SBATCH --array=0-9
 #SBATCH --output=logs/sweep_enron_%A_%a.out
