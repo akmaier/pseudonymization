@@ -172,6 +172,9 @@ def main() -> int:
     log(f"  inventory must cover {len(cover)} (type, language) pairs seen under union")
     inventory, _ = inventory_for({d.language for d in documents},
                                  documents=union_detected, cover=cover)
+    # 6.53 GiB of the 11.92 GiB peak, measured 2026-09-27, and nothing reads it after this point.
+    # It would otherwise stay resident for the whole shard. leak_ablation.py:95 does the same.
+    del union_detected
     index = prepare(documents, corpus=args.corpus)
     gallery_docs, query_docs = disjoint_document_split(corpus, seed=args.seed)
     gallery = build_gallery(corpus, args.entity_type, documents=gallery_docs)
@@ -422,9 +425,15 @@ def _one(names, rule, kwargs, label, documents, cache, index, inventory, key,
     )
     spans = {d.doc_id: tuple(m.span for m in d.mentions) for d in detected}
     detection = score_prepared(index, spans, detector=label).as_dict()
+    del spans
 
     patches = construct(detected, corpus=args.corpus, conditions=("B",),
                         inventory=inventory, key=key)
+    # Dead from here: `detected` is read only by construct, and only one scalar of `report` is
+    # wanted below. Freeing them before to_pseudonymised_corpus keeps two corpus-sized graphs out
+    # of the peak at once. Memory only -- nothing computed changes.
+    missing_a_detector = report.get("documents_missing_a_detector")
+    del detected, report
     # **The gold-bearing documents, not the detected ones.** `detected` carries the detector's spans
     # as its mentions, so it has no gold_entity_id to inherit and A3/A5 come back with no truth at
     # all — which is what the first run of this sweep produced. The patch offsets address condition-A
@@ -438,7 +447,7 @@ def _one(names, rule, kwargs, label, documents, cache, index, inventory, key,
         "precision": detection["precision"],
         "information_weighted_precision": detection["information_weighted_precision"],
         "replacements": sum(len(p.entries) for p in patches["B"].patches),
-        "documents_missing_a_detector": report.get("documents_missing_a_detector"),
+        "documents_missing_a_detector": missing_a_detector,
     }
 
     # **Two priors over one observation** (AM, 2026-09-22). The attacker's view of the release is

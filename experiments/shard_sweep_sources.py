@@ -31,6 +31,12 @@ def main() -> int:
     ap.add_argument('--shards', type=int, default=11)
     ap.add_argument('--detection', type=Path, default=Path('results/detection'))
     ap.add_argument('--out', type=Path, default=Path('results/leakage_sweep/shards'))
+    ap.add_argument('--entity-type', default='PERSON')
+    ap.add_argument('--carry-done', action='store_true',
+                    help='seed each new shard destination with rows already computed for its '
+                         'labels, gathered from every existing shard. Re-sharding otherwise '
+                         'orphans finished work: the sweep resumes from its OWN destination, so a '
+                         'label that moves to a different shard is silently recomputed.')
     args = ap.parse_args()
 
     source = args.detection / f'{args.corpus}.jsonl'
@@ -43,15 +49,36 @@ def main() -> int:
     if len(labels) != len(set(labels)):
         raise SystemExit('duplicate labels in the detection sweep; refusing to shard')
 
+    done: dict[str, str] = {}
+    if args.carry_done:
+        name = f'{args.corpus}_{args.entity_type}.jsonl'
+        for old in sorted(args.out.glob(f'*/{name}')):
+            for line in old.open():
+                row = json.loads(line)
+                if not row.get('error'):
+                    done[row['source']] = line if line.endswith('\n') else line + '\n'
+        print(f'carrying {len(done)} finished span sources across the re-shard')
+
     args.out.mkdir(parents=True, exist_ok=True)
     shards = [[] for _ in range(args.shards)]
     for i, label in enumerate(labels):
         shards[i % args.shards].append(label)
 
+    carried = 0
     for i, shard in enumerate(shards):
         path = args.out / f'{args.corpus}_{i:02d}.txt'
         path.write_text('\n'.join(shard) + '\n')
-        print(f'{path}  {len(shard)} sources')
+        if args.carry_done:
+            destination = args.out / f'{i:02d}' / f'{args.corpus}_{args.entity_type}.jsonl'
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            rows = [done[label] for label in shard if label in done]
+            destination.write_text(''.join(rows))
+            carried += len(rows)
+            print(f'{path}  {len(shard)} sources, {len(rows)} already done')
+        else:
+            print(f'{path}  {len(shard)} sources')
+    if args.carry_done:
+        print(f'seeded {carried} finished rows into the new destinations')
     print(f'total {len(labels)} sources over {args.shards} shards '
           f'(gold excluded, run separately)')
     return 0

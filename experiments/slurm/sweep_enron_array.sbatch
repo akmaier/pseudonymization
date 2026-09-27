@@ -15,18 +15,21 @@
 #SBATCH --job-name=sweep_enron
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=84G
+#SBATCH --mem=24G
 #SBATCH --time=24:00:00
-#SBATCH --array=0-7
+#SBATCH --array=0-9
 #SBATCH --output=logs/sweep_enron_%A_%a.out
 #SBATCH --error=logs/sweep_enron_%A_%a.err
-# mem=84G fits the 90 GB nodes; 96G was used by leak_ablation but excludes the smallest, and 160G
-# is above every node and is rejected outright.
+# mem=24G, because the MEASURED peak is 11.92 GiB (experiments/probes/sweep_memory_profile.py,
+# 2026-09-27) and the two frees added the same day take it lower. The earlier 84G was a guess, and
+# it was the whole problem: Slurm reserved it as AllocMem on every node, the job never touched it,
+# and the reservation -- not the job -- is what kept a second task off the node. Do not raise this
+# without re-running the profile.
 #
-# EIGHT tasks, not eleven: AssocMaxSubmitJobLimit is 8 and it counts array elements, so an 11-task
-# array is refused at submit. 269 sources per task at the ~257 s the sweep's own docstring records
-# for Enron is about 19 h against the 24 h soft limit; if a task is killed by the clock, resubmit
-# the same array and it continues from its own destination.
+# TEN tasks under the turbo QOS, which allows 10 concurrent against miti's 4 and 100 submitted
+# against 8. Submit with:  sbatch --qos=turbo experiments/slurm/sweep_enron_array.sbatch
+# At 14 shards over 2,150 sources that is ~154 each, and the measured 200 s per source puts a task
+# at about 8.5 h -- one round, comfortably inside the 24 h soft limit. Resumable regardless.
 set -uo pipefail
 cd "${SLURM_SUBMIT_DIR:-$PWD}"
 # env.sh carries PSEUDONYMKIT_WORK and PSEUDONYMKIT_DUA. pseudonymkit.paths refuses to guess the
