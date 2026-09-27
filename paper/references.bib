@@ -45,15 +45,23 @@
   doi       = {10.26615/978-954-452-056-4_030}
 }
 
-@misc{osborne2022bratsynthetic,
-  author       = {Osborne, John D. and O'Leary, Tobias and Nadimpalli, Akhil and
-                  Aly, Salma M. and Kennedy, Richard E.},
-  title        = {{BRATsynthetic}: Text De-identification using a Markov Chain
-                  Replacement Strategy for Surrogate Personal Identifying Information},
-  year         = {2022},
-  eprint       = {2210.16125},
-  archivePrefix= {arXiv},
-  primaryClass = {cs.CL}
+% Version of record, not the 2210.16125 preprint (AM, 2026-09-27). Different title, twelve
+% authors against the preprint's five, and it adds the utility analysis. arXiv carries no
+% journal_ref linking the two, which is why the preprint was cited first.
+@article{osborne2022bratsynthetic,
+  author  = {Osborne, John D. and Trotter, Andrew and O'Leary, Tobias and Coffee, Chris and
+             Cochran, Micah D. and Mansilla-Gonzalez, Luis and Nadimpalli, Akhil and
+             McAnnally, Alex and Almudaifer, Abdulateef I. and Curtis, Jeffrey R. and
+             Aly, Salma M. and Kennedy, Richard E.},
+  title   = {A {Markov} Chain Replacement Strategy for Surrogate Identifiers:
+             Minimizing Re-Identification Risk While Preserving Text Reuse},
+  journal = {Electronics},
+  volume  = {14},
+  number  = {19},
+  pages   = {3945},
+  year    = {2025},
+  doi     = {10.3390/electronics14193945},
+  note    = {earlier as arXiv:2210.16125, {BRATsynthetic}}
 }
 
 @misc{mozes2021nointruder,
@@ -63,7 +71,8 @@
   year         = {2021},
   eprint       = {2103.09263},
   archivePrefix= {arXiv},
-  primaryClass = {cs.CL}
+  primaryClass = {cs.CL},
+  note         = {arXiv:2103.09263}
 }
 
 % Corporate author, no DOI; downloaded and read (references/standards.md).
@@ -71,7 +80,8 @@
   author      = {{European Union Agency for Cybersecurity}},
   title       = {Data Pseudonymisation: Advanced Techniques and Use Cases},
   institution = {ENISA},
-  year        = {2021}
+  year        = {2021},
+  note        = {\url{https://www.enisa.europa.eu/publications/data-pseudonymisation-advanced-techniques-and-use-cases}}
 }
 
 % --- Detection benchmarks: the ground this paper explicitly does not compete on. ---
@@ -85,7 +95,8 @@
   year         = {2026},
   eprint       = {2606.19881},
   archivePrefix= {arXiv},
-  primaryClass = {cs.CL}
+  primaryClass = {cs.CL},
+  note         = {arXiv:2606.19881}
 }
 
 @misc{jha2026piibench,
@@ -106,7 +117,8 @@
   year         = {2026},
   eprint       = {2608.02616},
   archivePrefix= {arXiv},
-  primaryClass = {cs.CL}
+  primaryClass = {cs.CL},
+  note         = {arXiv:2608.02616}
 }
 
 % --- Utility under de-identification: the half of the literature measured separately. ---
@@ -156,16 +168,18 @@
   year         = {2020},
   eprint       = {2001.10374},
   archivePrefix= {arXiv},
-  primaryClass = {cs.CY}
+  primaryClass = {cs.CY},
+  note         = {arXiv:2001.10374}
 }
 
 % Metadata verified via Crossref; the standard's text is not open access and was not obtained.
 @techreport{din25237,
   author      = {{DIN Deutsches Institut f{\"u}r Normung e.\,V.}},
-  title       = {{DIN EN ISO 25237:2026-06}, Medizinische Informatik --- Pseudonymisierung
-                 ({ISO}/{DIS} 25237:2026); Deutsche und Englische Fassung {prEN} {ISO} 25237:2026},
+  title       = {{DIN EN ISO 25237:2026-06}, {Medizinische Informatik} --- {Pseudonymisierung}
+                 ({ISO}/{DIS} 25237:2026); {Deutsche und Englische Fassung} {prEN} {ISO} 25237:2026},
   institution = {DIN Media GmbH},
   year        = {2026},
+  type        = {Draft standard},
   doi         = {10.31030/3696721}
 }
 
@@ -239,6 +253,7 @@
   volume  = {12},
   number  = {1},
   doi     = {10.1186/1472-6947-12-66},
+  pages   = {66}
 }
 
 @article{rocher2019estimating,
@@ -249,6 +264,7 @@
   volume  = {10},
   number  = {1},
   doi     = {10.1038/s41467-019-10933-3},
+  pages   = {3069}
 }
 
 @article{carrell2013hiding,
@@ -295,7 +311,8 @@
 @inproceedings{packhauser2023anonymization,
   author    = {Packhäuser, Kai and Gündel, Sebastian and Thamm, Florian and Denzinger, Felix and Maier, Andreas},
   title     = {Deep Learning-Based Anonymization of Chest Radiographs: A Utility-Preserving Measure for Patient Privacy},
-  booktitle = {Lecture Notes in Computer Science},
+  booktitle = {Medical Image Computing and Computer Assisted Intervention --- {MICCAI} 2023},
+  series    = {Lecture Notes in Computer Science},
   year      = {2023},
   pages     = {262-272},
   doi       = {10.1007/978-3-031-43898-1_26},
@@ -308,11 +325,12 @@
   year      = {2024},
   volume    = {4},
   doi       = {10.1038/s43856-024-00609-5},
+  pages   = {182}
 }
 
 @article{hou2025llama,
   author    = {Hou, Yihao and Bert, Christoph and Gomaa, Ahmed and Lahmer, Godehard and Höfler, Daniel and Weissmann, Thomas and Voigt, Raphaela and Schubert, Philipp and Schmitter, Charlotte and Depardon, Alina and Semrau, Sabine and Maier, Andreas and Fietkau, Rainer and Huang, Yixing and Putz, Florian},
-  title     = {Fine-tuning a local LLaMA-3 large language model for automated privacy-preserving physician letter generation in radiation oncology},
+  title     = {Fine-tuning a local {LLaMA-3} large language model for automated privacy-preserving physician letter generation in radiation oncology},
   journal   = {Frontiers in Artificial Intelligence},
   year      = {2025},
   volume    = {7},
@@ -407,7 +425,7 @@
 
 @misc{microsoft2025phi4mini,
   author = {{Microsoft}},
-  title  = {Phi-4-Mini Technical Report: Compact yet Powerful Multimodal Language Models via
+  title  = {{Phi-4-Mini} Technical Report: Compact yet Powerful Multimodal Language Models via
             Mixture-of-{LoRA}s},
   year   = {2025},
   note   = {arXiv:2503.01743}
@@ -438,7 +456,7 @@
 
 @misc{mistralsmall32,
   author = {{Mistral AI}},
-  title  = {Mistral-Small-3.2-24B-Instruct-2506},
+  title  = {{Mistral-Small-3.2-24B-Instruct-2506}},
   year   = {2025},
   note   = {model card; run as the FP8 republication
             \url{https://huggingface.co/RedHatAI/Mistral-Small-3.2-24B-Instruct-2506-FP8}}

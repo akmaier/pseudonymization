@@ -119,7 +119,7 @@ worst-detected one.** Surrogate assignment, cross-document consistency, collisio
 are all built on that foundation, and nobody has measured what it does end to end.
 
 **Surrogate generation is well developed and under-evaluated.** The *hiding in plain sight* line runs
-from Carrell et al. (JAMIA 2012, `10.1136/amiajnl-2012-001034`), which conceals ~90 % of residual
+from Carrell et al. (JAMIA 2013, `10.1136/amiajnl-2012-001034`), which conceals ~90 % of residual
 identifiers behind realistic surrogates, through two adversarial follow-ups: the "parrot attack"
 (JAMIA 2019, `10.1093/jamia/ocz114`) recovers 68 % of 310 real leaks by mimicking the defender's
 tagger, and four hostile human readers (JAMIA 2020, `10.1093/jamia/ocaa095`) leave ~70 % of leaked
@@ -313,7 +313,7 @@ they define what B and C are.
 
 **How B is configured, and why.** Deterministic policy, **HMAC-SHA256**, **N2** normaliser (casefold,
 strip titles and punctuation), realistic surrogate drawn locale-appropriately from the gazetteers
-(§14). B is "hiding in plain sight", the field's standard since Carrell et al. (JAMIA 2012,
+(§14). B is "hiding in plain sight", the field's standard since Carrell et al. (JAMIA 2013,
 `10.1136/amiajnl-2012-001034`), and it is what this study's own German baseline does — Eder et al.
 (RANLP 2019) replace *"a person originally named 'John Doe'… as 'Bill Powers'"*. It is also what runs
 in production: Kocaman et al. (2025) keep names consistent across a patient's documents to hold a
