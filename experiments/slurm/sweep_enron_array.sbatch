@@ -28,16 +28,23 @@
 # for Enron is about 19 h against the 24 h soft limit; if a task is killed by the clock, resubmit
 # the same array and it continues from its own destination.
 set -uo pipefail
-cd "${PSEUDONYMKIT_WORK:-${SLURM_SUBMIT_DIR:-$PWD}}"
+cd "${SLURM_SUBMIT_DIR:-$PWD}"
+# env.sh carries PSEUDONYMKIT_WORK and PSEUDONYMKIT_DUA. pseudonymkit.paths refuses to guess the
+# DUA root and stops the process when it is unset, so this must come before any python call --
+# sweep_leakage's CORPORA table names cardiode even for an Enron run.
+. config/env.sh
+cd "${PSEUDONYMKIT_WORK:-$PWD}"
 mkdir -p logs results/leakage_sweep/shards
 
 NN=$(printf '%02d' "$SLURM_ARRAY_TASK_ID")
 SOURCES="results/leakage_sweep/shards/enron_${NN}.txt"
 OUT="results/leakage_sweep/shards/${NN}"
 mkdir -p "$OUT"
+DEST="${OUT}/enron_PERSON.jsonl"
+touch "$DEST"
 
 echo "host=$(hostname) task=${SLURM_ARRAY_TASK_ID} sources=${SOURCES} started=$(date -Is)"
-echo "planned $(wc -l < "$SOURCES") span sources; already done $(wc -l < "${OUT}/enron_PERSON.jsonl" 2>/dev/null || echo 0)"
+echo "planned $(wc -l < "$SOURCES") span sources; already done $(wc -l < "$DEST")"
 
 PYTHONPATH=src .venv/bin/python experiments/sweep_leakage.py \
     --corpus enron \
@@ -49,5 +56,5 @@ PYTHONPATH=src .venv/bin/python experiments/sweep_leakage.py \
     --folds 5
 
 status=$?
-echo "finished=$(date -Is) exit=${status} rows=$(wc -l < "${OUT}/enron_PERSON.jsonl" 2>/dev/null || echo 0)"
+echo "finished=$(date -Is) exit=${status} rows=$(wc -l < "$DEST")"
 exit $status
