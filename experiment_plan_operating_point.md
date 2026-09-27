@@ -264,9 +264,12 @@ copy, it had to *train a fresh* MIST on its own annotations of the release, so t
 were correlated but not equal (it tagged 94.8 % of surrogates against 31.9 % of leaks). An attacker
 allowed to select `d` out of our cache measures nothing.
 
-**The realistic constraint is therefore that the attacker does not know which of the 2,151 the
+**The realistic constraint is therefore that the attacker does not know which of the 2,150 the
 defender used.** With that, picking `a` becomes a real decision problem under uncertainty, and the
-defender's choice of `d` becomes a real defence.
+defender's choice of `d` becomes a real defence. Two reference points bound it, and neither is a
+realistic attacker: **A-copy** (`a = d`) is the identity above, value 1, reported and not run; and
+**A-oracle-response** (the best `a` knowing `d` but forbidden to copy it) bounds a well-informed
+attacker. The realistic middle is §7.4.
 
 ### 7.2 The attacker re-tags, so the attack needs a second detection pass
 
@@ -488,7 +491,23 @@ two prompt regimes. (10) `run_attack_statistics.py` pairing on query id.
 No GPU and no detector reruns anywhere (AM, 2026-09-26). Three real costs:
 
 - **Enron leakage re-scoring** — running since 2026-09-27 as jobs 778960 (`miti`, tasks 0-3) and
-  778965 (`turbo`, tasks 4-7), 269 span sources each, all eight shards resumable.
+  778965 (`turbo`, tasks 4-7), 269 span sources each, all eight shards resumable. Measured
+  throughput on the first two hours is 11 rows per 10 minutes across six tasks, i.e. about 200 s per
+  span source, so a shard is ~24.5 h against the 24 h soft limit and will need one resubmit; the
+  eight shards complete in roughly 49 h at six concurrent.
+
+  **The resident set is the throughput lever, and it is avoidable.** A task holds four corpus-sized
+  object graphs at once: `documents`; `union_detected`, the union over all 15 detectors, built for
+  the inventory at `sweep_leakage.py:170` and **never freed**, so it stays resident for the whole
+  shard — the sibling script `leak_ablation.py:95` does `del union_all` at exactly this point; the
+  tokenised scoring index from `prepare()`; and then, per span source, a third copy from
+  `detected_documents()` and a fourth from `to_pseudonymised_corpus()`, both of which materialise
+  `list[Document]`. Every one of those stages is a per-document map over sequential data. Only the
+  gallery (3,697 profiles) and the query set genuinely need to be global, and they are small.
+  The `del` is one line and free; streaming the per-source stages is what would let two tasks share
+  a node and halve the wall clock. Neither is a mid-run change — the plan requires a commit hash on
+  every result row, and editing the script under a resumable job would mean rows from one shard were
+  computed by two versions of it.
 
   **Concurrency is capped by node memory, not by the queue.** The `turbo` QOS is the fast lane —
   priority 10000 against `miti`'s 0, 10 concurrent jobs against 4, 100 submittable against 8 — but
@@ -539,21 +558,38 @@ that no result-row schema exists; this paper cannot be analysed without one.
 
 ## 14. Open — AM's to decide
 
-1. **Point selection.** Full 2,151 as a Slurm array on Enron, or a spanning subset? The plane is
-   already computed either way; this is only about how many points get attacks and utility.
-2. **The primary cell set** for hypothesis testing (§9.7). Proposed: gold, max sensitivity, max
-   specificity, recommended 13, best interior point.
-3. **The attacker's detector pool.** Kerckhoffs says give it ours (Carrell gave the attacker the same
-   software). With ensembles we could instead vary defender/attacker *error correlation* by choosing
-   overlapping or disjoint subsets — genuinely new, and arguably still one realistic adversary rather
-   than an axis. Not built in without AM's word.
-4. **H4's "best interior point" criterion** — what exactly is optimised.
-5. **Authorship and venue** for this second paper.
-6. **Reference hygiene**, proposed not done: add Murugadoss 2021, Alexander & Beatty 2022, Simancek &
-   Vydiswaran 2024, Pilán et al. 2024/2025, Kim/Heider/Meystre 2018 and 2020, Horng 2022 and Carlini
-   2022 to `references/`; fix Carrell 2013's year in `experiment_plan.md` lines 122 and 316.
+Settled since the first draft, kept here so the record shows when:
 
-**Still to be opened by a human.** Kim 2018 (PMC6371277), Kim 2020 (PMC8075417) and Horng 2022
-(PMC9712864) are **abstract-level plus tool-extracted body text** — the PDFs could not be downloaded.
-These are exactly the three papers a reviewer will use to test the novelty claim, so they must be read
-in full before the related-work section is written.
+- ~~Point selection~~ — **all 2,150** (AM, 2026-09-27); running as jobs 778960 and 778965.
+- ~~The attacker's detector pool~~ — the whole pool is attacker-available because every detector in
+  it is public; the attacker does not know which the defender used; the four realistic variants are
+  §7.4 (AM, 2026-09-27).
+- ~~Whether the attack needs its own detection pass~~ — **yes**, and it is therefore the last
+  experiment, after phase 1 has named the point (AM, 2026-09-27).
+- ~~Reading the three near-miss ensemble papers~~ — Kim 2018, Kim 2020 and Horng 2022 obtained and
+  read in full on 2026-09-27. Result in §1.
+
+Still open:
+
+1. **The definition of the "balanced" attacker variant (c)** (§7.4). Proposed: Youden's
+   *J* = sensitivity + specificity − 1. Alternatives: nearest to (1, 1); max min(sens, spec).
+2. **Which variant the safest point is chosen against** (§7.3 phase 1) — the worst of the four, or
+   the most likely one. Choosing against the worst is the defensible reading and is what phase 1 is
+   set up to report.
+3. **The defender set for the full best-response matrix** (§7.6). Proposed: the primary cells plus a
+   stratified sample of about 100 spanning the plane. The four named variants run against the whole
+   plane regardless; this is only about the A-oracle-response bound and H3b.
+4. **The primary cell set** for hypothesis testing (§9.7). Proposed: gold, max sensitivity, max
+   specificity, recommended 13, best interior point.
+5. **H4's "best interior point" criterion** — what exactly is optimised. "The `d` that minimises the
+   worst variant's success subject to a utility floor" is the natural candidate; the floor is AM's.
+6. **Whether to fix the sweep's memory before the next run** (§11). The one-line `del` is free; the
+   streaming refactor is what would raise concurrency, and it is not a mid-run change.
+7. **Authorship and venue** for this second paper.
+8. **Reference hygiene**, proposed not done: add Murugadoss 2021, Alexander & Beatty 2022, Simancek &
+   Vydiswaran 2024, Pilán et al. 2024/2025, Kim/Heider/Meystre 2018 and 2020, Horng 2022, Bao et al.
+   2026 and Carlini 2022 to `references/`; fix Carrell 2013's year in `experiment_plan.md` lines 122
+   and 316; BRATsynthetic's journal version is Electronics **2025** 14(19) 3945, not 2026.
+
+**Publisher PDFs are never committed** (AM, 2026-09-27). `.gitignore` enforces it; `references/`
+carries the citation, the DOI and the honest read status.
