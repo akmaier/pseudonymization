@@ -9,7 +9,7 @@
 # span sources, so a task killed by the wall clock is continued by resubmitting the same array.
 # That is why the wall time is the 24 h soft limit rather than a guess at the true duration.
 #
-# Each task writes its OWN destination under results/leakage_sweep/shards/<NN>/ . Eleven tasks
+# Each task writes its OWN destination under results/leakage_sweep/shards/<NN>/ . Tasks
 # appending to one file would interleave lines. experiments/merge_sweep_shards.py joins them after.
 #
 #SBATCH --job-name=sweep_enron
@@ -17,11 +17,16 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=84G
 #SBATCH --time=24:00:00
-#SBATCH --array=0-10%6
+#SBATCH --array=0-7
 #SBATCH --output=logs/sweep_enron_%A_%a.out
 #SBATCH --error=logs/sweep_enron_%A_%a.err
-# mem=84G fits the 90 GB nodes; 96G was used by leak_ablation but excludes lme223, and 160G is
-# above every node and is rejected outright. %6 keeps us inside the 8-job submit limit with room.
+# mem=84G fits the 90 GB nodes; 96G was used by leak_ablation but excludes the smallest, and 160G
+# is above every node and is rejected outright.
+#
+# EIGHT tasks, not eleven: AssocMaxSubmitJobLimit is 8 and it counts array elements, so an 11-task
+# array is refused at submit. 269 sources per task at the ~257 s the sweep's own docstring records
+# for Enron is about 19 h against the 24 h soft limit; if a task is killed by the clock, resubmit
+# the same array and it continues from its own destination.
 set -uo pipefail
 cd "${PSEUDONYMKIT_WORK:-${SLURM_SUBMIT_DIR:-$PWD}}"
 mkdir -p logs results/leakage_sweep/shards
