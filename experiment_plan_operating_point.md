@@ -35,6 +35,7 @@ co-author:
 | | pool | rule | reported |
 |---|---|---|---|
 | Kim, Heider & Meystre 2018 | 12 systems | vote, k = 1…12 swept | k=1: P 80.13 / R 95.42 · k=12: P 99.46 / R 27.12 |
+| Kim, Heider & Meystre 2020 | pruned + stacked ensembles | greedy exclusion, sequence stacking | generalisation across two corpora |
 | Horng et al. 2022 | 3 tools | 1 / 2 / 3 votes | 57.5/95.7 · 93.7/82.8 · 99.2/58.5 |
 | Murugadoss et al. 2021 (Patterns) | deep + rule-based | at-least-1 union | R 0.994 / P 0.967, 10,000 Mayo notes, **HIPS surrogates** |
 
@@ -42,8 +43,17 @@ So "we can place the operating point almost anywhere" is already in print. What 
 and what this paper supplies:
 
 1. **Nobody treats the combination rule as an independent variable.** Kim 2018 reports its k-sweep in
-   two sentences of prose with no table and no figure; Kim 2020 plots F1 against threshold, collapsing
-   the plane to a scalar; Horng tabulates three points. Nobody plots the front.
+   *two sentences of prose*, with no table and no figure — verified against the full text
+   (2026-09-27): *"We examined how performance of the voting ensemble method was affected by the
+   voting threshold ranging from one to twelve… When the voting threshold is set at 1, the voting
+   ensemble achieved 80.13% precision and 95.42% recall. When the threshold was set at 12, precision
+   was 99.46% and recall 27.12%."* Two endpoints in running text. Kim 2020 plots F1 against
+   threshold, collapsing the plane to a scalar; Horng tabulates three points. Nobody plots the front.
+
+   Across all three full texts the word **"specificity" occurs zero times**, "operating point" zero,
+   "trade-off" zero, "attack" zero, "re-identification" zero, "utility" zero and "downstream" zero;
+   "surrogate" occurs once in Kim 2018, in a sentence defining de-identification. These are the three
+   papers a reviewer would reach for, and none of them measures anything this paper measures.
 2. **Nobody reports the defender's position in the sensitivity/specificity plane.** Carrell 2019
    reports *no defender precision at all* — only the 8 % miss rate. Chambon 2023 never computes
    specificity; the word does not occur in the paper, and the non-PHI token count that would be its
@@ -433,8 +443,16 @@ two prompt regimes. (10) `run_attack_statistics.py` pairing on query id.
 
 No GPU and no detector reruns anywhere (AM, 2026-09-26). Three real costs:
 
-- **Enron leakage re-scoring** — 257 s per span source measured. The full 2,151 is 6.4 days serial, so
-  it is a Slurm array job or a selected spanning subset of the plane. **AM's call (§14).**
+- **Enron leakage re-scoring** — running since 2026-09-27 as jobs 778960 (`miti`, tasks 0-3) and
+  778965 (`turbo`, tasks 4-7), 269 span sources each, all eight shards resumable.
+
+  **Concurrency is capped by node memory, not by the queue.** The `turbo` QOS is the fast lane —
+  priority 10000 against `miti`'s 0, 10 concurrent jobs against 4, 100 submittable against 8 — but
+  a task holds about **88 GB resident** (lme53 was down to 4.5 GB free with one task on it), the
+  cluster has roughly six nodes that can hold that, and `SelectTypeParameters=NONE` means Slurm does
+  **not** treat memory as a consumable resource and will double-book a node if asked. Six concurrent
+  is therefore the ceiling until the resident set is reduced, and asking for more would buy an OOM
+  rather than throughput. Six run; two wait behind `%2` on the turbo array.
 - **Enron utility** — as written it exceeds the 24 h wall clock at one point; the `reference=` fix
   roughly halves it.
 - **A4** — free gateway, but serial and self-contending: `medication_ie` fell from ~533 to 45
