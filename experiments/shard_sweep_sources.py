@@ -32,6 +32,11 @@ def main() -> int:
     ap.add_argument('--detection', type=Path, default=Path('results/detection'))
     ap.add_argument('--out', type=Path, default=Path('results/leakage_sweep/shards'))
     ap.add_argument('--entity-type', default='PERSON')
+    ap.add_argument('--canonical', type=Path, default=Path('results/leakage_sweep'),
+                    help='where the un-sharded <corpus>_<TYPE>.jsonl lives. Rows there are carried '
+                         'like any other, and any label it holds that the detection plane does not '
+                         '-- the 13-detector recommended rules, which the size-3 enumeration never '
+                         'reaches -- is added as an extra source so it is swept too.')
     ap.add_argument('--carry-done', action='store_true',
                     help='seed each new shard destination with rows already computed for its '
                          'labels, gathered from every existing shard. Re-sharding otherwise '
@@ -49,15 +54,30 @@ def main() -> int:
     if len(labels) != len(set(labels)):
         raise SystemExit('duplicate labels in the detection sweep; refusing to shard')
 
+    name = f'{args.corpus}_{args.entity_type}.jsonl'
     done: dict[str, str] = {}
+    sources = [args.canonical / name, *sorted(args.out.glob(f'*/{name}'))]
+    seen_labels: set[str] = set()
+    for old in sources:
+        if not old.exists():
+            continue
+        for line in old.open():
+            row = json.loads(line)
+            seen_labels.add(row['source'])
+            if args.carry_done and not row.get('error'):
+                done[row['source']] = line if line.endswith('\n') else line + '\n'
     if args.carry_done:
-        name = f'{args.corpus}_{args.entity_type}.jsonl'
-        for old in sorted(args.out.glob(f'*/{name}')):
-            for line in old.open():
-                row = json.loads(line)
-                if not row.get('error'):
-                    done[row['source']] = line if line.endswith('\n') else line + '\n'
         print(f'carrying {len(done)} finished span sources across the re-shard')
+
+    # Labels that exist as results but not in the detection enumeration -- the 13-detector rules,
+    # run by hand. They are span sources like any other and the CODE rule condemns them too, so
+    # they must be swept rather than quietly left at their old values.
+    extra = sorted(seen_labels - set(labels))
+    if extra:
+        print(f'adding {len(extra)} span sources present in results but not in the enumeration:')
+        for label in extra:
+            print(f'    {label.split("|")[-1]:14s} {len(label.split("|")[0].split("+"))} detectors')
+        labels = labels + extra
 
     args.out.mkdir(parents=True, exist_ok=True)
     shards = [[] for _ in range(args.shards)]

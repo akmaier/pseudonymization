@@ -12,7 +12,7 @@
 # Each task writes its OWN destination under results/leakage_sweep/shards/<NN>/ . Tasks
 # appending to one file would interleave lines. experiments/merge_sweep_shards.py joins them after.
 #
-#SBATCH --job-name=sweep_enron
+#SBATCH --job-name=sweep_leak
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=24G
@@ -24,8 +24,8 @@
 # down with lme52 drained, so eight are usable and six of those have 32 cores.
 #SBATCH --time=24:00:00
 #SBATCH --array=0-9
-#SBATCH --output=logs/sweep_enron_%A_%a.out
-#SBATCH --error=logs/sweep_enron_%A_%a.err
+#SBATCH --output=logs/sweep_%A_%a.out
+#SBATCH --error=logs/sweep_%A_%a.err
 # mem=24G, because the MEASURED peak is 11.92 GiB (experiments/probes/sweep_memory_profile.py,
 # 2026-09-27) and the two frees added the same day take it lower. The earlier 84G was a guess, and
 # it was the whole problem: Slurm reserved it as AllocMem on every node, the job never touched it,
@@ -45,11 +45,12 @@ cd "${SLURM_SUBMIT_DIR:-$PWD}"
 cd "${PSEUDONYMKIT_WORK:-$PWD}"
 mkdir -p logs results/leakage_sweep/shards
 
+CORPUS="${CORPUS:-enron}"
 NN=$(printf '%02d' "$SLURM_ARRAY_TASK_ID")
-SOURCES="results/leakage_sweep/shards/enron_${NN}.txt"
+SOURCES="results/leakage_sweep/shards/${CORPUS}_${NN}.txt"
 OUT="results/leakage_sweep/shards/${NN}"
 mkdir -p "$OUT"
-DEST="${OUT}/enron_PERSON.jsonl"
+DEST="${OUT}/${CORPUS}_PERSON.jsonl"
 touch "$DEST"
 
 # Pin the linear-algebra thread pools to the CPUs Slurm actually gave us. Without this the BLAS
@@ -63,11 +64,11 @@ export MKL_NUM_THREADS="$OMP_NUM_THREADS"
 export NUMEXPR_NUM_THREADS="$OMP_NUM_THREADS"
 export VECLIB_MAXIMUM_THREADS="$OMP_NUM_THREADS"
 
-echo "host=$(hostname) task=${SLURM_ARRAY_TASK_ID} sources=${SOURCES} threads=${OMP_NUM_THREADS} started=$(date -Is)"
+echo "host=$(hostname) corpus=${CORPUS} task=${SLURM_ARRAY_TASK_ID} sources=${SOURCES} threads=${OMP_NUM_THREADS} started=$(date -Is)"
 echo "planned $(wc -l < "$SOURCES") span sources; already done $(wc -l < "$DEST")"
 
 PYTHONPATH=src .venv/bin/python experiments/sweep_leakage.py \
-    --corpus enron \
+    --corpus "$CORPUS" \
     --entity-type PERSON \
     --sources "$SOURCES" \
     --out "$OUT" \
