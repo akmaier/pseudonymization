@@ -89,3 +89,9 @@ paper/*.lot
 # The arXiv package is derived from the review copy by paper/make_arxiv.py — the script is
 # versioned, the package is not.
 paper/arxiv/
+
+# Downloaded literature. AM, 2026-09-27: "dont commit the papers to the public repo."
+# Publisher PDFs are licensed to the reader, not to a public repository. references/ carries
+# citations and read status; the files themselves stay outside git.
+*.pdf
+!paper/main.pdf
