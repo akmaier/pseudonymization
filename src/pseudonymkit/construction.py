@@ -143,6 +143,41 @@ class PatchSet:
 # the seam: cached detector output -> documents carrying an ensemble's spans
 
 
+CODE_MIN_LENGTH = 5
+"""A CODE span shorter than this identifies nobody, and is dropped before combination.
+
+AM, 2026-09-27. Two Enron span sources aborted with ``SurrogateRejected`` because the engine was
+asked to invent a realistic surrogate for the string ``www.``. The cause is domain mismatch: the
+CodEAlltag German e-mail tagger, run on English mail, fragments addresses and URLs and labels the
+pieces — ``.`` 2,423 times as EMAIL, ``@`` 844, ``-`` 354 as UFID. It is not confined to
+punctuation, nor to that detector: of the 2.59 million CODE spans the pool produces on Enron,
+**69,266 fall under this rule across six of the fifteen detectors**, led by Enron's own mail
+routing (``HOU`` 4,936, ``ECT`` 2,402, ``HOU/`` 2,144, ``@ECT`` 2,053). On CARDIO:DE it is 2,526 of
+29,309, and the same tagger on its home domain drops only 176 — the defect is the domain, not the
+model.
+
+Five, not four, and not "contains a letter or digit": ``www.`` contains three letters, as do ``HOU``
+and ``ECT``. No identifier class routing to CODE — e-mail, phone, IBAN, card, ID, URL, licence —
+identifies anyone at four characters or fewer, and a fragment that short cannot be given a
+consistent surrogate, which is what ``code_is_consistent`` discovered after 512 draws.
+
+Applied here, after harmonisation and **before** combination, so every rule — union, at-least-k
+vote, intersection — sees the same pool, and so every caller gets it without knowing about it.
+This is a stated defender-side step, not a silent clean-up: it changes what the detector is deemed
+to have found, it is reported as such, and the plane's sensitivity to the threshold is measured.
+See ``experiment_plan_operating_point.md`` §8.6."""
+
+
+def code_filter(spans):
+    """Drop CODE spans too short to identify anyone. Other types pass through untouched."""
+    return tuple(
+        span for span in spans
+        if span.type != "CODE"
+        or (len((span.text or "").strip()) >= CODE_MIN_LENGTH
+            and any(character.isalnum() for character in span.text))
+    )
+
+
 def detected_documents(
     documents: Sequence[Document],
     cache: DetectorCache,
@@ -191,7 +226,7 @@ def detected_documents(
         # ``type_src or type`` so applying it to an already-harmonised span is a no-op.
         harmoniser = Harmoniser(source_for(name, cache.corpus))
         pool[name] = {
-            doc_id: _replace(output, spans=harmoniser.spans(output.spans))
+            doc_id: _replace(output, spans=code_filter(harmoniser.spans(output.spans)))
             for doc_id, output in records.output.items()
         }
         # §10 requires the unmapped count to be reported; a caller that discards it drops a result.

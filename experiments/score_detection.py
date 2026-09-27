@@ -25,6 +25,7 @@ import time
 from collections import Counter
 from pathlib import Path
 
+from pseudonymkit.construction import code_filter
 from pseudonymkit.detectors.base import DetectorOutput
 from pseudonymkit.detectors.cache import DetectorCache, text_digest
 from pseudonymkit.detectors.combinators import COMBINATORS
@@ -77,7 +78,8 @@ def load_pool(cache: DetectorCache, corpus: str, texts: dict[str, str]) -> dict[
         harmoniser = Harmoniser(source_for(name, corpus))
         records = cache.load(name, texts=texts)
         pool[name] = {
-            doc_id: harmoniser.spans(output.spans) for doc_id, output in records.items()
+            doc_id: code_filter(harmoniser.spans(output.spans))
+            for doc_id, output in records.items()
         }
     return pool
 
