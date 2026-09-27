@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# The Enron operating-point sweep: A2, A3 and A5 at every one of the 2,150 span sources, so the
+# attack column exists at every point of the sensitivity/specificity plane (paper 2, AM 2026-09-27).
+#
+# CPU only. Detection is already cached at 100% coverage for all 15 detectors, so no model runs
+# here: each task is set arithmetic, an in-memory condition-B build, a cosine and a small numpy fit.
+#
+# Resumable by design. sweep_leakage.py reads the rows already in its destination and skips those
+# span sources, so a task killed by the wall clock is continued by resubmitting the same array.
+# That is why the wall time is the 24 h soft limit rather than a guess at the true duration.
+#
+# Each task writes its OWN destination under results/leakage_sweep/shards/<NN>/ . Eleven tasks
+# appending to one file would interleave lines. experiments/merge_sweep_shards.py joins them after.
+#
+#SBATCH --job-name=sweep_enron
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=84G
+#SBATCH --time=24:00:00
+#SBATCH --array=0-10%6
+#SBATCH --output=logs/sweep_enron_%A_%a.out
+#SBATCH --error=logs/sweep_enron_%A_%a.err
+# mem=84G fits the 90 GB nodes; 96G was used by leak_ablation but excludes lme223, and 160G is
+# above every node and is rejected outright. %6 keeps us inside the 8-job submit limit with room.
+set -uo pipefail
+cd "${PSEUDONYMKIT_WORK:-${SLURM_SUBMIT_DIR:-$PWD}}"
+mkdir -p logs results/leakage_sweep/shards
+
+NN=$(printf '%02d' "$SLURM_ARRAY_TASK_ID")
+SOURCES="results/leakage_sweep/shards/enron_${NN}.txt"
+OUT="results/leakage_sweep/shards/${NN}"
+mkdir -p "$OUT"
+
+echo "host=$(hostname) task=${SLURM_ARRAY_TASK_ID} sources=${SOURCES} started=$(date -Is)"
+echo "planned $(wc -l < "$SOURCES") span sources; already done $(wc -l < "${OUT}/enron_PERSON.jsonl" 2>/dev/null || echo 0)"
+
+PYTHONPATH=src .venv/bin/python experiments/sweep_leakage.py \
+    --corpus enron \
+    --entity-type PERSON \
+    --sources "$SOURCES" \
+    --out "$OUT" \
+    --max-size 3 \
+    --seed 0 \
+    --folds 5
+
+status=$?
+echo "finished=$(date -Is) exit=${status} rows=$(wc -l < "${OUT}/enron_PERSON.jsonl" 2>/dev/null || echo 0)"
+exit $status
