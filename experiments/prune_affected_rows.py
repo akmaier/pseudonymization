@@ -51,6 +51,9 @@ def main() -> int:
     ap.add_argument('--before', type=Path, default=Path('results/detection'))
     ap.add_argument('--after', type=Path, default=Path('results/detection_filtered'))
     ap.add_argument('--shards', type=Path, default=Path('results/leakage_sweep/shards'))
+    ap.add_argument('--canonical', type=Path, default=Path('results/leakage_sweep'),
+                    help='the un-sharded <corpus>_<TYPE>.jsonl is pruned too; on Enron it holds the '
+                         'four hand-run 13-detector rules and nothing else scans it')
     ap.add_argument('--write', action='store_true', help='without this it only reports')
     args = ap.parse_args()
 
@@ -70,8 +73,10 @@ def main() -> int:
     plane = args.before / f'{args.corpus}.jsonl'
     if plane.exists():
         labels |= {json.loads(line)['detector'] for line in plane.open()}
+    targets = [p for p in (args.canonical / name,) if p.exists()]
+    targets += sorted(args.shards.glob(f'*/{name}'))
     on_disk: set[str] = set()
-    for destination in sorted(args.shards.glob(f'*/{name}')):
+    for destination in targets:
         on_disk |= {json.loads(line)['source'] for line in destination.open()}
     outside = sorted(on_disk - labels)
     labels |= on_disk
@@ -97,7 +102,7 @@ def main() -> int:
 
     total = kept = removed = 0
     plan = []
-    for destination in sorted(args.shards.glob(f'*/{name}')):
+    for destination in targets:
         survivors, gone = [], 0
         for line in destination.open():
             total += 1
@@ -108,7 +113,9 @@ def main() -> int:
         kept += len(survivors)
         removed += gone
         plan.append((destination, survivors))
-        print(f'  {destination.parent.name}: {len(survivors)} kept, {gone} deleted')
+        where = (destination.parent.name if destination.parent != args.canonical
+                 else 'canonical')
+        print(f'  {where}: {len(survivors)} kept, {gone} deleted')
 
     print(f'\nleakage rows on disk {total}: {kept} kept, {removed} to delete')
     if not args.write:
