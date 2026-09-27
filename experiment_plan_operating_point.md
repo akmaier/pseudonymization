@@ -413,6 +413,67 @@ replaced mention is a forced disagreement — CARDIO:DE union is B 0.611 against
 
 ---
 
+## 8.6 The CODE sanity rule (AM, 2026-09-27)
+
+**Decision: degenerate CODE spans are filtered before construction, as a stated defender step.**
+AM approved this on 2026-09-27 and asked that it be discussed briefly in the paper.
+
+**What prompted it.** Two Enron span sources aborted with
+`SurrogateRejected: no surrogate passed code_is_consistent for type='CODE' in 512 draws; last
+candidate 'www.' for 'www.'`. The engine was being asked to invent a realistic replacement for the
+string `www.`, which identifies nobody.
+
+**Where it comes from — domain mismatch, and it is measurable.** `privacy_tagger` is the CodEAlltag
+German e-mail tagger. On German clinical text it behaves: 2,689 CODE spans on CARDIO:DE, of which
+**7** are punctuation-only. On English Enron mail it fragments addresses and URLs and labels the
+pieces:
+
+| count | source label | surface |
+|---:|---|---|
+| 2,423 | `EMAIL` | `.` |
+| 844 | `EMAIL` | `@` |
+| 354 | `UFID` | `-` |
+| 133 | `URL` | `@` |
+| 27 | `URL` | `http` |
+
+It is not only punctuation. Of the 2,278,898 CODE spans presidio and `privacy_tagger` produce on
+Enron, **35,633 are four characters or shorter**, led by Enron's own mail routing — `HOU` 4,936,
+`ECT` 2,402, `HOU/` 2,144, `@ECT` 2,053 (Houston; Enron Capital & Trade). On CARDIO:DE the same
+figure is 2,526 of 29,309 (8.6 %).
+
+**The rule.** A CODE span is kept only if it contains at least one alphanumeric character **and** is
+at least five characters long.
+
+An earlier phrasing of this rule — "at least one alphanumeric" alone — was wrong and is recorded
+here so it is not repeated: `www.` contains three, as do `HOU`, `ECT` and `m0`. Alphanumeric alone
+removes roughly 4,200 of the 35,633.
+
+Five is a judgement and is justified rather than assumed: no identifier class in the taxonomy that
+routes to CODE — e-mail, phone, IBAN, card, ID, URL, licence — identifies anyone at four characters
+or fewer, and a fragment that short cannot be given a consistent surrogate, which is what the engine
+discovered the hard way. **The plane's sensitivity to the threshold (4, 5, 6) is reported at the
+recommended ensemble**, so the choice is visible rather than buried.
+
+**Why it is a finding and not only a fix.** It bears directly on §3's H2. A false positive is a
+decoy only if it could plausibly be a real identifier; `.` and `HOU` camouflage nothing and only
+damage the text. So over-detection is not one thing, and the paper distinguishes **name-like
+decoys** from **noise decoys**. No prior work in §2 separates them, because none of them varies the
+operating point at all.
+
+**Consequence, and it is not small.** CODE spans are replaced in condition B, so the released text
+changes, so the attacks change. Every row computed without the rule is therefore incomparable with
+rows computed under it. That covers the Enron sweep in flight and the 2,154 CARDIO:DE rows of §5.
+Two things follow, and the second is AM's to confirm:
+
+- **Paper 1 is not retrofitted.** Its numbers are internally consistent under the unfiltered
+  behaviour and it is at submission. The rule belongs to this paper.
+- **Paper 2's planes are recomputed under the rule.** The before/after is reported at the
+  recommended ensemble only — one extra point, which is the "quick discussion" AM asked for, rather
+  than a second full arm.
+
+**Not yet implemented.** The predicate above is a proposal pending AM's word on the threshold; the
+rule was got wrong once already and the plane is expensive to recompute.
+
 ## 9. Statistical protocol
 
 `experiment_plan.md` fixes Wilcoxon / McNemar / BH with an effect size for utility and specifies
@@ -571,22 +632,25 @@ Settled since the first draft, kept here so the record shows when:
 
 Still open:
 
-1. **The definition of the "balanced" attacker variant (c)** (§7.4). Proposed: Youden's
+1. **The CODE sanity threshold** (§8.6). Proposed: at least one alphanumeric and at least five
+   characters. Adopting it means recomputing both planes, so it should be settled before the Enron
+   sweep finishes rather than after.
+2. **The definition of the "balanced" attacker variant (c)** (§7.4). Proposed: Youden's
    *J* = sensitivity + specificity − 1. Alternatives: nearest to (1, 1); max min(sens, spec).
-2. **Which variant the safest point is chosen against** (§7.3 phase 1) — the worst of the four, or
+3. **Which variant the safest point is chosen against** (§7.3 phase 1) — the worst of the four, or
    the most likely one. Choosing against the worst is the defensible reading and is what phase 1 is
    set up to report.
-3. **The defender set for the full best-response matrix** (§7.6). Proposed: the primary cells plus a
+4. **The defender set for the full best-response matrix** (§7.6). Proposed: the primary cells plus a
    stratified sample of about 100 spanning the plane. The four named variants run against the whole
    plane regardless; this is only about the A-oracle-response bound and H3b.
-4. **The primary cell set** for hypothesis testing (§9.7). Proposed: gold, max sensitivity, max
+5. **The primary cell set** for hypothesis testing (§9.7). Proposed: gold, max sensitivity, max
    specificity, recommended 13, best interior point.
-5. **H4's "best interior point" criterion** — what exactly is optimised. "The `d` that minimises the
+6. **H4's "best interior point" criterion** — what exactly is optimised. "The `d` that minimises the
    worst variant's success subject to a utility floor" is the natural candidate; the floor is AM's.
-6. **Whether to fix the sweep's memory before the next run** (§11). The one-line `del` is free; the
+7. **Whether to fix the sweep's memory before the next run** (§11). The one-line `del` is free; the
    streaming refactor is what would raise concurrency, and it is not a mid-run change.
-7. **Authorship and venue** for this second paper.
-8. **Reference hygiene**, proposed not done: add Murugadoss 2021, Alexander & Beatty 2022, Simancek &
+8. **Authorship and venue** for this second paper.
+9. **Reference hygiene**, proposed not done: add Murugadoss 2021, Alexander & Beatty 2022, Simancek &
    Vydiswaran 2024, Pilán et al. 2024/2025, Kim/Heider/Meystre 2018 and 2020, Horng 2022, Bao et al.
    2026 and Carlini 2022 to `references/`; fix Carrell 2013's year in `experiment_plan.md` lines 122
    and 316; BRATsynthetic's journal version is Electronics **2025** 14(19) 3945, not 2026.
