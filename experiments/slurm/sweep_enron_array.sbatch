@@ -46,7 +46,18 @@ mkdir -p "$OUT"
 DEST="${OUT}/enron_PERSON.jsonl"
 touch "$DEST"
 
-echo "host=$(hostname) task=${SLURM_ARRAY_TASK_ID} sources=${SOURCES} started=$(date -Is)"
+# Pin the linear-algebra thread pools to the CPUs Slurm actually gave us. Without this the BLAS
+# behind numpy sizes its pool from the NODE's core count, not the allocation: with three or four
+# tasks packed onto one 32-core node that is 4 x 32 threads on 32 cores. Measured 2026-09-27 on
+# lme49 -- CPULoad 45.50 against CPUAlloc 32 -- and it cost 57% of per-task throughput, 305 s per
+# span source at one task per node against 480 s when packed. Nothing in the repo set these.
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-8}"
+export OPENBLAS_NUM_THREADS="$OMP_NUM_THREADS"
+export MKL_NUM_THREADS="$OMP_NUM_THREADS"
+export NUMEXPR_NUM_THREADS="$OMP_NUM_THREADS"
+export VECLIB_MAXIMUM_THREADS="$OMP_NUM_THREADS"
+
+echo "host=$(hostname) task=${SLURM_ARRAY_TASK_ID} sources=${SOURCES} threads=${OMP_NUM_THREADS} started=$(date -Is)"
 echo "planned $(wc -l < "$SOURCES") span sources; already done $(wc -l < "$DEST")"
 
 PYTHONPATH=src .venv/bin/python experiments/sweep_leakage.py \
