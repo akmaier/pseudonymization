@@ -180,20 +180,26 @@ specificity = 1 − (predicted − TP) / (total_tokens − gold_tokens)
 Verified against the published CARDIO:DE recommended-13 union point: derived 0.8685838 against
 published 0.8685838. So the plane needs no re-scoring anywhere.
 
-**What the CARDIO:DE plane spans** (2,154 rows in `results/leakage_sweep/cardiode_PERSON.jsonl`):
+**What the planes span**, both recomputed under the CODE rule of §8.6 and complete at 2,154 rows
+per corpus with zero error rows (2026-09-28):
 
-| | |
-|---|---|
-| sensitivity | 0.0000166 … **0.99884** |
-| specificity | **0.868584** … 1.000000 |
-| points with sensitivity > 0.95 | 196 |
-| points with specificity > 0.999 | 846 |
-| **points above 0.9 on both** | **337** |
-| points already carrying A2, A3 and A5 | **2,140** |
+| | CARDIO:DE | Enron |
+|---|---|---|
+| sensitivity | 0.0000166 … **0.99884** | 0.00140 … **0.99769** |
+| specificity | **0.869256** … 1.000000 | **0.624838** … 0.999518 |
+| points with sensitivity > 0.95 | 195 | 228 |
+| points with specificity > 0.999 | 846 | **7** |
+| **points above 0.9 on both** | **337** | **1** |
+| points carrying A2, A3 and A5 | 2,140 | 2,154 |
 
-That last row is the important one: **the CARDIO:DE attack surface under condition B is already
-measured.** Enron has only 4 rows under the corrected gold (263 under the superseded gold, and
-union-heavy at 260/2/1, so it never walks the axis).
+**The corner is reachable on clinical reports and almost unreachable on e-mail.** 337 CARDIO:DE
+configurations clear 0.9 on both axes against exactly one on Enron, and 846 clear 0.999 specificity
+against seven. AM's claim that an ensemble can be placed near either corner holds on German medical
+reports and very nearly fails on English mail — a corpus effect, not a method one, and one no
+single-detector study could have seen.
+
+Specificity is derived per §5's identity. It must be checked against a directly scored value from
+the filtered detection plane before either column is published; that plane is still building.
 
 **Point selection — settled (AM, 2026-09-27): all of them.** The Enron attack column is running as
 an eight-task Slurm array, 269 span sources each, submitted 2026-09-27 as job 778960
@@ -319,10 +325,29 @@ of the defender's miss set it also misses. (d) is the opposite instinct: it fire
 confident, so its untagged set is large and noisy, but everything it *does* tag is real signal.
 Which instinct wins is exactly what phase 1 measures, and it is not obvious in advance.
 
-**"Balanced" needs a definition and it is AM's to fix.** Proposed: the point maximising Youden's
-*J* = sensitivity + specificity − 1, which is the standard choice and is already computable from
-every row of the plane (§5). Alternatives are the point nearest (1, 1) in the plane, or the point
-maximising min(sensitivity, specificity). Listed in §14.
+**Variant (c) is Youden's *J* = sensitivity + specificity − 1** (AM, 2026-09-28), computable from
+every row of the plane (§5).
+
+**"Safe" is defined against these, and AM fixed it on 2026-09-28: a defender point is safe when
+the *best* attack over the variants approaches the chance rate there.** Not merely lower than
+elsewhere — approaching 1/|gallery|. It is a property of the strongest attacker, so the worst of
+the four governs, and it is measurable on the plane we already have.
+
+**Measured on condition B with A3 and A5, 2026-09-28, and the two corpora do not behave alike:**
+
+| | points at or below chance | best attack, floor over the whole plane | max Youden *J* point |
+|---|---:|---|---|
+| **CARDIO:DE** (chance 1/207) | **777 of 2,140** | 0.0 | *J* = 0.9642, sens 0.9765, spec 0.9877, **attack 0** |
+| **Enron** (chance 1/3697) | **0 of 2,154** | 0.03234 = **120× chance** | *J* = 0.8618, sens 0.9632, spec 0.8986, attack 0.105 = 390× |
+
+So on German medical reports 777 configurations reach chance and the *J*-optimal one is attack-free
+at 0.9765/0.9877; on English e-mail **no configuration of fifteen detectors is safe by this
+definition**, and the floor across the entire plane is 120× chance.
+
+Read with §4's caveat, not around it: CARDIO:DE's unmodified-text linkage ceiling is 2.73 %, so a
+point that reaches chance there may be describing the corpus rather than the protection. The
+honest pair of statements is that e-mail admits no safe operating point and clinical reports admit
+many *but cannot demonstrate it*, which is why Enron carries the attack curve.
 
 Against these four sit the reference strategies of §7.1: **A-copy** (`a = d`, the analytic ceiling,
 reported not run) and **A-oracle-response** (best `a` knowing `d`). The four variants are the
@@ -650,8 +675,11 @@ Still open:
    specificity, recommended 13, best interior point.
 5. **H4's "best interior point" criterion** — what exactly is optimised. "The `d` that minimises the
    worst variant's success subject to a utility floor" is the natural candidate; the floor is AM's.
-6. **Authorship and venue** for this second paper.
-7. **Reference hygiene**, proposed not done: add Murugadoss 2021, Alexander & Beatty 2022, Simancek &
+6. **Venue** for this second paper. Authors settled 2026-09-28: paper 1's list plus **Soroosh
+   Tayebi Arasteh** (RWTH Aachen; exact affiliation line to confirm). He is already cited in paper 1
+   as `arasteh2024speaker`.
+7. **Reference hygiene** — the additions are *prepared, not applied*: what a paper cites is decided
+   by what it ends up covering, so these are held until writing (AM, 2026-09-28). Candidates: add Murugadoss 2021, Alexander & Beatty 2022, Simancek &
    Vydiswaran 2024, Pilán et al. 2024/2025, Kim/Heider/Meystre 2018 and 2020, Horng 2022, Bao et al.
    2026 and Carlini 2022 to `references/`; fix Carrell 2013's year in `experiment_plan.md` lines 122
    and 316; BRATsynthetic's journal version is Electronics **2025** 14(19) 3945, not 2026.
