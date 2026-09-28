@@ -150,7 +150,7 @@ first paper and does not bind this one (AM, 2026-09-26).
 | corpus | role | why |
 |---|---|---|
 | **CARDIO:DE** 🔒 | utility, exposure, the clinical claim, the discrimination surface | the only clinical corpus; DUA-bound, single-user |
-| **Enron** | the attack curve | the only corpus with cross-document identity at scale — 3,697 gallery, 71.98 % unmodified-text linkage ceiling |
+| **Enron** | the attack curve | the only corpus with cross-document identity at scale — a 3,697-identity reference population, 71.98 % unmodified-text linkage ceiling |
 
 TAB and OntoNotes are out: 0 of 8,701 TAB and 0 of 13,230 OntoNotes entities appear in two documents,
 so linkage returns Rank-1 = 0 even on unmodified text. They stay in the first paper.
@@ -183,23 +183,38 @@ published 0.8685838. So the plane needs no re-scoring anywhere.
 **What the planes span**, both recomputed under the CODE rule of §8.6 and complete at 2,154 rows
 per corpus with zero error rows (2026-09-28):
 
+**Token recall**, not "sensitivity": it is over *all* gold tokens, which is the sweep's own
+denominator. Paper 1's "sensitivity" is over the types the conditions replace and its "person
+sensitivity" over PERSON alone — three different denominators, and they must not be mixed.
+
+**The 0.5 token-recall floor is not optional** (paper 1, and for its reason): specificity is
+`1 − FP/negatives`, so an ensemble that predicts almost nothing has almost no false positives and
+scores near 1.0 while catching nothing. Both rows are given so the artefact is visible.
+
 | | CARDIO:DE | Enron |
 |---|---|---|
-| sensitivity | 0.0000166 … **0.99884** | 0.00140 … **0.99769** |
-| specificity | **0.869256** … 1.000000 | **0.624838** … 0.999518 |
-| points with sensitivity > 0.95 | 195 | 228 |
-| points with specificity > 0.999 | 846 | **7** |
-| **points above 0.9 on both** | **337** | **1** |
+| token recall | 0.00002 … **0.99884** | 0.00140 … **0.99769** |
+| specificity | **0.86926** … 1.00000 | **0.62484** … 0.99952 |
+| points above the 0.5 recall floor | 1,028 of 2,154 | 889 of 2,154 |
+| specificity > 0.999, **no floor** | 846 | 7 |
+| specificity > 0.999, **floor 0.5** | **62** | **0** |
+| above 0.9 on both | **337** | **1** |
 | points carrying A2, A3 and A5 | 2,140 | 2,154 |
 
-**The corner is reachable on clinical reports and almost unreachable on e-mail.** 337 CARDIO:DE
-configurations clear 0.9 on both axes against exactly one on Enron, and 846 clear 0.999 specificity
-against seven. AM's claim that an ensemble can be placed near either corner holds on German medical
-reports and very nearly fails on English mail — a corpus effect, not a method one, and one no
-single-detector study could have seen.
+Read the floored rows. Unfloored, Enron shows seven points above 0.999 specificity and every one
+is degenerate — token recall between 0.0014 and 0.008, i.e. detecting essentially nothing, and
+consequently carrying *high* attack rates (A3 up to 0.2551) because almost nothing was replaced.
+Under the floor there are none.
 
-Specificity is derived per §5's identity. It must be checked against a directly scored value from
-the filtered detection plane before either column is published; that plane is still building.
+**So the corner is reachable on clinical reports and not on e-mail.** 62 CARDIO:DE configurations
+clear 0.999 specificity while still catching half the identifiers; Enron has none, and exactly one
+point clears 0.9 on both axes — `Qwen3.6-35B + privacy_tagger | intersection`, at recall 0.910 and
+specificity 0.919, which is *not* safe: A3 0.0641 and A5 0.1162, some 237× and 430× chance.
+
+**Cross-checked against paper 1** at the recommended 13-detector union, and the attack numbers
+reproduce exactly: A3 0.0093, A5 0.0394, unmodified-text ceiling 0.7198, 19,059 queries. Specificity
+comes out at 0.6248 against paper 1's 0.6235, the small rise being the false-positive CODE spans
+the §8.6 rule removed.
 
 **Point selection — settled (AM, 2026-09-27): all of them.** The Enron attack column is running as
 an eight-task Slurm array, 269 span sources each, submitted 2026-09-27 as job 778960
@@ -330,15 +345,20 @@ every row of the plane (§5).
 
 **"Safe" is defined against these, and AM fixed it on 2026-09-28: a defender point is safe when
 the *best* attack over the variants approaches the chance rate there.** Not merely lower than
-elsewhere — approaching 1/|gallery|. It is a property of the strongest attacker, so the worst of
+elsewhere — approaching 1/N, N the reference population (§7.8). It is a property of the strongest attacker, so the worst of
 the four governs, and it is measurable on the plane we already have.
 
 **Measured on condition B with A3 and A5, 2026-09-28, and the two corpora do not behave alike:**
 
 | | points at or below chance | best attack, floor over the whole plane | max Youden *J* point |
 |---|---:|---|---|
-| **CARDIO:DE** (chance 1/207) | **777 of 2,140** | 0.0 | *J* = 0.9642, sens 0.9765, spec 0.9877, **attack 0** |
-| **Enron** (chance 1/3697) | **0 of 2,154** | 0.03234 = **120× chance** | *J* = 0.8618, sens 0.9632, spec 0.8986, attack 0.105 = 390× |
+| **CARDIO:DE** (chance 1/207) | **654** of 1,834 measurable | 0.0 | *J* = 0.9642, recall 0.9765, spec 0.9877, **attack 0** |
+| **Enron** (chance 1/3697) | **0 of 2,154** | 0.03234 = **120× chance** | *J* = 0.8618, recall 0.9632, spec 0.8986, attack 0.105 = 390× |
+
+Counted as **lift = rate ÷ that attack's own chance**, maximised over A2, A3 and A5, with a floor of
+30 scored queries. Both qualifications matter and an earlier count of 777 had neither: chance is
+**not** shared across attacks (§7.8), and CARDIO:DE has points with *zero* queries where the attack
+could not run and `0 ≤ chance` scored as safety. Absence of measurement is not safety.
 
 So on German medical reports 777 configurations reach chance and the *J*-optimal one is attack-free
 at 0.9765/0.9877; on English e-mail **no configuration of fifteen detectors is safe by this
@@ -353,6 +373,38 @@ Against these four sit the reference strategies of §7.1: **A-copy** (`a = d`, t
 reported not run) and **A-oracle-response** (best `a` knowing `d`). The four variants are the
 realistic middle, and one of them — whichever is worst for the defender — is what the safest point
 must be chosen against.
+
+### 7.8 What "chance" means, and why it is not one number
+
+**Terminology (AM, 2026-09-28).** The paper says **reference population**: the set of identities the
+attacker already holds and matches a released mention against. The code calls it the *gallery*,
+after person re-identification, which carries no meaning to a clinical or legal reader — the term
+stays in `build_gallery` and in the `a3_gallery` field, and is translated at the boundary.
+
+A ranking attack's chance rate is one over the number of identities it ranks among, so it is a
+property of **the attack**, not of the release:
+
+| attack | chance | CARDIO:DE | Enron |
+|---|---|---|---|
+| A3, A5 | 1 / reference population | 4.83e-3 (1/207) | 2.70e-4 (1/3697) |
+| A2, public prior | 1 / name-list size | 1.82e-5 | 6.16e-6 |
+| A2, corpus-internal prior | derived from the release | **1,089 distinct values** | **1,898 distinct** |
+| A4 | 1 / candidates shown | 0.1 | 0.1 |
+
+A2's candidate space is a 54,830-name surname list, 265× larger than CARDIO:DE's reference
+population, and its oracle-prior chance **moves with the operating point** because that prior is
+read off the release. A4's is a ten-way choice, three orders the other way. Comparing raw rates
+across attacks is therefore meaningless; everything is reported as **lift over that attack's own
+chance**, which is scale-free and puts a ten-way ranking and a 3,697-person register on one axis.
+
+**Why 1/N is the right chance when the attacker "does not know" the population.** It does know it:
+A3 and A5 are 1-in-N identification tasks and the threat model *grants* the attacker that
+population — without it there is no ranking to do. Concretely, `build_gallery` (the code's name for it) builds it from the
+**unmodified condition-A text** of the document-disjoint half, so our attacker holds the original
+documents for half the corpus. That is a strong assumption and it is what makes 1/N correct: the
+rate is conditional on it, and should be read as "one in N, where N is the number of identities the
+attacker already holds". State it in the limitations rather than letting 1/N look like a property
+of the data.
 
 ### 7.5 The variable that drives it is error correlation, not the operating point
 
@@ -509,7 +561,7 @@ little attention"; TAB reports its privacy metrics with no interval and no test 
 specify one and justify each element by precedent.
 
 1. **Unit of analysis: the protected entity.** One query per entity against a document-disjoint
-   gallery. Never the span; spans within a document are not independent.
+   reference population. Never the span; spans within a document are not independent.
 2. **Fixed query population.** Today the queries only exist where a span was replaced, so on Enron the
    count falls **19,059 / 9,355 / 9,408 / 494** across union / vote-2 / vote-3 / intersection, and on
    CARDIO:DE **138 / 83 / 63 / 6**. A rate on a moving denominator is not a curve. Define Q\* once by
@@ -519,7 +571,8 @@ specify one and justify each element by precedent.
    together), 10,000 resamples. Precedent: Chambon 2023 (percentile, 1,000 samples); Bolle, Ratha &
    Pankanti's subsets bootstrap for the repeated-measures structure; El Emam et al. 2011 for interval
    estimation of a re-identification proportion.
-4. **Chance baseline mandatory.** Print 1/|gallery| and the lift beside every Rank-1, and test against
+4. **Chance baseline mandatory.** Print that attack's own chance (§7.8) and the lift beside every
+   Rank-1, and test against
    chance with an exact binomial. Precedent: Carrell 2019/2020's chance column. This makes "the attack
    did nothing" reportable rather than embarrassing.
 5. **Condition comparisons paired on the entity.** McNemar's exact test for Rank-1/Rank-5; paired
@@ -589,7 +642,8 @@ No GPU and no detector reruns anywhere (AM, 2026-09-26). Three real costs:
   tokenised scoring index from `prepare()`; and then, per span source, a third copy from
   `detected_documents()` and a fourth from `to_pseudonymised_corpus()`, both of which materialise
   `list[Document]`. Every one of those stages is a per-document map over sequential data. Only the
-  gallery (3,697 profiles) and the query set genuinely need to be global, and they are small.
+  reference population (3,697 profiles) and the query set genuinely need to be global, and they
+  are small.
   The `del` is one line and free; streaming the per-source stages is what would let two tasks share
   a node and halve the wall clock. Neither is a mid-run change — the plan requires a commit hash on
   every result row, and editing the script under a resumable job would mean rows from one shard were
