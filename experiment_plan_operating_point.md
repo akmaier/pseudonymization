@@ -183,9 +183,15 @@ published 0.8685838. So the plane needs no re-scoring anywhere.
 **What the planes span**, both recomputed under the CODE rule of §8.6 and complete at 2,154 rows
 per corpus with zero error rows (2026-09-28):
 
-**Token recall**, not "sensitivity": it is over *all* gold tokens, which is the sweep's own
-denominator. Paper 1's "sensitivity" is over the types the conditions replace and its "person
-sensitivity" over PERSON alone — three different denominators, and they must not be mixed.
+**The axis is PERSON sensitivity** (AM, 2026-09-28): this is a de-identification study and people
+are what it protects, so the plane is not reported on all gold tokens. The sweep rows carry only
+`token_recall` over every gold type, but the detection plane carries `per_type`, so PERSON
+sensitivity is `TP/gold` for PERSON joined on the span-source label — no recomputation. Measured on
+the filtered planes: CARDIO:DE **0.00182 … 0.99955**, with 179 points at or above 0.99 and 459 at
+or above 0.95. Specificity stays over every non-identifier token, as in paper 1.
+
+The table below is still the all-gold-token view and is kept only until the Enron detection plane
+finishes and both corpora can be restated on PERSON. Do not quote it.
 
 **The 0.5 token-recall floor is not optional** (paper 1, and for its reason): specificity is
 `1 − FP/negatives`, so an ensemble that predicts almost nothing has almost no false positives and
@@ -396,6 +402,34 @@ population, and its oracle-prior chance **moves with the operating point** becau
 read off the release. A4's is a ten-way choice, three orders the other way. Comparing raw rates
 across attacks is therefore meaningless; everything is reported as **lift over that attack's own
 chance**, which is scale-free and puts a ten-way ranking and a 3,697-person register on one axis.
+
+**The candidate space must come from the release, not from a name list (AM, 2026-09-28).** The
+priors above are the wrong size by orders of magnitude. A2 is scored against 162,240 US census
+surnames on Enron and 69,191 corpus-internal names, while the corpus holds 3,886 distinct PERSON
+identities; CARDIO:DE scores against a 54,830-name German surname list for 308 people. A chance of
+1/162,240 makes the attack look near-impossible and flatters every release measured against it.
+Guessing names out of a national register is a harder task than the one an attacker faces, and it
+is not the task the release exposes.
+
+**An attacker can count the pseudonyms.** Under condition B the surrogate is consistent per entity,
+so the distinct surrogate surfaces in the released text estimate how many people are in it — no
+auxiliary knowledge, just reading the release. That is the candidate space an attacker actually
+chooses among, so **chance is 1 / (distinct pseudonyms observable in the release), computed per
+operating point**, and used for every attack that names a person. It moves along the plane, as it
+should: more detection means more replacements means a larger candidate space.
+
+Two consequences, and the second is a result rather than a correction.
+
+*The estimator is biased and the bias is measurable.* Fragmentation splits one entity across several
+surrogate surfaces — 0.3596 on Enron PERSON — which inflates the count; collisions merge entities
+onto one surface — 0.1011 on CARDIO:DE PERSON — which deflates it. Both are already measured per
+policy in this study, so the count is reported against the true entity count and the gap stated.
+
+*Condition C does not expose the cardinality at all.* Every person is the same string, so an
+attacker can count occurrences but not identities, and cannot size its own candidate space from the
+release. **Surrogates leak the number of people; placeholders do not.** That is a concrete
+information difference between B and C which no prior work in §2 reports, it is on the side that
+counts *against* surrogates, and it is measurable here.
 
 **Why 1/N is the right chance when the attacker "does not know" the population.** It does know it:
 A3 and A5 are 1-in-N identification tasks and the threat model *grants* the attacker that
