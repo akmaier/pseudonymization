@@ -629,28 +629,29 @@ Settled since the first draft, kept here so the record shows when:
   experiment, after phase 1 has named the point (AM, 2026-09-27).
 - ~~Reading the three near-miss ensemble papers~~ — Kim 2018, Kim 2020 and Horng 2022 obtained and
   read in full on 2026-09-27. Result in §1.
+- ~~The CODE sanity threshold~~ — **at least one alphanumeric and at least five characters**
+  (AM, 2026-09-27, §8.6). Implemented in `construction.py`, shared with `score_detection.py`, and
+  both planes recomputed: 2,154 rows per corpus, zero error rows, no `SurrogateRejected` left.
+- ~~Fixing the sweep's memory~~ — done 2026-09-27. Measured peak 11.92 GiB against an 84 G request
+  that was itself the concurrency limit; now 24 G, BLAS threads pinned to the allocation, two tasks
+  a node across five or six nodes. Throughput 1.18 -> 2.26 rows/min.
 
 Still open:
 
-1. **The CODE sanity threshold** (§8.6). Proposed: at least one alphanumeric and at least five
-   characters. Adopting it means recomputing both planes, so it should be settled before the Enron
-   sweep finishes rather than after.
-2. **The definition of the "balanced" attacker variant (c)** (§7.4). Proposed: Youden's
+1. **The definition of the "balanced" attacker variant (c)** (§7.4). Proposed: Youden's
    *J* = sensitivity + specificity − 1. Alternatives: nearest to (1, 1); max min(sens, spec).
-3. **Which variant the safest point is chosen against** (§7.3 phase 1) — the worst of the four, or
+2. **Which variant the safest point is chosen against** (§7.3 phase 1) — the worst of the four, or
    the most likely one. Choosing against the worst is the defensible reading and is what phase 1 is
    set up to report.
-4. **The defender set for the full best-response matrix** (§7.6). Proposed: the primary cells plus a
+3. **The defender set for the full best-response matrix** (§7.6). Proposed: the primary cells plus a
    stratified sample of about 100 spanning the plane. The four named variants run against the whole
    plane regardless; this is only about the A-oracle-response bound and H3b.
-5. **The primary cell set** for hypothesis testing (§9.7). Proposed: gold, max sensitivity, max
+4. **The primary cell set** for hypothesis testing (§9.7). Proposed: gold, max sensitivity, max
    specificity, recommended 13, best interior point.
-6. **H4's "best interior point" criterion** — what exactly is optimised. "The `d` that minimises the
+5. **H4's "best interior point" criterion** — what exactly is optimised. "The `d` that minimises the
    worst variant's success subject to a utility floor" is the natural candidate; the floor is AM's.
-7. **Whether to fix the sweep's memory before the next run** (§11). The one-line `del` is free; the
-   streaming refactor is what would raise concurrency, and it is not a mid-run change.
-8. **Authorship and venue** for this second paper.
-9. **Reference hygiene**, proposed not done: add Murugadoss 2021, Alexander & Beatty 2022, Simancek &
+6. **Authorship and venue** for this second paper.
+7. **Reference hygiene**, proposed not done: add Murugadoss 2021, Alexander & Beatty 2022, Simancek &
    Vydiswaran 2024, Pilán et al. 2024/2025, Kim/Heider/Meystre 2018 and 2020, Horng 2022, Bao et al.
    2026 and Carlini 2022 to `references/`; fix Carrell 2013's year in `experiment_plan.md` lines 122
    and 316; BRATsynthetic's journal version is Electronics **2025** 14(19) 3945, not 2026.
