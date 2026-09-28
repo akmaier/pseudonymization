@@ -36,6 +36,11 @@ def main() -> int:
         if not person or not person[0] or not r.get('precision'):
             continue
         tp_all = r['token_recall'] * gold
+        if r['detector'] == 'gold' or r['detector'].startswith('gold|'):
+            # Perfect detection trivially maximises Youden's J at 1.0, and the first run of this
+            # script duly chose it as the "balanced" ATTACKER. An attacker does not hold the
+            # corpus annotations; gold is the defender's left-hand axis end, not an adversary.
+            continue
         rows.append({
             'label': r['detector'], 'size': r.get('size'), 'rule': r.get('rule'),
             'sens': person[2] / person[0],
