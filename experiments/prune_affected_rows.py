@@ -24,6 +24,7 @@ is the cost of the conservative choice, and stating it is not the same as taking
 '''
 import argparse
 import json
+import subprocess
 from pathlib import Path
 
 SPAN_SENSITIVE = (
@@ -55,6 +56,8 @@ def main() -> int:
                     help='the un-sharded <corpus>_<TYPE>.jsonl is pruned too; on Enron it holds the '
                          'four hand-run 13-detector rules and nothing else scans it')
     ap.add_argument('--write', action='store_true', help='without this it only reports')
+    ap.add_argument('--force', action='store_true',
+                    help='rewrite destinations even while sweep jobs are running. Do not.')
     args = ap.parse_args()
 
     audit_path = args.audit or args.before / f'code_filter_audit_{args.corpus}.json'
@@ -121,6 +124,24 @@ def main() -> int:
     if not args.write:
         print('dry run: pass --write to delete, then resubmit the array to continue')
         return 0
+
+    # **Never rewrite a destination a running task holds open.** write_text truncates, the sweep
+    # appends, and rows written between this script's read and its write are lost without a trace:
+    # on 2026-09-27 this silently cost two Enron span sources, and the only symptom was a shard
+    # ending at 214 rows where its own log said 215. Checked rather than documented.
+    try:
+        running = subprocess.run(['squeue', '-h', '-u', '', '-o', '%j %T'],
+                                 capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.SubprocessError):
+        running = ''
+    live = [line for line in running.splitlines()
+            if line.split() and line.split()[0].startswith(('sweep_leak', 'sweep_enron'))]
+    if live and not args.force:
+        raise SystemExit(
+            f'refusing to rewrite destinations while {len(live)} sweep task(s) are queued or '
+            f'running:\n  ' + '\n  '.join(live[:6]) +
+            '\ncancel them first, prune, then resubmit -- the array resumes from its own '
+            'destination. Pass --force only if you are certain none of them writes these files.')
     for destination, survivors in plan:
         destination.write_text(''.join(survivors))
     print('deleted. Resubmit the array; each task resumes from its own destination.')
