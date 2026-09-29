@@ -551,14 +551,34 @@ on Enron rather than inventing one — prefix/suffix greedy continuation scored 
 Levenshtein, BLEU-4, token equality, longest prefix match and longest common substring, with manual
 inspection above 0.6 similarity.
 
-**8.5 Utility.** CARDIO:DE: medication IE and section classification, both scored against external
-gold through `OffsetMap` and therefore **fair between B and C**. Enron: **folder classification**
-(AM, 2026-09-26 — "folder is ok. Keep the others too"), plus `ner_agreement` retained.
+**8.5 Utility — trained linear models, not zero-shot LLMs (AM, 2026-09-29).**
 
-`ner_agreement` cannot carry a B-versus-C comparison and must never be used for one: its reference is
-the frozen recogniser's output on the *original* text, so `[PERSON]` is never tagged and every
-replaced mention is a forced disagreement — CARDIO:DE union is B 0.611 against C 0.004. It is valid
-*between operating points within one condition*, and that is how it is reported.
+The instruments were scored zero-shot on the gateway (`tasks/models.py:8`). That was the binding
+constraint on the whole study and it was weak on its own terms: §8.3 promises *frozen* models, and
+a gateway model can be updated under us; it imports the memorisation confound the plan warns about
+at line 548 into the measuring instrument; and at ~3 h per operating point it put "utility at every
+point" at 1.5 years per corpus.
+
+Replaced by **TF-IDF plus logistic regression**, trained once on condition-A text and frozen as an
+artefact on disk: section classification and folder classification as linear classifiers, medication
+IE as a linear sequence tagger scored by span F1. Genuinely frozen, reproducible, free, and cheap
+enough to run at **every** operating point rather than a dozen. `ner_agreement` stays as it is and
+stays restricted to comparison *between operating points within one condition*, never B against C.
+
+**8.5b A4 gains a statistical twin, and keeps the LLM (AM, 2026-09-29).**
+
+A TF-IDF + logistic-regression ranker over the same candidate lists is added as A4's baseline. It
+does not *replace* the LLM, for two reasons that would each be fatal. A linear ranker over context
+features is A5 with a different similarity — A3 is already a fixed cosine over those features — so
+it would measure the same thing a third time. And it would see near-identical features under B and
+C, because only the replaced span differs, so **the surrogate-versus-placeholder contrast would go
+unmeasured**; the LLM separates them because it reads the name. A4 also carries the memorisation
+dimension, which is why it scores on TAB and OntoNotes where A3 and A5 return zero for want of
+cross-document identity.
+
+Paired, the two are worth more than either: *how much does an LLM add over a linear model on
+identical inputs* is the question a reviewer will ask. The baseline runs at every point; the LLM
+runs where §8.5c says.
 
 ---
 
