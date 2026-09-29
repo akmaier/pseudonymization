@@ -580,6 +580,34 @@ Paired, the two are worth more than either: *how much does an LLM add over a lin
 identical inputs* is the question a reviewer will ask. The baseline runs at every point; the LLM
 runs where §8.5c says.
 
+**8.5c Where the LLM actually runs: a stratified 1 % (AM, 2026-09-29).**
+
+The linear twin runs at all 2,154 points; the LLM runs at **22** — 1 % — chosen as follows.
+
+*Stratified, not top-scoring.* Selecting the points where the linear ranker scores highest would
+select on the very thing A4 exists to disagree with: A4's distinguishing property is that it
+succeeds where context-based rankers fail, which is why it scores on TAB and OntoNotes where A3
+and A5 return zero for want of cross-document identity. Sampling by linear score would
+systematically miss A4's contribution and produce a confident underestimate. Instead the linear
+score over the plane is cut into **deciles and sampled equally**, plus the anchor cells that must
+be reported regardless: the phase-1 selection (§7.4b), the four recommended 13-detector rules,
+maximum PERSON sensitivity, maximum specificity, and gold.
+
+*Pre-registered.* The 22 are drawn at a fixed seed and written to
+`results/phase1/<corpus>_a4_sample.json`, committed, **before any LLM output is seen**. Otherwise
+the multiplicity discipline of §9.7 comes back in through the sampling.
+
+*The surrogate is validated, not assumed.* On the 22 measured points, report the rank correlation
+between the linear score and the LLM rate and the residual spread. Expect it to hold on A and B
+and **break on C**, because the linear ranker is blind to the B/C difference by construction —
+that is a prediction of this design, and if it fails the other way the design is wrong.
+
+*What may be claimed.* LLM ≈ *f*(linear score, PERSON sensitivity, specificity) fitted on the 22
+and predicted over the plane, **labelled as prediction in every figure and table**. 22 points is
+thin for a three-variable fit: it carries the anchors and a crude surface, and supports no
+per-point claim.
+
+
 ---
 
 ## 8.6 The CODE sanity rule (AM, 2026-09-27)
