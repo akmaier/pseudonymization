@@ -10,8 +10,19 @@ over a linear model on identical inputs?*
 Its second job is to be cheap enough to run at all 2,154 operating points, so its score can
 stratify the 1 % sample at which the LLM is actually run (plan §8.5c).
 
-No gateway, no GPU, deterministic given a seed. Trained once per corpus on condition-A text and
-frozen on disk, so it is frozen in the sense section 8.3 asks for and the gateway never was.
+No gateway, no GPU, deterministic given a seed.
+
+**It is never trained on condition A** (AM, 2026-09-29). An earlier draft of this module fitted on
+condition-A items, which hands the attacker the defender's original text -- knowledge no attacker
+has. It trains on the **released** text under the condition being attacked, with **entities
+disjoint between training and evaluation**, which is the discipline `LearnedLinkage` already
+states: *"An attacker evaluated on the entities it trained on measures memorisation, not attack
+strength, and would not be an attack at all."* One model per (corpus, condition, fold), so the
+B and C rankers are different models over different text, as they must be.
+
+Condition A remains in the study as the **ceiling** -- what the attack recovers with nothing
+replaced -- because without it a rate on B or C has no scale (`experiment_plan.md`:593). That is a
+reference measurement, not attacker knowledge.
 """
 
 from __future__ import annotations
@@ -63,9 +74,28 @@ class LinearCandidateRanker:
         return list(np.lexsort((np.arange(len(scores)), -scores)))
 
 
+def split_entities(items: Sequence[CandidateSet], *, seed: int = 0,
+                   train_fraction: float = 0.5) -> tuple[list[CandidateSet], list[CandidateSet]]:
+    """Partition items so no identity appears in both halves."""
+    import random
+
+    identities = sorted({i.truth for i in items})
+    rng = random.Random(seed)
+    rng.shuffle(identities)
+    cut = int(len(identities) * train_fraction)
+    train_ids = set(identities[:cut])
+    train = [i for i in items if i.truth in train_ids]
+    test = [i for i in items if i.truth not in train_ids]
+    return train, test
+
+
 def train_linear_ranker(items: Sequence[CandidateSet], *, seed: int = 0
                         ) -> LinearCandidateRanker:
-    """Fit on condition-A items: the true candidate is the positive class, distractors negative."""
+    """Fit on RELEASED items -- the condition under attack, never condition A.
+
+    Pass only the training half from :func:`split_entities`; evaluating on the entities it was
+    fitted on would measure memorisation rather than attack strength.
+    """
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.linear_model import LogisticRegression
 

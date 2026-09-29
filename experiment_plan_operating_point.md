@@ -602,6 +602,24 @@ between the linear score and the LLM rate and the residual spread. Expect it to 
 and **break on C**, because the linear ranker is blind to the B/C difference by construction —
 that is a prediction of this design, and if it fails the other way the design is wrong.
 
+*Conditions.* The 22 run on **B and C**, which is the whole point — A4 is the only attack that
+separates them. Condition A is run **once per corpus, not per operating point**: nothing is
+replaced there, so the text is identical whatever the detector did, and it is the ceiling every
+B and C rate is read against. That is 22 x 2 + 1 = **45 A4 runs per corpus**, not 66.
+
+*No attacker is trained on condition A* (AM, 2026-09-29). The linear twin fits on the **released**
+text under the condition it attacks, with entities disjoint between training and evaluation —
+`LearnedLinkage`'s own rule: *"An attacker evaluated on the entities it trained on measures
+memorisation, not attack strength."* So B and C get different models over different text, as they
+must. Condition A stays as the ceiling, which is a reference measurement and not attacker
+knowledge.
+
+**Still open, and it predates this paper:** A3 and A5 build their reference population from
+*unmodified condition-A text* (`build_gallery` over the document-disjoint half), so those attackers
+are handed the defender's originals for half the corpus. It is what makes 1/N the right chance
+(§7.8), it is inherited from paper 1, and it is a stronger assumption than the one just removed
+from A4. Whether to weaken it is AM's call.
+
 *What may be claimed.* LLM ≈ *f*(linear score, PERSON sensitivity, specificity) fitted on the 22
 and predicted over the plane, **labelled as prediction in every figure and table**. 22 points is
 thin for a three-variable fit: it carries the anchors and a crude surface, and supports no
