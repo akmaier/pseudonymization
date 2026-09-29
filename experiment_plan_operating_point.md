@@ -440,6 +440,44 @@ rate is conditional on it, and should be read as "one in N, where N is the numbe
 attacker already holds". State it in the limitations rather than letting 1/N look like a property
 of the data.
 
+### 7.4b Phase 1, measured (2026-09-29)
+
+Complete on both corpora: 2,154 leakage rows, 2,155/2,151 detection rows, 2,154 candidate-space
+rows each, zero error rows.
+
+**Selection rule (AM, 2026-09-29): the lowest absolute attack rate, ties broken on Youden's *J*.**
+Not lift — lift rewards a point that replaced so little the candidate space collapsed; Enron's
+lift-minimal point detects 3.44 % of PERSON tokens, leaves 3,885 of 3,886 identities in the clear
+and is attacked at 10.44 %, five times worse in absolute terms than the recommended union. Ties are
+the rule rather than the exception: 360 CARDIO:DE points sit at exactly 0.000 %.
+
+| | CARDIO:DE | Enron |
+|---|---|---|
+| selected | `gpt-oss-120b + privacy_tagger \| union` | `obi/deid_roberta_i2b2 + Mistral-Small-3.2-24B + privacy_tagger \| union` |
+| PERSON sensitivity | **0.9964** | 0.9705 |
+| specificity | **0.9887** | 0.7206 |
+| Youden *J* | 0.9850 | 0.6911 |
+| **worst attack** | **0.000 %** | **3.234 %** (A5) |
+| A3 fixed linkage | 0.000 % | 1.269 % |
+| A2, both priors | 0.000 % | ≤ 0.001 % |
+| survivor identities | **1** of 308 | **155** of 3,886 |
+| points at or below chance | 618 of 1,834 | **0 of 2,154** |
+
+**Two detectors suffice on clinical reports.** The selected CARDIO:DE point is not the recommended
+thirteen: two detectors reach 0.9964 PERSON sensitivity at 0.9887 specificity with every attack at
+zero, where the thirteen reach 0.9998 sensitivity at 0.5468 precision. On Enron three detectors
+give the lowest attack available and it is still 3.234 %.
+
+**No Enron configuration reaches chance.** Read in absolute terms rather than as a multiple: 3.234 %
+against a 71.98 % unmodified-text ceiling is 4.5 % of the way from guessing to unprotected text. The
+multiplier (124.8×) is large only because chance is 1/3,860.
+
+**The parrot behaves oppositely on the two corpora.** On CARDIO:DE every variant flags ~200,000
+name-like tokens and recovers at most 3 true survivors; there is nothing to find. On Enron the same
+variants recover thousands, and the ordering is informative — `union13` finds 3,598 survivors with
+**zero** surrogates mistaken, while `maxspec3` finds 9,119 but mistakes 193,294 surrogates for them.
+Precision is 0.4-0.5 % throughout because the haystack is 2.5 million ordinary capitalised words.
+
 ### 7.5 The variable that drives it is error correlation, not the operating point
 
 Two ensembles can sit at the *same* (sensitivity, specificity) and miss completely *different*
