@@ -116,17 +116,17 @@ def main() -> int:
     # detects 3.44% of PERSON tokens, leaves 3,885 of 3,886 identities in the clear, and is
     # attacked at 10.44%, five times worse in absolute terms than the 13-detector union.
     #
-    # Ties are the rule, not the exception: on CARDIO:DE 618 points sit at exactly 0.00%, so the
+    # Ties are the rule, not the exception: 360 CARDIO:DE points sit at exactly 0.00%, so the
     # attack rate alone leaves the choice to whatever `min` happens to see first -- which returned
     # a point at PERSON sensitivity 0.6863 leaving 183 identities in the clear. Among equal-lowest
-    # attack, take the most sensitive point: fewest people left unprotected, which is what a
-    # de-identification defender is choosing between when the attack cannot tell them apart.
+    # attack the tie is broken on Youden's J (AM, 2026-09-29), so the chosen point is the one whose
+    # two error rates are jointly best where the attack cannot separate the candidates.
     best_rate = min(r['worst_rate'] for r in scored)
     tied = [r for r in scored if r['worst_rate'] <= best_rate + 1e-12]
-    pick = max((r for r in tied if r['sens'] is not None), key=lambda r: r['sens'], default=tied[0])
+    pick = max((r for r in tied if r['J'] is not None), key=lambda r: r['J'], default=tied[0])
     if pick:
         print(f'\n  LOWEST ATTACK: {best_rate * 100:.3f}%  ({len(tied)} points tie there; '
-              f'the most PERSON-sensitive is taken)')
+              f'broken on Youden J)')
         print(f'  SELECTED: {pick["size"]}det {pick["rule"]}')
         print(f'    PERSON sensitivity {pick["sens"]:.4f}  specificity {pick["spec"]:.4f}  '
               f'Youden J {pick["J"]:.4f}')
@@ -150,7 +150,7 @@ def main() -> int:
         'lowest_attack_rate': best_rate, 'tied_at_lowest': len(tied),
         'selected': pick,
         'selection_rule': 'lowest absolute worst-attack rate over A2/A3/A5, ties broken by '
-                          'highest PERSON sensitivity (AM, 2026-09-29)',
+                          "highest Youden J (AM, 2026-09-29)",
     }, indent=1) + '\n')
     print(f'\nwrote {dest}')
     return 0
