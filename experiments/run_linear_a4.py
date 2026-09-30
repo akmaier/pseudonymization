@@ -23,9 +23,10 @@ sys.path.insert(0, 'experiments')
 
 from pseudonymkit.attacks.candidates import build_items, score
 from pseudonymkit.attacks.linear_ranker import split_entities, train_linear_ranker
-from pseudonymkit.construction import check_current
+from pseudonymkit.construction import (check_current, read_patchset,
+                                       to_pseudonymised_corpus)
 from pseudonymkit.domain import Corpus
-from pseudonymkit.serialisation import iter_documents, read_patchset
+from pseudonymkit.serialisation import iter_documents
 from run_leakage import SOURCES
 from sweep_leakage import CORPORA
 
@@ -75,7 +76,6 @@ def main() -> int:
                       flush=True)
                 missing += 1
                 continue
-            from pseudonymkit.construction import to_pseudonymised_corpus
             released = to_pseudonymised_corpus(documents, patchset, check=False)
             items = build_items(released, corpus, n_candidates=args.n_candidates,
                                 seed=args.seed)
