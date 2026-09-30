@@ -582,16 +582,20 @@ runs where §8.5c says.
 
 **8.5c Where the LLM actually runs: a stratified 1 % (AM, 2026-09-29).**
 
-The linear twin runs at all 2,154 points; the LLM runs at **22** — 1 % — chosen as follows.
+**Neither ranker runs over the plane** (AM, 2026-09-30). Both run only at the sampled cells. The
+stratification variable is one we already have at all 2,154 points for nothing: the **worst
+measured attack rate** over A2, A3 and A5, which the leakage sweep computed and §7.4b already
+selects on. Running the linear twin at 2,154 points to obtain a *predictor* of risk would be
+paying to estimate a quantity that is already measured.
 
-*Stratified, not top-scoring.* Selecting the points where the linear ranker scores highest would
-select on the very thing A4 exists to disagree with: A4's distinguishing property is that it
-succeeds where context-based rankers fail, which is why it scores on TAB and OntoNotes where A3
-and A5 return zero for want of cross-document identity. Sampling by linear score would
-systematically miss A4's contribution and produce a confident underestimate. Instead the linear
-score over the plane is cut into **deciles and sampled equally**, plus the anchor cells that must
-be reported regardless: the phase-1 selection (§7.4b), the four recommended 13-detector rules,
-maximum PERSON sensitivity, maximum specificity, and gold.
+*Stratified, not top-scoring.* Selecting the highest-risk points would select on the very thing A4
+exists to disagree with: A4's distinguishing property is that it succeeds where context-based
+rankers fail, which is why it scores on TAB and OntoNotes where A3 and A5 return zero for want of
+cross-document identity. Sampling by observed risk alone would miss A4's contribution and produce
+a confident underestimate. So the worst-attack rate over the plane is cut into **deciles and
+sampled equally**, plus the anchor cells that must be reported regardless: the phase-1 selection
+(§7.4b), the four recommended 13-detector rules, maximum PERSON sensitivity, maximum specificity,
+and gold.
 
 *Pre-registered.* The 22 are drawn at a fixed seed and written to
 `results/phase1/<corpus>_a4_sample.json`, committed, **before any LLM output is seen**. Otherwise
@@ -620,10 +624,15 @@ are handed the defender's originals for half the corpus. It is what makes 1/N th
 (§7.8), it is inherited from paper 1, and it is a stronger assumption than the one just removed
 from A4. Whether to weaken it is AM's call.
 
-*What may be claimed.* LLM ≈ *f*(linear score, PERSON sensitivity, specificity) fitted on the 22
-and predicted over the plane, **labelled as prediction in every figure and table**. 22 points is
-thin for a three-variable fit: it carries the anchors and a crude surface, and supports no
-per-point claim.
+*What may be claimed.* LLM ≈ *f*(worst measured attack, PERSON sensitivity, specificity) fitted on
+the 22 and predicted over the plane, **labelled as prediction in every figure and table**. The
+predictors are all plane-wide measurements, so the surface is an extrapolation of the LLM only,
+not of everything. 22 points is thin for a three-variable fit: it carries the anchors and a crude
+surface, and supports no per-point claim.
+
+*The linear twin's role is comparison, not selection.* At the sampled cells it answers "how much
+does the LLM add over a linear model on identical inputs", which is the question a reviewer asks
+first. It is not a cheap stand-in for the LLM anywhere it was not run.
 
 
 ---
