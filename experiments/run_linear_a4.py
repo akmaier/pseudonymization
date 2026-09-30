@@ -70,9 +70,13 @@ def main() -> int:
                 missing += 1
                 continue
             patchset = read_patchset(path)
-            stale = check_current(documents, patchset)
-            if stale:
-                print(f'  [{n}] {condition} {tag}: STALE against condition A — skipped',
+            # check_current RAISES when a patch set is stale and otherwise returns a report that
+            # is always non-empty. Treating the report as the failure signal discarded every
+            # healthy patch set -- six of six on the first smoke run.
+            try:
+                check_current(documents, patchset)
+            except Exception as error:
+                print(f'  [{n}] {condition} {tag}: STALE against condition A — {error}',
                       flush=True)
                 missing += 1
                 continue
