@@ -97,12 +97,12 @@ def main() -> int:
             row = {'source': point['source'], 'role': point['role'], 'condition': condition,
                    'tag': tag, 'ranker': ranker.name, 'items': len(items),
                    'train': len(train), 'test': len(test),
-                   'rank1': result.rank1, 'rank5': result.rank5, 'map': result.map,
-                   'n_candidates': result.n_candidates,
+                   'rank1': result.overall.rank1, 'rank5': result.overall.rank5,
+                   'map': result.overall.map, 'n_candidates': result.n_candidates,
                    'chance': 1.0 / max(result.n_candidates, 1)}
             rows.append(row)
             print(f'  [{n}/{len(sample)}] {condition} {point["role"][:22]:22s} '
-                  f'Rank-1 {result.rank1:.4f} (chance {row["chance"]:.3f}) '
+                  f'Rank-1 {result.overall.rank1:.4f} (chance {row["chance"]:.3f}) '
                   f'on {len(test)} held-out items', flush=True)
 
     args.out.mkdir(parents=True, exist_ok=True)
