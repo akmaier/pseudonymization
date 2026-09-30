@@ -377,14 +377,29 @@ def score(
     *,
     condition: str,
     metadata: Mapping[str, object] | None = None,
+    concurrency: int = 1,
 ) -> A4Report:
     """Run the ranker over every item and report Rank-1, Rank-5 and mAP.
 
     With one relevant candidate per query, average precision is the reciprocal rank, so mAP here is
     the mean reciprocal rank — the same quantity :mod:`pseudonymkit.attacks.relational` reports for
     A3 and A5, which is what makes the three directly comparable.
+
+    ``concurrency`` > 1 runs the ranker in a thread pool. The LLM ranker spends every query
+    blocked on one gateway call, and serially that is ~8 h per cell — the single largest cost in
+    the study and the reason A4 was never run over more than one operating point. Threads are the
+    right tool because the work is I/O-bound; ``executor.map`` preserves order, so the rankings
+    line up with ``items`` exactly as the serial path produced them. Defaults to 1 so nothing
+    changes for a caller that does not ask, and so a CPU-bound ranker is not needlessly threaded.
     """
-    rankings = [_complete(ranker.rank(item), item) for item in items]
+    if concurrency > 1 and items:
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=concurrency) as pool:
+            ranked = list(pool.map(ranker.rank, items, chunksize=1))
+        rankings = [_complete(r, item) for r, item in zip(ranked, items)]
+    else:
+        rankings = [_complete(ranker.rank(item), item) for item in items]
 
     public = [i for i, item in enumerate(items) if item.public_figure is True]
     private = [i for i, item in enumerate(items) if item.public_figure is False]
