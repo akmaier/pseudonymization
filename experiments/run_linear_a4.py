@@ -98,7 +98,7 @@ def main() -> int:
                    'tag': tag, 'ranker': ranker.name, 'items': len(items),
                    'train': len(train), 'test': len(test),
                    'rank1': result.overall.rank1, 'rank5': result.overall.rank5,
-                   'map': result.overall.map, 'n_candidates': result.n_candidates,
+                   'map': result.overall.mean_average_precision, 'n_candidates': result.n_candidates,
                    'chance': 1.0 / max(result.n_candidates, 1)}
             rows.append(row)
             print(f'  [{n}/{len(sample)}] {condition} {point["role"][:22]:22s} '
