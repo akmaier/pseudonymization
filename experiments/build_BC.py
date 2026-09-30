@@ -267,6 +267,18 @@ def main() -> int:
     ap.add_argument("--detectors", nargs="+", default=None,
                     help="detector ids, or 'gold'; default is everything the cache holds")
     ap.add_argument("--rule", default="union")
+    ap.add_argument("--k", type=int, default=None,
+                    help="vote threshold. Without it a vote rule derives its own k per document "
+                         "from the detectors present, which is a different operator at every "
+                         "document and cannot be labelled with one ensemble.")
+    ap.add_argument("--inventory-from", type=Path, default=None,
+                    help="pin the surrogate pools to a saved inventory instead of compiling them "
+                         "from what THIS rule detected. Required when several operating points are "
+                         "to be compared: the pools otherwise shrink as the detector gets more "
+                         "selective, so the same entity receives a different surrogate at "
+                         "different points and the B releases are not comparable (plan section 6).")
+    ap.add_argument("--save-inventory", type=Path, default=None,
+                    help="compile the inventory and write it here, for --inventory-from")
     ap.add_argument("--link", default="single", choices=["single", "iou"])
     ap.add_argument("--iou", type=float, default=0.5)
     ap.add_argument("--conditions", nargs="+", default=["B", "C"])
@@ -315,7 +327,8 @@ def main() -> int:
 
     detected, summary = detected_documents(
         documents, cache, detectors, args.rule,
-        rule_kwargs={"link": args.link, "iou": args.iou},
+        rule_kwargs={"link": args.link, "iou": args.iou,
+                     **({"k": args.k} if args.k else {})},
         drop_truncated=not args.keep_truncated,
         require_all=args.require_all,
     )
@@ -330,9 +343,20 @@ def main() -> int:
     key = read_key(args.key_file)
     inventory = notes = None
     if needs_inventory:
-        inventory, notes = inventory_for(languages, documents=detected)
-        for language, note in sorted(notes.items()):
-            log(f"  inventory [{language}]: {note}")
+        if args.inventory_from:
+            import pickle
+            inventory = pickle.loads(args.inventory_from.read_bytes())
+            log(f"  inventory pinned from {args.inventory_from} "
+                f"— pools do NOT depend on this rule")
+        else:
+            inventory, notes = inventory_for(languages, documents=detected)
+            for language, note in sorted(notes.items()):
+                log(f"  inventory [{language}]: {note}")
+        if args.save_inventory:
+            import pickle
+            args.save_inventory.parent.mkdir(parents=True, exist_ok=True)
+            args.save_inventory.write_bytes(pickle.dumps(inventory))
+            log(f"  inventory saved to {args.save_inventory}")
     log(f"key id {key_id(key)}, languages {sorted(languages)}")
 
     patchsets = construct(
@@ -362,7 +386,8 @@ def main() -> int:
     # characters of a digest over the sorted names distinguishes them; the names themselves are in
     # the manifest, so the tag stays readable.
     fingerprint = hashlib.sha256("\x1f".join(sorted(detectors)).encode("utf-8")).hexdigest()[:6]
-    tag = f"{args.rule}-{args.link}{args.iou:g}-{len(detectors)}det-{fingerprint}"
+    tag = (f"{args.rule}{args.k or ''}-{args.link}{args.iou:g}-"
+           f"{len(detectors)}det-{fingerprint}")
     written = {}
     for condition, patchset in patchsets.items():
         path = out / f"{args.corpus}_{condition}_{tag}.patch.jsonl"
