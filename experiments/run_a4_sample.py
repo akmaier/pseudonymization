@@ -43,6 +43,17 @@ from sweep_leakage import CORPORA
 T0 = time.time()
 PRINT = threading.Lock()
 
+A4_EXCLUDED = {
+    # Not down, and not substituted: it refuses every A4 call with
+    # litellm.ContextWindowExceededError. A4's prompt is a document plus ten candidates, and a
+    # 3.8B model with a short window cannot hold it. Shrinking the prompt for this model alone
+    # would make its number incomparable with the other seven; shrinking it for everyone would
+    # weaken every model's attack and void the cells already computed. Removed from A4 only
+    # (AM, 2026-10-01) -- it stays in the detection pool, where the prompt is one document.
+    'Microsoft/Phi-4-mini-instruct',
+}
+"""Models excluded from A4 specifically, with the reason. Detection keeps its own pool."""
+
 
 def log(message: str) -> None:
     with PRINT:
@@ -71,7 +82,8 @@ def main() -> int:
     from detect_gateway import DEFAULT_MODELS
 
     live = list_models()
-    models = args.models or [m for m in DEFAULT_MODELS if m in live]
+    models = args.models or [m for m in DEFAULT_MODELS
+                             if m in live and m not in A4_EXCLUDED]
     unavailable = [m for m in models if m not in live]
     log(f'gateway serves {len(live)} models right now; running {len(models)}')
     if unavailable:
