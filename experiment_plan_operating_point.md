@@ -580,6 +580,44 @@ Paired, the two are worth more than either: *how much does an LLM add over a lin
 identical inputs* is the question a reviewer will ask. The baseline runs at every point; the LLM
 runs where §8.5c says.
 
+**8.5d The A4 model pool, and why one model's number is not a result.**
+
+A4 runs **every live chat model in parallel** (AM, 2026-09-30): the gateway's token budget is per
+model, so N models cost about what one costs and the model becomes an axis for nothing. That matters
+because a single model's figure is a property of the model as much as of the release — on unmodified
+CARDIO:DE, `granite-4.1-3b` scores Rank-1 0.600 where `gpt-oss-120b` scores 1.000.
+
+| | |
+|---|---|
+| pool | `detect_gateway.DEFAULT_MODELS` ∩ live, plus DeepSeek, minus Phi-4-mini |
+| added | `deepseek-ai/DeepSeek-V4-Flash-0731` (AM, 2026-10-01) |
+| removed | `Microsoft/Phi-4-mini-instruct` (AM, 2026-10-01) |
+
+**DeepSeek is added for this paper.** `experiment_plan.md`:1058 excludes it for paper 1 by a decision
+of 2026-09-10 which stands independently of availability, and **that record is not altered**. It is
+added here on measured grounds, not because it reappeared: in the twelve cells it ran before being
+quarantined it reached **Rank-1 0.985 on unmodified text** — the highest ceiling of any model — and
+**0.889 on a condition-B release**, the strongest B-side attack anything in this study has produced.
+Excluding the strongest adversary understates the attack surface.
+
+**Phi-4-mini is removed from A4 only**, and is neither down nor substituted: it refuses every call
+with `litellm.ContextWindowExceededError`, because the prompt is a document plus ten candidates and a
+3.8 B model with a short window cannot hold it. Shrinking the prompt for it alone makes its number
+incomparable with the rest; shrinking it for everyone weakens every model's attack and voids the
+cells already computed. It stays in the detection pool, where the prompt is one document.
+
+**Availability is part of the record, and it is shrinking rather than growing.** Probed 2026-10-01
+against the 14 ids recorded on 2026-09-06: **no new model has appeared**, and three are gone —
+`deepseek-ai/DeepSeek-V4-Flash` (the undated variant), `intfloat/multilingual-e5-large` and
+`llamaindex/vdr-2b-multi-v1`. Of the 11 served, two cannot do chat at all
+(`Qwen/Qwen3-Embedding-4B`, `lightonai/LightOnOCR-2-1B`) and answer HTTP 400/404.
+
+**Reasoning models get their own job.** Qwen3.6 and DeepSeek run 30–300× slower per cell than the
+rest — 4,484 s and 4,099 s median against granite's 14 s — so they are scheduled separately at high
+concurrency; Qwen fell to 1,402 s at 24 queries in flight. They are **not dropped for being slow**:
+§1 forbids it, and a fast pool with the two strongest adversaries missing would be a wrong result
+rather than a cheap one.
+
 **8.5c Where the LLM actually runs: a stratified 1 % (AM, 2026-09-29).**
 
 **Neither ranker runs over the plane** (AM, 2026-09-30). Both run only at the sampled cells. The
