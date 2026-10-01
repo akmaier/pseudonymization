@@ -53,7 +53,10 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--corpus', required=True)
     ap.add_argument('--models', nargs='+', default=None,
-                    help='default: every chat model the gateway serves right now')
+                    help='default: the chat models of detect_gateway.DEFAULT_MODELS that the '
+                         'gateway is serving right now. NOT everything /models lists: that '
+                         'includes an embedding model and an OCR model, which answer HTTP 400 '
+                         'and 404, and DeepSeek, which experiment_plan.md excludes by decision.')
     ap.add_argument('--limit', type=int, default=200, help='A4 queries per cell')
     ap.add_argument('--n-candidates', type=int, default=10)
     ap.add_argument('--seed', type=int, default=0)
@@ -65,8 +68,10 @@ def main() -> int:
     ap.add_argument('--out', type=Path, default=Path('results/phase1'))
     args = ap.parse_args()
 
+    from detect_gateway import DEFAULT_MODELS
+
     live = list_models()
-    models = args.models or [m for m in live]
+    models = args.models or [m for m in DEFAULT_MODELS if m in live]
     unavailable = [m for m in models if m not in live]
     log(f'gateway serves {len(live)} models right now; running {len(models)}')
     if unavailable:
