@@ -89,6 +89,9 @@ def main() -> int:
                          'one of them.')
     ap.add_argument('--points', type=int, default=0, help='cap points, for a smoke run')
     ap.add_argument('--out', type=Path, default=Path('results/phase1'))
+    ap.add_argument('--shard', default=None,
+                    help='name for this writer\'s own output file. Defaults to one derived from '
+                         'the model set, so two concurrent jobs never share a destination.')
     args = ap.parse_args()
 
     from detect_gateway import DEFAULT_MODELS
@@ -139,14 +142,26 @@ def main() -> int:
     log(f'  {len(prepared)} cells have items; {len(cells) - len(prepared)} do not')
 
     args.out.mkdir(parents=True, exist_ok=True)
-    destination = args.out / f'{args.corpus}_a4_llm.jsonl'
+    # **One file per writer, merged afterwards.** A threading.Lock serialises writes inside one
+    # process and does nothing across processes, and two Slurm jobs (a4_qwen and a4_deep) were
+    # appending to one shared file: their write() calls interleaved mid-line and corrupted two rows
+    # on 2026-10-01. The shard sweep already solved this by giving each task its own destination;
+    # this copies that rather than inventing a lock that cannot work.
+    shard = args.shard or f'{len(models)}m-{abs(hash(tuple(sorted(models)))) % 100000:05d}'
+    destination = args.out / f'{args.corpus}_a4_llm.{shard}.jsonl'
     done = set()
-    if destination.exists():
-        for line in destination.open():
-            row = json.loads(line)
+    # Resume reads EVERY shard, so a cell another writer has already done is not repeated.
+    for existing in sorted(args.out.glob(f'{args.corpus}_a4_llm.*.jsonl')):
+        for line in existing.open():
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
             done.add((row['model'], row['condition'], row.get('source') or 'A'))
-        log(f'  resuming: {len(done)} cells already done')
+    if done:
+        log(f'  resuming: {len(done)} cells already recorded across all shards')
     handle = destination.open('a', buffering=1)
+    log(f'  writing to {destination.name}')
     writing = threading.Lock()
 
     def work(model: str) -> None:
