@@ -51,13 +51,11 @@ The other two tasks retain their original-text baselines and support paired comp
 
 
 \begin{table}[t]
-  \caption{Leakage from the recommended 13-detector union; all columns concern people.
-  \emph{Sens.} is person sensitivity and \emph{Spec.} the share of non-identifier tokens left
-  alone: neither is readable without the other. \emph{Exp.} is the risk that a person is still named in a
-  given document after processing, \emph{Frequency} the identities named from frequency alone with a public list and,
-  bracketed, with the corpus's own distribution (an upper bound, not a risk). \emph{Linkage} is
-  the percentage of queries ranking the correct person first, over the complete candidate list,
-  against chance $1/\text{gallery}$.}\label{tab:leakage}
+  \caption{Leakage from the recommended 13-detector union, all columns for people.
+  \emph{Sens.}\ person sensitivity; \emph{Spec.}\ non-identifier tokens left alone;
+  \emph{Exp.}\ risk a person is still named in a document; \emph{Frequency} identities named
+  from frequency alone, public list and bracketed the corpus's own; \emph{Linkage} queries
+  ranking the correct person first, against chance $1/\text{gallery}$.}\label{tab:leakage}
   \centering\scriptsize
   \begin{tabular}{@{}l@{\hspace{0.8em}} S[table-format=1.4]@{\hspace{0.8em}} S[table-format=1.4]@{\hspace{0.8em}} S[table-format=1.2]@{\hspace{0.8em}} c@{\hspace{0.8em}} l@{\hspace{0.8em}} l@{\hspace{0.8em}} l@{}}
     \toprule
