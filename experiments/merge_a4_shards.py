@@ -20,7 +20,10 @@ def main() -> int:
     rows, corrupt, duplicate = {}, 0, 0
     sources = sorted(args.dir.glob(f'{args.corpus}_a4_llm*.jsonl'))
     for path in sources:
-        if path.name.endswith('.merged.jsonl'):
+        # `.smoke20` carries 20 queries per cell against the real 200 and is kept only as a record;
+        # glob order put it last, so it silently overwrote 19 full-precision rows on the first run.
+        if path.name.endswith(('.merged.jsonl', '.smoke20.jsonl')):
+            print(f'  {path.name}: skipped by name')
             continue
         n = bad = 0
         for line in path.open():
@@ -30,8 +33,14 @@ def main() -> int:
                 bad += 1
                 continue
             key = (row['model'], row['condition'], row.get('source') or 'A')
-            if key in rows:
+            previous = rows.get(key)
+            if previous is not None:
                 duplicate += 1
+                # Never let a lower-precision cell win on file order: more queries is strictly
+                # more evidence about the same cell.
+                if previous.get('queries', 0) > row.get('queries', 0):
+                    n += 1
+                    continue
             rows[key] = row
             n += 1
         corrupt += bad
