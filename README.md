@@ -265,6 +265,19 @@ identifier of some type.
 | `tests/` | 670 tests, no network, no models, under two seconds |
 | `experiments/` | code lands here |
 
+## Licence
+
+The **code** in this repository is under the [MIT licence](LICENSE).
+
+**The licence does not extend to the corpora, and cannot.** None of them is distributed here and
+several could not be: CARDIO:DE is bound by a data-use agreement, OntoNotes is LDC-licensed, and
+Enron contains real personal data from people who never consented. Obtain each under its own terms —
+`data/candidates.md` lists every corpus considered and what it requires. The same applies to the
+detector models and gazetteers, which carry their own licences.
+
+Model outputs cached under `results/` are derived from those corpora and inherit their restrictions,
+which is why `.gitignore` keeps them out of the repository.
+
 ## Provenance, data and credentials
 
 - **References are retrieved, not remembered.** Every entry in `references/` was pulled from
