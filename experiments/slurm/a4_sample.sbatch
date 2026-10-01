@@ -26,6 +26,7 @@ echo "host=$(hostname) started=$(date -Is)"
 for CORPUS in ${CORPORA:-cardiode enron}; do
   echo "=== $CORPUS === $(date -Is)"
   PYTHONPATH=src .venv/bin/python experiments/run_a4_sample.py \
-      --corpus "$CORPUS" --limit "${LIMIT:-200}" --concurrency "${CONC:-4}"
+      --corpus "$CORPUS" --limit "${LIMIT:-200}" --concurrency "${CONC:-4}" \
+      ${MODELS:+--models $MODELS}
 done
 echo "finished=$(date -Is)"
