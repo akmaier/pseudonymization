@@ -43,6 +43,18 @@ from sweep_leakage import CORPORA
 T0 = time.time()
 PRINT = threading.Lock()
 
+A4_EXTRA = (
+    # Added to paper 2's A4 pool (AM, 2026-10-01). experiment_plan.md:1058 excludes it for paper 1
+    # by a decision of 2026-09-10 that stands independently of availability; that record is left
+    # alone. It is added here because it is serving again AND it is strong: in the twelve cells it
+    # ran before quarantine it reached Rank-1 0.985 on unmodified text -- the highest ceiling of
+    # any model -- and 0.889 on a condition-B release, the strongest B-side attack measured so
+    # far. Excluding the strongest adversary understates the attack surface, which is the opposite
+    # of what this paper is for.
+    'deepseek-ai/DeepSeek-V4-Flash-0731',
+)
+"""Models added to A4 beyond detect_gateway.DEFAULT_MODELS, with the reason."""
+
 A4_EXCLUDED = {
     # Not down, and not substituted: it refuses every A4 call with
     # litellm.ContextWindowExceededError. A4's prompt is a document plus ten candidates, and a
@@ -82,8 +94,9 @@ def main() -> int:
     from detect_gateway import DEFAULT_MODELS
 
     live = list_models()
-    models = args.models or [m for m in DEFAULT_MODELS
-                             if m in live and m not in A4_EXCLUDED]
+    pool = list(DEFAULT_MODELS) + [m for m in A4_EXTRA if m not in DEFAULT_MODELS]
+    models = args.models or [m for m in pool
+                            if m in live and m not in A4_EXCLUDED]
     unavailable = [m for m in models if m not in live]
     log(f'gateway serves {len(live)} models right now; running {len(models)}')
     if unavailable:
