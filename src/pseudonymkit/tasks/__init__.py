@@ -15,6 +15,16 @@ from .base import (
     TaskModel,
     scored,
 )
+from .linear import (
+    Artefact,
+    TfidfLogisticClassifier,
+    TfidfLogisticTagger,
+    load_artefact,
+    save_artefact,
+    split_documents,
+    train_single_label_classifier,
+    train_span_tagger,
+)
 from .runners import (
     coreference,
     echr_articles,
@@ -31,4 +41,7 @@ __all__ = [
     "Regressor", "TaskModel", "scored",
     "coreference", "echr_articles", "medication_ie", "section_classification",
     "folder_classification", "formality", "ner_agreement", "label_set",
+    # The trained-and-frozen linear scorers of plan §8.5 — same ports, no gateway.
+    "Artefact", "TfidfLogisticClassifier", "TfidfLogisticTagger", "load_artefact",
+    "save_artefact", "split_documents", "train_single_label_classifier", "train_span_tagger",
 ]
