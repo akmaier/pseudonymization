@@ -146,6 +146,11 @@ def main() -> int:
     ap.add_argument('--conditions', nargs='+', default=['B', 'C'])
     ap.add_argument('--out', type=Path, default=Path('results/utility_sweep'))
     ap.add_argument('--shard', default=None, help="this writer's own output file suffix")
+    ap.add_argument('--shard-index', type=int, default=0)
+    ap.add_argument('--shard-of', type=int, default=1,
+                    help='round-robin over the plan order rather than contiguous blocks: the '
+                         'cost of a span source rises with its size, so contiguous blocks would '
+                         'give the last task every triple and the first every singleton')
     ap.add_argument('--limit-points', type=int, default=0, help='cap span sources, for a smoke run')
     ap.add_argument('--min-coverage', type=float, default=0.99,
                     help='drop a detector whose cache covers less than this fraction of the '
@@ -218,7 +223,8 @@ def main() -> int:
         log(f'  folder label set fixed at {len(labels)} labels, from condition A')
 
     args.out.mkdir(parents=True, exist_ok=True)
-    shard = args.shard or 'all'
+    shard = args.shard or (f'{args.shard_index:02d}of{args.shard_of:02d}'
+                           if args.shard_of > 1 else 'all')
     destination = args.out / f'{args.corpus}.{shard}.jsonl'
     done: set[str] = set()
     if destination.exists() and not args.restart:
@@ -261,6 +267,10 @@ def main() -> int:
                 f'not skipped silently: {sorted(missing)[:3]}')
     else:
         sources = plan(detectors, args.max_size, None, [])
+    if args.shard_of > 1:
+        sources = [s for index, s in enumerate(sources)
+                   if index % args.shard_of == args.shard_index]
+        log(f'  shard {args.shard_index + 1}/{args.shard_of}: {len(sources)} span sources')
     if args.limit_points:
         sources = sources[: args.limit_points]
     todo = [s for s in sources if s[3] not in done]
