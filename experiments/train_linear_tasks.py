@@ -179,18 +179,29 @@ def main() -> int:
         else:
             raise SystemExit(f'unknown task {task!r}')
 
-        chance = float(artefact.metadata.get('chance') or 0.0)
-        verdict = ('USABLE' if artefact.holdout_score > max(chance * 2, 0.05)
-                   else 'NEAR CHANCE — do not score the plane with this (§8.3)')
-        log(f'  held-out condition A: {artefact.holdout_score:.4f}  '
-            f'(chance {chance:.4f}, {offered} classes) — {verdict}')
+        # §8.3's test is "near chance on the original text", and for a skewed label set the rate a
+        # scorer gets for free is the majority class, not 1/k. A tagger has neither: it is judged
+        # against the gateway extractor it replaces.
+        chance = artefact.metadata.get('chance')
+        floor = float(artefact.metadata.get('majority_baseline') or 0.0)
+        reference = max(floor, float(chance or 0.0), 0.05)
+        verdict = ('USABLE' if artefact.holdout_score > reference
+                   else 'AT OR BELOW THE FREE BASELINE — cannot measure a loss (§8.3)')
+        if chance is None:
+            log(f'  held-out condition A: {artefact.holdout_score:.4f} span F1  '
+                f'({offered} classes; exact-match F1 has no free baseline) — {verdict}')
+        else:
+            log(f'  held-out condition A: {artefact.holdout_score:.4f}  '
+                f'(uniform chance {float(chance):.4f}, majority class {floor:.4f}, '
+                f'{offered} classes) — {verdict}')
         log(f'  fitted in {time.time() - started:.0f}s')
 
         path = save_artefact(artefact, args.out / f'{args.corpus}_{task}.pkl')
         log(f'  wrote {path} and {path.with_suffix(".json").name}')
         summary.append({
             'task': task, 'scorer': artefact.scorer.name,
-            'holdout_condition_a': artefact.holdout_score, 'chance': chance,
+            'holdout_condition_a': artefact.holdout_score,
+            'uniform_chance': chance, 'majority_baseline': floor,
             'usable': verdict == 'USABLE',
             'trained_on': len(artefact.train_doc_ids), 'scored_on': len(artefact.score_doc_ids),
         })

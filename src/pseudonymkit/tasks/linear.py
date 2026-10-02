@@ -287,6 +287,16 @@ def train_single_label_classifier(
     )
     offered = sorted({labels[i] for i in list(train) + list(score)})
     correct = sum(scorer.classify(texts[i], offered) == labels[i] for i in score)
+    # **The baseline is the majority class, not 1/k.**  §8.3's "near chance on the original" test
+    # needs the rate a scorer gets for free, and on a skewed label set that is far above uniform:
+    # Enron's folder task is 176 labels of which one holds 26 % of the messages, so a classifier at
+    # 0.20 is *worse* than answering "All documents" every time while looking eight times chance.
+    majority = 0.0
+    if score:
+        counts: dict[str, int] = {}
+        for i in score:
+            counts[labels[i]] = counts.get(labels[i], 0) + 1
+        majority = max(counts.values()) / len(score)
     recorded = (
         (tuple(record_ids[0]), tuple(record_ids[1])) if record_ids
         else (tuple(train), tuple(score))
@@ -302,6 +312,7 @@ def train_single_label_classifier(
             # The runner's per-letter score averages over a letter's sections first; this is the
             # flat unit accuracy, which is the instrument's own ceiling rather than the task's.
             "chance": 1.0 / len(offered) if offered else 0.0,
+            "majority_baseline": majority,
             "train_units": len(train),
             "scored_units": len(score),
             "labels": len(offered),
@@ -502,6 +513,11 @@ def train_span_tagger(
         holdout_score=sum(held) / len(held) if held else 0.0,
         metadata={
             "kind": "bio-tagger",
+            "holdout_metric": "mean exact-match span F1 over the scored documents",
+            # Exact-match span F1 has no free baseline worth printing: a tagger that predicts
+            # nothing scores 0 on every document that has gold. The reference is the gateway
+            # extractor's own original-text score, which paper 1 measured at 0.371 +/- 0.182.
+            "chance": None,
             "classes": len(keep),
             "tags": len(set(tags)),
             "train_tokens": len(rows),
