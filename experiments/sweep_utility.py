@@ -147,6 +147,9 @@ def main() -> int:
     ap.add_argument('--out', type=Path, default=Path('results/utility_sweep'))
     ap.add_argument('--shard', default=None, help="this writer's own output file suffix")
     ap.add_argument('--limit-points', type=int, default=0, help='cap span sources, for a smoke run')
+    ap.add_argument('--min-coverage', type=float, default=0.99,
+                    help='drop a detector whose cache covers less than this fraction of the '
+                         'corpus, before the enumeration rather than after it')
     ap.add_argument('--restart', action='store_true')
     args = ap.parse_args()
 
@@ -180,8 +183,23 @@ def main() -> int:
 
     key = read_key(args.key_file)
     cache = DetectorCache(args.cache, args.corpus)
-    detectors = sorted(p.stem.replace('__', '/') for p in cache.root.glob('*.jsonl'))
-    log(f'  detectors {len(detectors)} ({sum(1 for d in detectors if is_llm(d))} LLM)')
+    pool = sorted(p.stem.replace('__', '/') for p in cache.root.glob('*.jsonl'))
+
+    # **A partial detector is dropped from the pool, not from the rows.** The leakage sweep applies
+    # its coverage floor per span source, which is right when the pool is fixed; here the pool is
+    # also what `plan` enumerates over, so a sixteenth detector with a half-written cache would
+    # change the plane from 2,154 labels into a different and larger set that no leakage row joins
+    # to. It would also enter the pinned inventory. DeepSeek is exactly this case on CARDIO:DE
+    # today: 337 of 400 documents, most of them truncated.
+    coverage = {name: len(set(cache.digests(name))) / max(len(all_documents), 1) for name in pool}
+    detectors = [name for name in pool if coverage[name] >= args.min_coverage]
+    for name in pool:
+        if name not in detectors:
+            log(f'  EXCLUDED from the pool: {name} covers {coverage[name]:.1%} of the corpus, '
+                f'below --min-coverage {args.min_coverage}. Reported, not substituted (§1): '
+                f'finish its detection and re-run to include it.')
+    log(f'  detectors {len(detectors)} of {len(pool)} '
+        f'({sum(1 for d in detectors if is_llm(d))} LLM)')
 
     # The pinned inventory, compiled over the union of every detector on the **whole** corpus, not
     # on the scored half: a surrogate pool drawn from half the documents would be a different pool,
