@@ -135,7 +135,11 @@ def main() -> int:
     ap.add_argument('--corpus', required=True, choices=sorted(TASKS_FOR))
     ap.add_argument('--cache', type=Path, default=Path('results/detector_cache'))
     ap.add_argument('--artefacts', type=Path, default=Path('results/instruments'))
-    ap.add_argument('--key-file', type=Path, default=Path('config/surrogate.key'))
+    ap.add_argument('--key-file', type=Path,
+                    default=Path.home() / '.config' / 'pseudonymkit' / 'hmac.key',
+                    help='the same default sweep_leakage.py and build_BC.py use: one key for '
+                         'the whole study, or two points carry different surrogates for one '
+                         'entity and the plane stops being one experiment')
     ap.add_argument('--max-size', type=int, default=3)
     ap.add_argument('--sources', type=Path, default=None,
                     help='a file of span-source labels, one per line — the shard this task runs')
@@ -158,8 +162,13 @@ def main() -> int:
         log(f'{task}: {artefact.scorer.name}, held-out condition A '
             f'{artefact.holdout_score:.4f}, scores {len(artefact.score_doc_ids)} documents')
 
-    held_out = set.intersection(*(set(a.score_doc_ids) for a in instruments.values()))
-    log(f'  scoring {len(held_out)} held-out documents, common to every instrument')
+    # **Union, not intersection.** Each runner already skips a document its task has no gold for
+    # -- a letter with no medication span, a message with no folder -- and counts the skip. Taking
+    # the intersection would instead drop those documents from the tasks that *can* score them,
+    # so section classification would be measured on a different set from the one its artefact
+    # reports a held-out score for.
+    held_out = set().union(*(set(a.score_doc_ids) for a in instruments.values()))
+    log(f'  scoring {len(held_out)} held-out documents, the union over the instruments')
 
     all_documents = list(iter_documents(CORPORA[args.corpus]()))
     documents = [d for d in all_documents if d.doc_id in held_out]
