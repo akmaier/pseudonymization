@@ -47,7 +47,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Mapping
 
-__all__ = ["Family", "CONTEXT", "RATIO", "REASONING_MODELS", "SCRIPT_CHARS_PER_TOKEN",
+__all__ = ["Family", "CONTEXT", "RATIO", "MODEL_RATIO", "REASONING_MODELS",
+           "SCRIPT_CHARS_PER_TOKEN",
            "FAMILY_FLOOR", "TokenBudget", "chars_per_token", "family_of", "fit_ratio"]
 
 Family = str
@@ -66,6 +67,25 @@ Doubled to plain 2.0 and reasoning 12.0 (AM, 2026-09-21). The window shrinks in 
 long documents take more windows, which costs calls rather than content. A truncated reply costs the
 whole document."""
 
+MODEL_RATIO: Mapping[str, float] = {
+    # **Provisional, and raised on measurement** (2026-10-02). At the family ratio of 12.0,
+    # DeepSeek-V4-Flash-0731 truncated 379 of 400 CARDIO:DE documents; the 21 replies that did
+    # complete needed a completion/prompt ratio with a median of 8.53 and a **maximum of 13.50**,
+    # so 12.0 sits below the observed maximum, let alone the p99 the family figures are taken at.
+    # Doubling is the move AM already made for both families on 2026-09-21 in the same situation.
+    # The cap is not the only fix -- the context above was 32x too small and matters more -- but a
+    # ratio below the observed maximum would still truncate the long letters.
+    # Re-measure with `fit_ratio` once a clean pass exists, and replace this with that number.
+    "deepseek-ai/DeepSeek-V4-Flash-0731": 24.0,
+}
+"""Per-model overrides of :data:`RATIO`, for a model the family figure does not fit.
+
+A family is a budget class, not a claim about architecture, and a model can sit outside its class.
+Overriding one model is preferable to moving the family: the family ratio is baked into every
+cached reply already computed under it, and raising it for everyone would make the pool's figures
+incomparable with each other for the sake of one deployment.
+"""
+
 REASONING_MODELS: frozenset[str] = frozenset({
     "gpt-oss-120b",
     "Qwen/Qwen3.6-35B-A3B-FP8",
@@ -80,8 +100,9 @@ REASONING_MODELS: frozenset[str] = frozenset({
 })
 """Models that return ``message.reasoning_content`` and spend the budget before answering.
 
-DeepSeek is listed although it is excluded from the run (AM, 2026-09-08, backend down): if it is ever
-re-admitted it must not silently inherit the plain budget.
+DeepSeek was listed here while it was excluded from the run (AM, 2026-09-08, backend down), so that
+a re-admission could not silently inherit the plain budget. It was re-admitted for the second paper
+(AM, 2026-10-01) and the entry is now load-bearing rather than precautionary.
 """
 
 CONTEXT: Mapping[str, int] = {
@@ -90,8 +111,14 @@ CONTEXT: Mapping[str, int] = {
     "GaleneAI/Magistral-Small-2509-FP8-Dynamic": 131_072,
     "google/gemma-4-E4B-it": 131_072,
     "Microsoft/Phi-4-mini-instruct": 16_384,
+    # Probed 2026-10-02 (`experiments/probes/context_limit.py`): the deployment named
+    # max_model_len=1048576. It had been on DEFAULT_CONTEXT, 32 times too small, and that was the
+    # whole of the truncation: the window came out at (32768-1024)/13 = 2,441 prompt tokens, so a
+    # CARDIO:DE letter was cut into chunks small enough that the fixed cost of reasoning dominated
+    # each one, and 379 of 400 documents came back truncated with 220 carrying no spans at all.
+    "deepseek-ai/DeepSeek-V4-Flash-0731": 1_048_576,
 }
-"""Measured 2026-09-12, not assumed.
+"""Measured 2026-09-12 and 2026-10-02, not assumed.
 
 ``GET /models`` reports only ``id``/``object``/``owned_by``, so the limits were probed: a request
 with an absurd ``max_tokens`` makes vLLM name its own — *"max_tokens=10000000 cannot be greater than
@@ -99,11 +126,19 @@ max_model_len=max_total_tokens=262144"*.  Three deployments answered that way.  
 ``Mistral-Small-3.2`` **accepted** the absurd value without validating, and ``Qwen3.6`` returned a
 rate limit before it got that far, so those three fall back to :data:`DEFAULT_CONTEXT`.
 
-Context is not the binding constraint in practice.  At the 6,000-character window a reasoning model
-asks for ~12,500 tokens in total, comfortably inside even the conservative fallback.  What actually
-throttles the run is the gateway's **per-key rolling token budget** — the 429 reads *"Limit type:
-tokens. Current limit: 100000"* — which is a reason to size ``max_tokens`` correctly rather than
-generously, quite apart from truncation.
+Context was thought not to be the binding constraint, on the grounds that at the 6,000-character
+window a reasoning model asks for ~12,500 tokens in total, comfortably inside even the conservative
+fallback. **That reasoning is circular and DeepSeek showed it**: the window is *derived* from the
+context, so a context that is 32 times too small produces a window small enough to keep the total
+inside it, and then truncates because the fixed cost of reasoning no longer fits the slice. A model
+on the fallback is not safe, it is merely quiet about it — probe the limit
+(``experiments/probes/context_limit.py``) rather than assume.
+
+What throttles a *run*, as opposed to a request, is still the gateway's **per-key rolling token
+budget** — the 429 reads *"Limit type: tokens. Current limit: 100000"*. Per key, not per model: on
+2026-10-01 a DeepSeek detection pass at 54,000 completion tokens a document starved the A4 jobs of
+every other model, which failed whole cells after 40 attempts. Two gateway-bound runs of different
+models are not independent.
 """
 
 DEFAULT_CONTEXT = 32_768
@@ -203,12 +238,16 @@ class TokenBudget:
     def for_model(
         cls, model: str, context: int | None = None, ratio: float | None = None
     ) -> TokenBudget:
-        """``context`` defaults to the model's measured limit, else :data:`DEFAULT_CONTEXT`."""
+        """``context`` defaults to the model's measured limit, else :data:`DEFAULT_CONTEXT`.
+
+        ``ratio`` defaults to the model's own override in :data:`MODEL_RATIO` if it has one, and
+        to its family's figure otherwise.
+        """
         family = family_of(model)
         return cls(
             model=model,
             family=family,
-            ratio=ratio or RATIO[family],
+            ratio=ratio or MODEL_RATIO.get(model) or RATIO[family],
             context=context or CONTEXT.get(model, DEFAULT_CONTEXT),
         )
 
