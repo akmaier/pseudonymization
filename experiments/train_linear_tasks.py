@@ -66,6 +66,24 @@ CARDIO:DE has section headings and medication spans, Enron has ``X-Folder``. TAB
 neither and are out of this paper (plan §4) — they keep ``ner_agreement``, which needs no training.
 """
 
+CLASS_WEIGHT = {
+    'section_classification': 'balanced',
+    'folder_classification': None,
+}
+"""Per-task class weighting for the two classifiers, measured rather than chosen.
+
+Balanced is right for the fourteen section types: the head is only 12.3 % of sections, so an
+unweighted fit has little head to learn and balancing costs nothing — it scores 0.9605. It is wrong
+for the 176 Enron folders. Measured 2026-10-02: balanced gives held-out accuracy **0.2028 against a
+majority-class baseline of 0.2621**, an instrument worse than answering "All documents" every time,
+which §8.3 says cannot measure a loss. 32 of the 176 labels hold a single message and balancing
+hands each of them the weight of a class holding 15,464.
+
+The span tagger is not here. Its classes are BIO tags over tokens, where ``O`` is the overwhelming
+majority by construction rather than by the corpus, so balancing is not a judgement call and is
+fixed inside :func:`pseudonymkit.tasks.linear.train_span_tagger`.
+"""
+
 
 def log(message: str) -> None:
     print(f'[{time.time() - T0:7.1f}s] {message}', flush=True)
@@ -118,6 +136,10 @@ def main() -> int:
     ap.add_argument('--seed', type=int, default=0)
     ap.add_argument('--train-fraction', type=float, default=0.5)
     ap.add_argument('--limit', type=int, default=0, help='documents, for a smoke run')
+    ap.add_argument('--class-weight', default=None, choices=['balanced', 'none'],
+                    help='default: per task — balanced for the 14 section types, unweighted for '
+                         "Enron's 176 folders, whose tail sinks a balanced fit below its own "
+                         'majority-class baseline. See tasks.linear.')
     ap.add_argument('--out', type=Path, default=Path('results/instruments'))
     args = ap.parse_args()
 
@@ -137,14 +159,17 @@ def main() -> int:
 
     for task in (args.tasks or TASKS_FOR[args.corpus]):
         started = time.time()
-        log(f'=== {task} ===')
+        weight = (None if args.class_weight == 'none' else args.class_weight) \
+            if args.class_weight else CLASS_WEIGHT.get(task, 'balanced')
+        log(f'=== {task} ===' + (f' (class_weight={weight!r})'
+                                 if task in CLASS_WEIGHT else ''))
 
         if task == 'section_classification':
             texts, labels, keys = section_units(documents, train_ids, score_ids)
             log(f'  {len(keys["train"]):,} training sections, {len(keys["score"]):,} to score')
             artefact = train_single_label_classifier(
                 texts, labels, task_name=task, train_ids=keys['train'], score_ids=keys['score'],
-                corpus=args.corpus, seed=args.seed,
+                corpus=args.corpus, seed=args.seed, class_weight=weight,
                 record_ids=(train_ids, score_ids),
             )
             offered = len(SECTION_TYPES)
@@ -156,7 +181,7 @@ def main() -> int:
             log(f'  {len(present):,} distinct folders over {len(texts):,} messages')
             artefact = train_single_label_classifier(
                 texts, labels, task_name=task, train_ids=train_ids, score_ids=score_ids,
-                corpus=args.corpus, seed=args.seed,
+                corpus=args.corpus, seed=args.seed, class_weight=weight,
             )
             offered = len(present)
 
@@ -202,6 +227,7 @@ def main() -> int:
             'task': task, 'scorer': artefact.scorer.name,
             'holdout_condition_a': artefact.holdout_score,
             'uniform_chance': chance, 'majority_baseline': floor,
+            'class_weight': weight if task in CLASS_WEIGHT else 'balanced (fixed, BIO)',
             'usable': verdict == 'USABLE',
             'trained_on': len(artefact.train_doc_ids), 'scored_on': len(artefact.score_doc_ids),
         })

@@ -248,12 +248,22 @@ def train_single_label_classifier(
     seed: int = 0,
     min_df: int = 2,
     max_features: int = 200_000,
+    class_weight: str | None = "balanced",
     record_ids: tuple[Sequence[str], Sequence[str]] | None = None,
 ) -> Artefact:
     """Fit on the training half of **condition A** and report the held-out condition-A score.
 
     ``texts`` and ``labels`` are keyed by the **training unit**, and ids missing a label are
     dropped from both halves and counted, because a unit with no gold can neither train nor score.
+
+    ``class_weight`` is the one fitting choice that is not neutral, and it has to be made per task
+    rather than once. Weighting the classes equally is right where the label set is small and the
+    instrument should not simply learn the head -- CARDIO:DE's fourteen section types. It is wrong
+    where the tail is long and the metric is accuracy: Enron's folder task has 176 labels of which
+    32 hold one message each, and balancing them pulled the held-out accuracy down to 0.2028
+    against a majority-class baseline of 0.2621, i.e. below the rate of answering "All documents"
+    every time. An instrument under its own free baseline cannot measure a loss (§8.3), so the
+    choice is recorded in the artefact rather than left implicit.
 
     The unit is not always the document.  Section classification fits on *sections* — the runner
     classifies each derived section of a letter and scores the letter by how many it got right — so
@@ -278,7 +288,7 @@ def train_single_label_classifier(
         sublinear_tf=True, min_df=min_df, max_features=max_features, strip_accents=None
     )
     matrix = vectoriser.fit_transform([texts[i] for i in train])
-    model = LogisticRegression(max_iter=2_000, random_state=seed, class_weight="balanced")
+    model = LogisticRegression(max_iter=2_000, random_state=seed, class_weight=class_weight)
     model.fit(matrix, [labels[i] for i in train])
 
     scorer = TfidfLogisticClassifier(
@@ -313,6 +323,7 @@ def train_single_label_classifier(
             # flat unit accuracy, which is the instrument's own ceiling rather than the task's.
             "chance": 1.0 / len(offered) if offered else 0.0,
             "majority_baseline": majority,
+            "class_weight": class_weight,
             "train_units": len(train),
             "scored_units": len(score),
             "labels": len(offered),
