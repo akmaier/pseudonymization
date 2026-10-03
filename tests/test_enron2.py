@@ -247,3 +247,29 @@ def test_a_near_duplicate_message_is_skipped_by_the_draw() -> None:
     bodies = {"x": LONG, "y": "FYI.\n" + LONG}
     keys, stats = draw(units, tokens, bodies.__getitem__, budget=1000, cap_fraction=1.0, seed=0)
     assert len(keys) == 1 and stats["messages_near_duplicate"] == 1
+
+
+# --------------------------------------------------------------------------- quoted-printable
+
+
+def test_a_declared_quoted_printable_body_is_decoded() -> None:
+    from pseudonymkit.adapters.enron2 import decoded_body
+
+    message = email.message_from_string(
+        "Content-Transfer-Encoding: quoted-printable\n\nwe are talking=\n about people=20\nok =3D yes")
+    assert decoded_body(message) == "we are talking about people \nok = yes"
+
+
+def test_a_soft_break_under_a_7bit_header_is_decoded_too() -> None:
+    from pseudonymkit.adapters.enron2 import decoded_body
+
+    message = email.message_from_string(
+        "Content-Transfer-Encoding: 7bit\n\nthe driving force behind every success=\n that we had")
+    assert decoded_body(message) == "the driving force behind every success that we had"
+
+
+def test_a_plain_body_is_returned_exactly_as_read() -> None:
+    from pseudonymkit.adapters.enron2 import decoded_body
+
+    message = email.message_from_string("Content-Transfer-Encoding: 7bit\n\nx=20 is a formula")
+    assert decoded_body(message) == "x=20 is a formula"

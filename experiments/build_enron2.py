@@ -46,6 +46,7 @@ sys.path.insert(0, "src")
 from pseudonymkit.adapters import enron
 from pseudonymkit.adapters.enron2 import (
     GOLD_RULES,
+    decoded_body,
     HEADER_LINE,
     WINDOW,
     NameIndex,
@@ -154,7 +155,7 @@ def main() -> int:
         pair = enron._sender_pair(message)
         if pair is not None:
             votes[pair[0].casefold()][pair[1]] += 1
-        body = clean_body(enron._body(message))
+        body = clean_body(decoded_body(message))
         if not body:
             seen["empty_after_stripping"] += 1
             continue
@@ -279,6 +280,7 @@ def main() -> int:
         "bodies_with_an_embedded_header_block": blocks,
         "mailboxes": len(per_mailbox),
         "largest_mailbox_share": max(per_mailbox.values()) / max(total_tokens, 1),
+        "largest_mailbox_share_of_budget": max(per_mailbox.values()) / args.token_budget,
         "gold_mentions_by_rule": dict(rules),
         "person_mentions": len(person),
         "person_mentions_without_identity": sum(1 for m in person if not m.gold_entity_id),

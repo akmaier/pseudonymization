@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import email.utils
 import hashlib
+import quopri
 import random
 import re
 from collections import Counter, defaultdict
@@ -65,6 +66,7 @@ __all__ = [
     "ShingleIndex",
     "Unit",
     "clean_body",
+    "decoded_body",
     "dedup_key",
     "document_text",
     "draw",
@@ -170,6 +172,49 @@ def strip_embedded(body: str) -> str:
         lines = lines[:start]
         break
     return "\n".join(lines).strip()
+
+
+_SOFT_BREAK = re.compile(r"=\r?\n")
+
+
+def _text_part(message: Message) -> Message | None:
+    """The part the paper-1 extractor reads: the first plain-text leaf, else the first leaf."""
+    if not message.is_multipart():
+        return message
+    plain = [part for part in message.walk()
+             if part.get_content_type() == "text/plain" and not part.is_multipart()]
+    return plain[0] if plain else next(
+        (part for part in message.walk() if not part.is_multipart()), None)
+
+
+def decoded_body(message: Message) -> str:
+    """The body as a mail client shows it — quoted-printable decoded.
+
+    The paper-1 extractor reads payloads undecoded, and 5.8 % of messages (measured 2026-10-03 on
+    every tenth message of the archive) still carry quoted-printable debris: soft line breaks that
+    split a word across lines (``talking=``/``about``) and escapes such as ``=20`` and ``=3D``.
+    Only 4.4 % declare ``quoted-printable``; the rest say ``7bit`` and were left encoded by the
+    archive's export, so a soft line break in the text is taken as evidence too. A plain body with
+    neither is returned exactly as read.
+    """
+    part = _text_part(message)
+    if part is None:
+        return ""
+    raw = part.get_payload(decode=False)
+    if not isinstance(raw, str):
+        return ""
+    declared = (part.get("Content-Transfer-Encoding") or "").strip().casefold()
+    if declared != "quoted-printable" and not _SOFT_BREAK.search(raw):
+        return raw
+    data = quopri.decodestring(raw.encode("latin-1", errors="replace"))
+    for charset in (part.get_content_charset(), "cp1252", "latin-1"):
+        if not charset:
+            continue
+        try:
+            return data.decode(charset)
+        except (LookupError, UnicodeDecodeError):
+            continue
+    return raw
 
 
 def clean_body(body: str) -> str:
@@ -576,24 +621,29 @@ def draw(units: Sequence[Unit], tokens: Mapping[str, int], body: Callable[[str],
             break
         stats["units_considered"] += 1
         kept: list[tuple[str, frozenset[int]]] = []
+        dropped = 0
         staged = ShingleIndex(near.jaccard, near.containment, near.min_for_containment)
         for key in unit.members:
             sh = shingles(body(key))
             if near.is_near(sh) or staged.is_near(sh):
-                stats["messages_near_duplicate"] += 1
+                dropped += 1
                 continue
             staged.add(sh)
             kept.append((key, sh))
         if not kept:
             stats["units_entirely_near_duplicate"] += 1
+            stats["messages_near_duplicate"] += dropped
             continue
         size = sum(tokens[key] for key, _ in kept)
         if used[unit.mailbox] + size > cap:
+            # Counted as a cap decision only: a near-duplicate inside a unit that was skipped
+            # anyway decided nothing, and counting it inflated the figure in the first smoke run.
             stats["units_over_mailbox_cap"] += 1
             continue
         for key, sh in kept:
             near.add(sh)
             accepted.append(key)
+        stats["messages_near_duplicate"] += dropped
         used[unit.mailbox] += size
         total += size
         stats["units_accepted"] += 1
