@@ -36,6 +36,7 @@ from pseudonymkit.construction import (
 )
 from pseudonymkit.metrics.detection import covered_tokens, tokenise
 from pseudonymkit.paths import cardiode_a, cardiode_conditions, condition_a_dir, work_dir
+from pseudonymkit.domain import Span
 from pseudonymkit.serialisation import iter_documents
 from leakage_profile import case_of
 
@@ -75,10 +76,18 @@ for corpus, (a_path, cond_root) in SOURCES.items():
     check = check_current(documents, patchset)
     text_of = {d.doc_id: d.text for d in documents}
     replaced, entries_total, entries_identical = {}, 0, 0
+    # The superseded rule is kept and scored beside the corrected one, so the size of the
+    # correction is an artefact on disk rather than a remark in a commit message. It is also the
+    # measurement the plan's threat table lists as "rate currently unknown": an unchanged-type
+    # entry can win the engine's overlap rule and leave the name it overlapped in clear text while
+    # still looking, to any metric computed on entry offsets, like a replacement.
+    any_overlap = {}
     identical_types = defaultdict(int)
     for patch in patchset.patches:
         text = text_of.get(patch.doc_id, '')
         replaced[patch.doc_id] = effective_spans(patch, text)
+        any_overlap[patch.doc_id] = tuple(
+            Span(e.old_start, e.old_end, '', e.entity_type) for e in patch.entries)
         entries_total += len(patch.entries)
         for entry in patch.entries:
             if not changed_text(entry, text):
@@ -92,8 +101,9 @@ for corpus, (a_path, cond_root) in SOURCES.items():
              if identical_types else ''), flush=True)
 
     for label, types in (('person', IDENTITY), ('replaced', REPLACED)):
-        people, exposed_people = set(), set()
+        people, exposed_people, any_people = set(), set(), set()
         pairs = exposed_pairs = mentions = exposed_mentions = 0
+        exposed_mentions_any = hidden_by_identical = 0
         docs = exposed_docs = 0
         cases, exposed_cases = set(), set()
         region = {'header': 0, 'body': 0}
@@ -105,6 +115,7 @@ for corpus, (a_path, cond_root) in SOURCES.items():
             cases.add(case)
             tokens = tokenise(document.text)
             caught = covered_tokens(tokens, replaced.get(document.doc_id, ()))
+            caught_any = covered_tokens(tokens, any_overlap.get(document.doc_id, ()))
             cut = document.text.find('\n\n')
             cut = len(document.text) if cut < 0 else cut
             per_entity = defaultdict(bool)
@@ -119,6 +130,13 @@ for corpus, (a_path, cond_root) in SOURCES.items():
                 key = mention.gold_entity_id or mention.mention_id
                 people.add(key)
                 left = bool(idx - caught)
+                if idx - caught_any:
+                    exposed_mentions_any += 1
+                    any_people.add(key)
+                elif left:
+                    # Overlapped by an entry that wrote the same characters back. The old rule
+                    # called this protected; the released text says otherwise.
+                    hidden_by_identical += 1
                 if left:
                     # A mention can survive two ways, and they are different failures. Either the
                     # detector never found it, or it found it and the engine's overlap rule wrote a
@@ -154,13 +172,20 @@ for corpus, (a_path, cond_root) in SOURCES.items():
         r['patch_entries_effective'] = entries_effective
         r['patch_entries_identical'] = entries_identical
         r['patch_entries_identical_by_type'] = dict(identical_types)
+        r['superseded_any_overlap_rule'] = {
+            'mentions_exposed': exposed_mentions_any,
+            'distinct_people_exposed': len(any_people),
+            'mentions_hidden_by_an_identical_replacement': hidden_by_identical,
+        }
         out.setdefault(corpus, {})[label] = r
         print(f"  {label:8s} people {r['distinct_people_exposed']:>6,}/{r['distinct_people']:>7,}"
               f" = {r['distinct_people_exposed']/max(r['distinct_people'],1):6.2%}"
               f"   pairs {r['entity_document_pairs_exposed']:>7,}/{r['entity_document_pairs']:>8,}"
               f"   docs {r['documents_exposed']:>6,}/{r['documents']:>6,}"
               f"   cases {r['cases_exposed']:>5,}/{r['cases']:>6,}"
-              f"   clipped {clipped['clipped']:,} missed {clipped['missed']:,}" + (
+              f"   clipped {clipped['clipped']:,} missed {clipped['missed']:,}"
+              f"   [superseded rule: {exposed_mentions_any:,} mentions, {len(any_people):,} people;"
+              f" {hidden_by_identical:,} mentions it hid behind an identical replacement]" + (
                   f"   header/body {region['header']:,}/{region['body']:,}" if corpus == 'enron' else ''),
               flush=True)
 
