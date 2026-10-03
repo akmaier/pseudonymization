@@ -13,3 +13,7 @@ export PSEUDONYMKIT_WORK="/path/to/work/pseudonymization"
 export PSEUDONYMKIT_DUA="/path/to/dua-restricted"
 export SBATCH_ACCOUNT="your-account"
 export SBATCH_PARTITION="your-partition"
+
+# CARDIO:DE is single-user (DUA). Every file a job creates is owner-only, so no derived file is
+# ever readable by the group (AM, 2026-10-03).
+umask 077
