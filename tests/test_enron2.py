@@ -124,7 +124,7 @@ def test_the_envelope_is_every_address_on_from_to_cc_and_bcc() -> None:
                                      "carl@other.org", "dee.test@corp.org")
 
 
-# --------------------------------------------------------------------------------------- gold
+# ------------------------------------------------------------------------------ gold standard
 
 
 ANN, BOB, CARL, ANN2 = ("ann.example@corp.org", "bob.sample@corp.org", "carl@other.org",

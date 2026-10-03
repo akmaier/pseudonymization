@@ -3,7 +3,7 @@
 
 The why, and the six decisions, are in :mod:`pseudonymkit.adapters.enron2`. This script is the
 build: one streaming pass over all 517,401 messages of the archive, then a seeded draw, then the
-header-informed gold for the drawn messages only.
+header-informed gold standard for the drawn messages only.
 
     . config/env.sh
     sbatch experiments/slurm/build_enron2.sbatch
@@ -25,7 +25,7 @@ earlier session overwrote a paper-1 result file in place; that does not happen h
 
 **Acceptance checks run in the same process** and land in the provenance file beside the corpus:
 the token total, zero exact and zero near duplicates among the drawn bodies, zero embedded header
-blocks left, the mailbox spread, the gold by rule, and how the attack split falls — identical
+blocks left, the mailbox spread, the gold standard by rule, and how the attack split falls — identical
 bodies across its halves must be zero, and threads that straddle it are counted, because the
 subject line stays in the text (AM, 2026-10-03) and repeats down a thread.
 """
@@ -128,8 +128,10 @@ def main() -> int:
                          "least fifty mailboxes; the paper-1 draw had two people at 68 %%")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--min-name-count", type=int, default=2)
-    ap.add_argument("--validation", type=int, default=300,
-                    help="messages drawn, seeded, for the human validation of the gold")
+    ap.add_argument("--validation", type=int, default=0,
+                    help="messages drawn, seeded, for a human validation of the gold standard. Off "
+                         "by default: AM, 2026-10-03, replaced that validation by publishing this "
+                         "code, which reproduces the gold standard exactly")
     ap.add_argument("--validation-out", type=Path,
                     default=Path("results/enron2/validation_sample.jsonl"))
     ap.add_argument("--limit", type=int, default=0, help="messages read, for a smoke run only")
@@ -210,7 +212,7 @@ def main() -> int:
         f"{draw_stats['mailboxes']} mailboxes; {draw_stats.get('messages_near_duplicate', 0):,} "
         f"near-duplicates skipped, {draw_stats.get('units_over_mailbox_cap', 0):,} units over the cap")
 
-    # --- documents and gold -----------------------------------------------------------------------
+    # --- documents and gold standard --------------------------------------------------------------
     documents = []
     for key in sorted(accepted, key=lambda k: unique[k]["path"]):
         rec = unique[key]
@@ -304,20 +306,24 @@ def main() -> int:
     written = write_corpus(corpus, out)
     log(f"wrote {written:,} documents to {out} as {name}")
 
-    # --- the validation sample for human adjudication ------------------------------------------
+    # --- an optional validation sample for human adjudication ---------------------------------
+    # Off by default since AM, 2026-10-03, chose to publish this code instead: it reproduces the
+    # gold standard exactly, which is what a reader needs to check it.
     sample = random.Random(args.seed + 1).sample(documents, min(args.validation, len(documents)))
-    args.validation_out.parent.mkdir(parents=True, exist_ok=True)
-    with args.validation_out.open("w", encoding="utf-8") as handle:
-        for d in sorted(sample, key=lambda d: d.doc_id):
-            handle.write(json.dumps({
-                "doc_id": d.doc_id,
-                "text": d.text,
-                "envelope": d.metadata["envelope"],
-                "gold": [{"start": m.span.start, "end": m.span.end, "text": m.span.text,
-                          "type": m.span.type, "rule": m.attributes.get("gold_rule"),
-                          "entity": m.gold_entity_id} for m in d.mentions],
-            }, ensure_ascii=False) + "\n")
-    log(f"wrote the validation sample: {len(sample)} messages to {args.validation_out}")
+    if sample:
+        args.validation_out.parent.mkdir(parents=True, exist_ok=True)
+        with args.validation_out.open("w", encoding="utf-8") as handle:
+            for d in sorted(sample, key=lambda d: d.doc_id):
+                handle.write(json.dumps({
+                    "doc_id": d.doc_id,
+                    "text": d.text,
+                    "envelope": d.metadata["envelope"],
+                    "gold_standard": [{"start": m.span.start, "end": m.span.end,
+                                       "text": m.span.text, "type": m.span.type,
+                                       "rule": m.attributes.get("gold_rule"),
+                                       "entity": m.gold_entity_id} for m in d.mentions],
+                }, ensure_ascii=False) + "\n")
+        log(f"wrote the validation sample: {len(sample)} messages to {args.validation_out}")
 
     provenance = {
         "corpus": name, "file": str(out), "built": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -326,15 +332,15 @@ def main() -> int:
         "decisions": "AM, 2026-10-03: body and subject only; embedded header blocks stripped; "
                      "deduplicated across folders and mailboxes, near-duplicates removed; all 150 "
                      "mailboxes with a per-mailbox cap; CARDIO:DE's token count; header-informed "
-                     "gold; no utility task",
+                     "gold standard; no utility task",
         "read": dict(seen), "distinct_bodies": len(unique), "mailboxes_in_archive": len(mailboxes),
         "identity_table_names": len(table.by_name),
         "gazetteers": union is not None,
         "units": len(units), "draw": draw_stats, "documents": len(documents),
         "checks": checks, "acceptance_failures": failures,
         "gold_rules": dict(GOLD_RULES),
-        "validation_sample": {"file": str(args.validation_out), "messages": len(sample),
-                              "seed": args.seed + 1},
+        "validation_sample": ({"file": str(args.validation_out), "messages": len(sample),
+                               "seed": args.seed + 1} if sample else None),
     }
     provenance_path.write_text(json.dumps(provenance, indent=1), encoding="utf-8")
     log(f"wrote {provenance_path}")

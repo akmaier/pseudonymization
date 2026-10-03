@@ -240,9 +240,9 @@ SOURCES: Mapping[str, Mapping[str, str]] = {
     "tab": _TAB,
     "ontonotes": _ONTONOTES,
     "enron": _ENRON,
-    # ENRON 2.0 (AM, 2026-10-03) emits the same two gold labels as the paper-1 adapter, PERSON and
-    # EMAIL, so it reads through the same table. Without an entry its gold would route through the
-    # empty table and every label would be counted unmapped.
+    # ENRON 2.0 (AM, 2026-10-03) emits the same two gold-standard labels as the paper-1 adapter,
+    # PERSON and EMAIL, so it reads through the same table. Without an entry its gold standard would
+    # route through the empty table and every label would be counted unmapped.
     "enron2": _ENRON,
     "cardiode": _CARDIODE,
     "llm": _LLM,

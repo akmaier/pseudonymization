@@ -2,7 +2,7 @@
 # Build ENRON 2.0 (AM, 2026-10-03): body and subject only, deduplicated, CARDIO:DE-sized.
 #
 # One streaming pass over all 517,401 messages of the archive, holding every distinct body in
-# memory (a few GB), then a seeded draw and the gold for the ~4,300 drawn messages. CPU only, no
+# memory (a few GB), then a seeded draw and the gold standard for the ~5,000 drawn messages. CPU only, no
 # gateway. Not on the head node: score_recommended.py was OOM-killed there on Enron.
 #
 #SBATCH --job-name=enron2

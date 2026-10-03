@@ -9,7 +9,7 @@
   property of the text.
 * **Its attack split leaks.** The A3/A5 split is by document id, so 66.8 % of query-half messages
   have a verbatim copy in the reference half: the attack can match the copy instead of the person.
-* **Its identifiers are mostly header.** 75.3 % of the PERSON gold tokens sit in the From/To/Cc
+* **Its identifiers are mostly header.** 75.3 % of the PERSON gold-standard tokens sit in the From/To/Cc
   block, which a deployed system parses and replaces deterministically. A detector benchmark gains
   nothing from them, and they made the PERSON statistics a measurement of header parsing.
 
@@ -22,10 +22,10 @@
 3. Bodies are deduplicated across folders *and* mailboxes, and near-duplicates are removed, so
    every split of the corpus is content-disjoint by construction.
 4. The draw is from all 150 mailboxes with a per-mailbox cap, to CARDIO:DE's token count.
-5. **The gold is header-informed.** The header is parsed, kept out of the text, and used to resolve
+5. **The gold standard is header-informed.** The header is parsed, kept out of the text, and used to resolve
    the names in the body: in a message between two people, a bare first name in the sign-off belongs
-   to one of *them*. The paper-1 gold could only credit a body name that exactly matched some
-   sender's whole display name, so a sign-off was gold only if someone's ``X-From`` was literally
+   to one of *them*. The paper-1 gold standard could only credit a body name that exactly matched some
+   sender's whole display name, so a sign-off entered the gold standard only if someone's ``X-From`` was literally
    that first name — and then every such first name in the corpus went to that one address.
 6. No utility task is attached: folder classification is dropped for this corpus, and §4 already
    gives utility to CARDIO:DE.
@@ -326,7 +326,7 @@ GOLD_RULES: Mapping[str, str] = {
     "f": "participant first or last name",
     "g": "known single name, not a participant",
 }
-"""How each gold mention was found, stored as the mention-id prefix and in ``attributes``.
+"""How each gold-standard mention was found, stored as the mention-id prefix and in ``attributes``.
 
 Kept per mention so the validation sample can measure each rule's precision on its own: the
 participant rules are the new evidence, and the two non-participant rules are the paper-1 behaviour
@@ -355,7 +355,7 @@ ORG_WORDS = frozenset("""
 
 The paper-1 rule takes every multi-token display name as a person, on a measurement over its 15
 mailboxes ("the 2,138 multi-part Enron entities are all people"). Drawn from all 150, the identity
-table also holds senders like *Office of the Chairman* or *Human Resources*, and a gold that credits
+table also holds senders like *Office of the Chairman* or *Human Resources*, and a gold standard that credits
 those as PERSON would punish every detector that correctly leaves them alone."""
 
 
