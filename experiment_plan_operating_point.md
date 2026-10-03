@@ -158,11 +158,11 @@ Why: the paper-1 corpus is 84.9 % body-duplicates; its document split left a ver
 
 How it is built: all 517,401 messages are reprocessed. From/To/Cc are removed and Subject is kept. Embedded header blocks are stripped and quoted-printable text is decoded. Bodies are deduplicated across folders and mailboxes, and near-duplicates are removed. Whole threads are drawn from 148 mailboxes, with no mailbox above 2 % of the budget, to CARDIO:DE's 885,059 tokens. The result is 5,003 messages and 886,468 tokens (seed 0).
 
-Gold: header-informed. It has 6,430 PERSON mentions and 1,866 people.
+Gold standard: rule-derived and header-informed, not human-validated. It has 6,430 PERSON mentions and 1,866 people, and the published code reproduces it exactly from the public archive with seed 0.
 
 A3 ceiling on unmodified text: 0.1097 with the document split, 0.0433 with threads grouped (paper-1 corpus: 0.7198).
 
-A 300-message validation sample measures the gold. There is no utility task. The corpus id is `enron2`; paper 1's `enron` is unchanged.
+There is no utility task. The corpus id is `enron2`; paper 1's `enron` is unchanged.
 
 TAB and OntoNotes are out: 0 of 8,701 TAB and 0 of 13,230 OntoNotes entities appear in two documents,
 so linkage returns Rank-1 = 0 even on unmodified text. They stay in the first paper.
