@@ -13,6 +13,11 @@ CARDIO:DE documents came back truncated. If the real limit is larger, the fix is
 rather than a smaller window -- more windows per document costs calls, and each one re-reads the
 prompt.
 
+**Outcome, 2026-10-03.** The deployment names 1,048,576, and the bigger cap it allowed did not help:
+DeepSeek runs away to whatever cap it is given (25 of the first 29 letters at twice the cap), so it
+was returned to the reasoning family's cap. See ``budget.MODEL_RATIO``. The probe stays useful for
+what it measures; it was the inference drawn from it that was wrong.
+
     PYTHONPATH=src python experiments/probes/context_limit.py deepseek-ai/DeepSeek-V4-Flash-0731
 
 Costs one refused request per model when the deployment validates, and one one-token completion

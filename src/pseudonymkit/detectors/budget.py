@@ -67,23 +67,22 @@ Doubled to plain 2.0 and reasoning 12.0 (AM, 2026-09-21). The window shrinks in 
 long documents take more windows, which costs calls rather than content. A truncated reply costs the
 whole document."""
 
-MODEL_RATIO: Mapping[str, float] = {
-    # **Provisional, and raised on measurement** (2026-10-02). At the family ratio of 12.0,
-    # DeepSeek-V4-Flash-0731 truncated 379 of 400 CARDIO:DE documents; the 21 replies that did
-    # complete needed a completion/prompt ratio with a median of 8.53 and a **maximum of 13.50**,
-    # so 12.0 sits below the observed maximum, let alone the p99 the family figures are taken at.
-    # Doubling is the move AM already made for both families on 2026-09-21 in the same situation.
-    # The cap is not the only fix -- the context above was 32x too small and matters more -- but a
-    # ratio below the observed maximum would still truncate the long letters.
-    # Re-measure with `fit_ratio` once a clean pass exists, and replace this with that number.
-    "deepseek-ai/DeepSeek-V4-Flash-0731": 24.0,
-}
-"""Per-model overrides of :data:`RATIO`, for a model the family figure does not fit.
+MODEL_RATIO: Mapping[str, float] = {}
+"""Per-model overrides of :data:`RATIO`, for a model the family figure does not fit. **None today.**
 
-A family is a budget class, not a claim about architecture, and a model can sit outside its class.
-Overriding one model is preferable to moving the family: the family ratio is baked into every
-cached reply already computed under it, and raising it for everyone would make the pool's figures
-incomparable with each other for the sake of one deployment.
+A family is a budget class, not a claim about architecture, and a model can sit outside its class;
+an override for one model is preferable to moving the family, whose ratio is baked into every reply
+already cached under it.
+
+**DeepSeek-V4-Flash-0731 was given 24.0 on 2026-10-02 and returned to the family on 2026-10-03**
+(AM: *"fix the cap"*), because doubling did not stop its truncation. Measured on CARDIO:DE, under the
+6,000-character window every reasoning model reads: at the family ratio, 379 of 400 letters lost at
+least one window to the cap; at 24.0, 25 of the first 29 did. A truncated window ran to a median of
+39,926 completion tokens against a cap of 45,116 and stopped on ``length``, while a window that
+completed needed about 17,000. The model either finishes well inside the family cap or runs away to
+whatever cap it is given, so a larger cap rescues no letters and only lets the runaway spend twice
+the tokens. That is the model's behaviour on this prompt, not the budget's, and the family cap is the
+protocol every other reasoning model is measured under.
 """
 
 REASONING_MODELS: frozenset[str] = frozenset({
@@ -112,10 +111,10 @@ CONTEXT: Mapping[str, int] = {
     "google/gemma-4-E4B-it": 131_072,
     "Microsoft/Phi-4-mini-instruct": 16_384,
     # Probed 2026-10-02 (`experiments/probes/context_limit.py`): the deployment named
-    # max_model_len=1048576. It had been on DEFAULT_CONTEXT, 32 times too small, and that was the
-    # whole of the truncation: the window came out at (32768-1024)/13 = 2,441 prompt tokens, so a
-    # CARDIO:DE letter was cut into chunks small enough that the fixed cost of reasoning dominated
-    # each one, and 379 of 400 documents came back truncated with 220 carrying no spans at all.
+    # max_model_len=1048576. Recorded because it is measured, not because it fixed anything. It was
+    # taken on 2026-10-02 to be the cause of DeepSeek's truncation, and it was not: the detector
+    # reads 6,000-character windows whatever the budget would allow, so a larger context only adds
+    # headroom above the family cap, and that headroom never binds (see MODEL_RATIO).
     "deepseek-ai/DeepSeek-V4-Flash-0731": 1_048_576,
 }
 """Measured 2026-09-12 and 2026-10-02, not assumed.
@@ -126,19 +125,18 @@ max_model_len=max_total_tokens=262144"*.  Three deployments answered that way.  
 ``Mistral-Small-3.2`` **accepted** the absurd value without validating, and ``Qwen3.6`` returned a
 rate limit before it got that far, so those three fall back to :data:`DEFAULT_CONTEXT`.
 
-Context was thought not to be the binding constraint, on the grounds that at the 6,000-character
-window a reasoning model asks for ~12,500 tokens in total, comfortably inside even the conservative
-fallback. **That reasoning is circular and DeepSeek showed it**: the window is *derived* from the
-context, so a context that is 32 times too small produces a window small enough to keep the total
-inside it, and then truncates because the fixed cost of reasoning no longer fits the slice. A model
-on the fallback is not safe, it is merely quiet about it — probe the limit
-(``experiments/probes/context_limit.py``) rather than assume.
+Context is not the binding constraint in practice.  At the 6,000-character window a reasoning model
+asks for ~12,500 tokens in total, comfortably inside even the conservative fallback.  A larger
+context was tried for DeepSeek on 2026-10-02 as the cure for its truncation and was not one (see
+:data:`MODEL_RATIO`).
 
-What throttles a *run*, as opposed to a request, is still the gateway's **per-key rolling token
-budget** — the 429 reads *"Limit type: tokens. Current limit: 100000"*. Per key, not per model: on
-2026-10-01 a DeepSeek detection pass at 54,000 completion tokens a document starved the A4 jobs of
-every other model, which failed whole cells after 40 attempts. Two gateway-bound runs of different
-models are not independent.
+What actually throttles a run is the gateway's rolling token budget — the 429 reads *"Limit type:
+tokens. Current limit: 100000"* — which is a reason to size ``max_tokens`` correctly rather than
+generously, quite apart from truncation. The evidence of 2026-10-01/02 says it binds **per model**,
+as the plan records (AM, 2026-09-30): Qwen3.6's A4 cells went on failing with 429 after a DeepSeek
+detection pass on the same key had been stopped, while DeepSeek's own A4 ran beside Qwen's with none.
+An earlier version of this docstring said the opposite, that the DeepSeek pass had starved the A4
+jobs of every other model; no other model's A4 job was running at the time.
 """
 
 DEFAULT_CONTEXT = 32_768
