@@ -60,6 +60,9 @@ PRIVACY_TAGGER = Path("models/privacy_tagger.pt")
 CORPORA: tuple[tuple[str, int, Path], ...] = tuple(e for e in (
     ("cardiode", 400, CARDIODE_A),
     ("tab", 1268, CONDITION_A / "tab_A.jsonl.gz"),
+    # ENRON 2.0 (AM, 2026-10-03): body and subject only, deduplicated, CARDIO:DE-sized. Placed by
+    # size; the paper-1 Enron stays last, where the ordering assertion below expects it.
+    ("enron2", 5003, CONDITION_A / "enron2_A.jsonl.gz"),
     ("ontonotes", 5994, CONDITION_A / "ontonotes_A.jsonl.gz"),
     ("enron", 58636, CONDITION_A / "enron_A.jsonl.gz"),
 ) if e[2] is not None)

@@ -45,6 +45,7 @@ CORPORA = {
     "tab": lambda: condition_a_dir() / "tab_A.jsonl.gz",
     "ontonotes": lambda: condition_a_dir() / "ontonotes_A.jsonl.gz",
     "enron": lambda: condition_a_dir() / "enron_A.jsonl.gz",
+    "enron2": lambda: condition_a_dir() / "enron2_A.jsonl.gz",
 }
 
 RULES: tuple[tuple[str, dict], ...] = (
