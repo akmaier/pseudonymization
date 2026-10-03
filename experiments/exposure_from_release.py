@@ -7,6 +7,18 @@ condition-B patch set, whose old_start/old_end are the spans actually overwritte
 engine's own overlap-skipping rule. Those are what an attacker sees, so those are what exposure is
 scored against here.
 
+**Survival is "not covered by a textually effective replacement"** (plan §8.2, fixed 2026-10-03).
+This script used to count a gold token as caught when *any* patch entry overlapped it. That is true
+under C, where every detected type becomes ``[TYPE]``, and false under B: ``DATETIME``, ``QUANTITY``
+and ``MISC`` are rendered by ``PassThrough``, which returns the original surface, so the entry
+exists with the right offsets and the released text is unchanged. On CARDIO:DE that is 82 % of
+mentions — 45,176 of 55,154 are dates. Under the old definition those counted as protected, so B
+looked almost perfectly protective and the B-versus-C comparison compared an artefact of the
+definition. ``construction.changed_text`` now decides it by comparing the replacement against the
+text it overwrote, which covers the pass-through types without naming them and also catches a drawn
+surrogate that collides with its own original. The count of entries that changed nothing is
+reported per corpus rather than left implicit.
+
 Denominators are kept apart because they were being conflated. leakage_profile.py builds its
 entity map inside the per-document loop, so its "entities" are entity-document pairs: a person in
 forty Enron messages counts forty times, which is how an 18 % figure came to be reported as the
@@ -14,21 +26,33 @@ share of *people*. Enron is additionally split at the header boundary, because 8
 identifier tokens sit in the From/To/Cc/Subject block and a name surviving there is a different
 failure from one surviving in a sentence.
 '''
-import json, sys
+import argparse, json, sys
 from collections import defaultdict
 from pathlib import Path
 sys.path.insert(0, 'src'); sys.path.insert(0, 'experiments')
 from pseudonymkit.conditions import CONSTRUCTED, POOLED
-from pseudonymkit.construction import check_current, read_patchset
+from pseudonymkit.construction import (
+    changed_text, check_current, effective_spans, read_patchset,
+)
 from pseudonymkit.metrics.detection import covered_tokens, tokenise
 from pseudonymkit.paths import cardiode_a, cardiode_conditions, condition_a_dir, work_dir
 from pseudonymkit.serialisation import iter_documents
-from pseudonymkit.domain import Span
 from leakage_profile import case_of
 
 REPLACED = frozenset(POOLED) | frozenset(CONSTRUCTED)
 IDENTITY = frozenset({'PERSON'})
-TAG = 'union-single0.5-13det-1797ba'
+DEFAULT_TAG = 'union-single0.5-13det-1797ba'
+
+ap = argparse.ArgumentParser(description=__doc__)
+ap.add_argument('--tag', default=DEFAULT_TAG, help='which patch set to score exposure against')
+ap.add_argument('--condition', default='B', choices=['B', 'C'],
+                help='B is the surrogate release, C the placeholder one. Under C every detected '
+                     'type is replaced by a visibly different string, so the two differ in '
+                     'exactly the way the effectiveness rule above exists to measure.')
+ap.add_argument('--corpora', nargs='+', default=None)
+ap.add_argument('--out', type=Path, default=Path('results/detection'))
+args = ap.parse_args()
+TAG = args.tag
 SOURCES = {
     'cardiode': (cardiode_a, cardiode_conditions),
     'tab': (lambda: condition_a_dir() / 'tab_A.jsonl.gz', lambda: work_dir() / 'results/conditions'),
@@ -38,13 +62,34 @@ SOURCES = {
 
 out = {}
 for corpus, (a_path, cond_root) in SOURCES.items():
+    if args.corpora and corpus not in args.corpora:
+        continue
     documents = list(iter_documents(a_path()))
-    patch_path = cond_root() / f'{corpus}_B_{TAG}.patch.jsonl'
+    patch_path = cond_root() / f'{corpus}_{args.condition}_{TAG}.patch.jsonl'
+    if not patch_path.exists():
+        # Report, do not substitute (§1): a missing patch set is a cell that has not been built,
+        # not a corpus with nothing to measure.
+        print(f'{corpus}: no patch set at {patch_path} — SKIPPED, not substituted', flush=True)
+        continue
     patchset = read_patchset(patch_path)
     check = check_current(documents, patchset)
-    replaced = {p.doc_id: tuple(Span(e.old_start, e.old_end, '', e.entity_type) for e in p.entries)
-                for p in patchset.patches}
+    text_of = {d.doc_id: d.text for d in documents}
+    replaced, entries_total, entries_identical = {}, 0, 0
+    identical_types = defaultdict(int)
+    for patch in patchset.patches:
+        text = text_of.get(patch.doc_id, '')
+        replaced[patch.doc_id] = effective_spans(patch, text)
+        entries_total += len(patch.entries)
+        for entry in patch.entries:
+            if not changed_text(entry, text):
+                entries_identical += 1
+                identical_types[entry.entity_type] += 1
+    entries_effective = entries_total - entries_identical
     print(f'{corpus}: {patch_path.name}, digests verified ({check["patches"]} patches)', flush=True)
+    print(f'  entries {entries_total:,}: {entries_effective:,} changed the text, '
+          f'{entries_identical:,} = {entries_identical / max(entries_total, 1):.1%} did not'
+          + (f' ({", ".join(f"{t} {n:,}" for t, n in sorted(identical_types.items(), key=lambda kv: -kv[1])[:4])})'
+             if identical_types else ''), flush=True)
 
     for label, types in (('person', IDENTITY), ('replaced', REPLACED)):
         people, exposed_people = set(), set()
@@ -103,6 +148,12 @@ for corpus, (a_path, cond_root) in SOURCES.items():
              'exposed_mentions_never_found': clipped['missed']}
         if corpus == 'enron':
             r['exposed_mentions_by_region'] = region
+        r['condition'] = args.condition
+        r['tag'] = TAG
+        r['patch_entries'] = entries_total
+        r['patch_entries_effective'] = entries_effective
+        r['patch_entries_identical'] = entries_identical
+        r['patch_entries_identical_by_type'] = dict(identical_types)
         out.setdefault(corpus, {})[label] = r
         print(f"  {label:8s} people {r['distinct_people_exposed']:>6,}/{r['distinct_people']:>7,}"
               f" = {r['distinct_people_exposed']/max(r['distinct_people'],1):6.2%}"
@@ -113,5 +164,9 @@ for corpus, (a_path, cond_root) in SOURCES.items():
                   f"   header/body {region['header']:,}/{region['body']:,}" if corpus == 'enron' else ''),
               flush=True)
 
-json.dump(out, open('results/detection/exposure_from_release.json', 'w'), indent=1)
-print('wrote results/detection/exposure_from_release.json')
+args.out.mkdir(parents=True, exist_ok=True)
+suffix = '' if args.condition == 'B' else f'_{args.condition}'
+destination = args.out / f'exposure_from_release{suffix}.json'
+json.dump({'condition': args.condition, 'tag': TAG, 'corpora': out},
+          open(destination, 'w'), indent=1)
+print(f'wrote {destination}')

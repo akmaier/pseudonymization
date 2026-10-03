@@ -75,6 +75,9 @@ __all__ = [
     "materialise",
     "write_patchset",
     "read_patchset",
+    "changed_text",
+    "effective_entries",
+    "effective_spans",
 ]
 
 
@@ -98,6 +101,40 @@ class PatchEntry:
     voters: tuple[str, ...] = ()
     """Which detectors produced the span.  Kept so per-detector attribution survives into analysis;
     it is a few short strings per span and compresses well."""
+
+
+def changed_text(entry: PatchEntry, text: str) -> bool:
+    """Whether this entry actually altered the released text.
+
+    **A patch entry is not evidence that an identifier was removed** (plan §8.2). Condition B
+    renders ``DATETIME``, ``QUANTITY`` and ``MISC`` through
+    :class:`~pseudonymkit.surrogates.PassThrough`, which returns the original surface, so the entry
+    exists, the offsets are right, and the released text is character-for-character what it was.
+    On CARDIO:DE that is 82 % of mentions — 45,176 of 55,154 are dates.
+
+    Anything that counts a gold token as protected because *some* entry overlaps it therefore
+    reports almost the whole corpus as caught under B while being correct under C, where every
+    detected type becomes ``[TYPE]``. Comparing the two conditions on that definition compares an
+    artefact of the definition.
+
+    Written as a text comparison rather than a type exclusion on purpose. It covers the pass-through
+    types without naming them, and it also catches the rarer case of a drawn surrogate that collides
+    with the value it replaced: ``differs_from_source`` is enforced only for
+    :data:`~pseudonymkit.conditions.IDENTITY_CHECKED`, so a ``DEMOGRAPHIC`` surrogate may legitimately
+    equal its original.
+    """
+    return entry.replacement != text[entry.old_start:entry.old_end]
+
+
+def effective_entries(patch: "Patch", text: str) -> tuple[PatchEntry, ...]:
+    """The entries of one patch that changed the text, in order."""
+    return tuple(entry for entry in patch.entries if changed_text(entry, text))
+
+
+def effective_spans(patch: "Patch", text: str) -> tuple[Span, ...]:
+    """Condition-A spans that were textually overwritten — what an attacker cannot read."""
+    return tuple(Span(entry.old_start, entry.old_end, "", entry.entity_type)
+                 for entry in effective_entries(patch, text))
 
 
 @dataclass(frozen=True, slots=True)

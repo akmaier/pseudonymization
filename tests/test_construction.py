@@ -324,3 +324,45 @@ def test_pairs_to_cover_ignores_types_with_no_pool(tmp_path, monkeypatch):
     ))]
     assert pairs_to_cover(docs, None, {"en"}) == {("PERSON", "en")}
     assert pairs_to_cover(None, {("DATETIME", "en"), ("PERSON", "en")}, {"en"}) == {("PERSON", "en")}
+
+
+# ------------------------------------------------------- textually effective replacements (§8.2)
+
+
+def test_a_passthrough_entry_changed_nothing_and_says_so() -> None:
+    """``PassThrough`` writes the original surface back, so the entry exists and the text does not
+    change. Counting such a token as protected is what made condition B look almost perfectly
+    protective on CARDIO:DE, where 82 % of mentions are pass-through types."""
+    from pseudonymkit.construction import PatchEntry, changed_text
+
+    text = "seen on 14.03.2019 by Dr Weber"
+    date = PatchEntry(old_start=8, old_end=18, new_start=8, new_end=18,
+                      replacement="14.03.2019", entity_key="d", entity_type="DATETIME")
+    name = PatchEntry(old_start=25, old_end=30, new_start=25, new_end=29,
+                      replacement="Kainz", entity_key="w", entity_type="PERSON")
+    assert changed_text(date, text) is False
+    assert changed_text(name, text) is True
+
+
+def test_effective_spans_keep_only_the_entries_that_overwrote_something() -> None:
+    from pseudonymkit.construction import Patch, PatchEntry, effective_entries, effective_spans
+
+    text = "seen on 14.03.2019 by Dr Weber"
+    patch = Patch(doc_id="d1", entries=(
+        PatchEntry(8, 18, 8, 18, "14.03.2019", "d", "DATETIME"),
+        PatchEntry(25, 30, 25, 29, "Kainz", "w", "PERSON"),
+    ))
+    assert len(effective_entries(patch, text)) == 1
+    spans = effective_spans(patch, text)
+    assert [(s.start, s.end, s.type) for s in spans] == [(25, 30, "PERSON")]
+
+
+def test_a_surrogate_that_collides_with_its_own_original_is_not_effective() -> None:
+    """``differs_from_source`` is enforced only for IDENTITY_CHECKED, so a DEMOGRAPHIC surrogate
+    may legitimately equal the value it replaced. A type-based rule would miss that; a text
+    comparison does not."""
+    from pseudonymkit.construction import PatchEntry, changed_text
+
+    text = "the patient is male"
+    entry = PatchEntry(15, 19, 15, 19, "male", "m", "DEMOGRAPHIC")
+    assert changed_text(entry, text) is False
