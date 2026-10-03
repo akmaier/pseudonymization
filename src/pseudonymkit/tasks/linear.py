@@ -52,6 +52,12 @@ __all__ = [
     "TfidfLogisticClassifier",
     "TfidfLogisticTagger",
     "Artefact",
+    "CrossFit",
+    "Features",
+    "build_vectoriser",
+    "cross_fit_single_label_classifier",
+    "cross_fit_span_tagger",
+    "split_folds",
     "bio_tags",
     "decode_bio",
     "split_documents",
@@ -74,6 +80,71 @@ boundary inside those and the tagger could then never match a gold span exactly,
 _FEATURE_TOKEN = r"\S+"
 """The per-token feature strings are space-separated, so the vectoriser must not split on anything
 else: a feature is ``suf3=rin``, and the default word pattern would tear it into two."""
+
+
+# -------------------------------------------------------------------------------- the feature set
+
+
+@dataclass(frozen=True)
+class Features:
+    """Which TF-IDF features a classifier is fitted on, as one recordable object.
+
+    The default is word unigrams, which is what the first fit used. It is enough for CARDIO:DE's
+    fourteen section types (0.9605) and **not** enough for Enron's folder task, where it reached
+    0.2530 against a majority-class baseline of 0.2621 — an instrument below the rate of answering
+    "All documents" every time, which §8.3 says cannot measure a loss.
+
+    ``char_ngrams`` adds a second vectoriser over character n-grams inside word boundaries and
+    unions the two feature spaces. For e-mail that is not a refinement but a different kind of
+    evidence: a folder is signalled by addresses, signature blocks, quoted headers and spellings
+    that a word tokeniser shatters. The two are unioned rather than swapped so a configuration can
+    be compared against the unigram one it replaces.
+
+    Every field lands in the artefact, so a result row says what its instrument was fitted on
+    rather than what the module's defaults happened to be on the day.
+    """
+
+    word_ngrams: tuple[int, int] = (1, 1)
+    char_ngrams: tuple[int, int] | None = None
+    min_df: int = 2
+    max_features: int = 200_000
+    sublinear_tf: bool = True
+
+    def describe(self) -> dict[str, object]:
+        return {
+            "word_ngrams": list(self.word_ngrams),
+            "char_ngrams": list(self.char_ngrams) if self.char_ngrams else None,
+            "min_df": self.min_df,
+            "max_features": self.max_features,
+            "sublinear_tf": self.sublinear_tf,
+        }
+
+
+def build_vectoriser(features: Features, token_pattern: str | None = None) -> Any:
+    """The vectoriser for a feature set — one ``TfidfVectorizer``, or a union of two.
+
+    ``token_pattern`` is for the span tagger, whose "documents" are space-separated feature
+    strings like ``suf3=rin`` that the default word pattern would tear in two.
+    """
+    from sklearn.feature_extraction.text import TfidfVectorizer
+
+    word_kwargs: dict[str, Any] = dict(
+        sublinear_tf=features.sublinear_tf, min_df=features.min_df,
+        max_features=features.max_features, ngram_range=features.word_ngrams,
+    )
+    if token_pattern is not None:
+        word_kwargs["token_pattern"] = token_pattern
+    word = TfidfVectorizer(**word_kwargs)
+    if not features.char_ngrams:
+        return word
+
+    from sklearn.pipeline import FeatureUnion
+
+    char = TfidfVectorizer(
+        analyzer="char_wb", ngram_range=features.char_ngrams, sublinear_tf=features.sublinear_tf,
+        min_df=features.min_df, max_features=features.max_features,
+    )
+    return FeatureUnion([("word", word), ("char", char)])
 
 
 # ------------------------------------------------------------------------------------- artefacts
@@ -237,6 +308,35 @@ class TfidfLogisticClassifier:
         return [float(v) for v in values[0]]
 
 
+def _fit_classifier(
+    texts: Mapping[str, str],
+    labels: Mapping[str, str],
+    train: Sequence[str],
+    *,
+    task_name: str,
+    seed: int,
+    features: Features,
+    regularisation: float,
+    class_weight: str | None,
+) -> TfidfLogisticClassifier:
+    """Fit one vectoriser and one logistic regression on ``train``, and freeze them.
+
+    Shared by the single-split and the cross-fitted paths so a fold's estimator cannot drift from
+    the estimator the single-split diagnostic measured.
+    """
+    from sklearn.linear_model import LogisticRegression
+
+    vectoriser = build_vectoriser(features)
+    matrix = vectoriser.fit_transform([texts[i] for i in train])
+    model = LogisticRegression(max_iter=2_000, random_state=seed, C=regularisation,
+                               class_weight=class_weight)
+    model.fit(matrix, [labels[i] for i in train])
+    return TfidfLogisticClassifier(
+        vectoriser=vectoriser, model=model, task_name=task_name,
+        fingerprint=_fingerprint(vectoriser, model),
+    )
+
+
 def train_single_label_classifier(
     texts: Mapping[str, str],
     labels: Mapping[str, str],
@@ -246,8 +346,8 @@ def train_single_label_classifier(
     score_ids: Sequence[str],
     corpus: str,
     seed: int = 0,
-    min_df: int = 2,
-    max_features: int = 200_000,
+    features: Features | None = None,
+    regularisation: float = 1.0,
     class_weight: str | None = "balanced",
     record_ids: tuple[Sequence[str], Sequence[str]] | None = None,
 ) -> Artefact:
@@ -271,8 +371,7 @@ def train_single_label_classifier(
     that is what the runner has to filter on: the scored document set must be identical in A, B and
     C for the pairing to survive, and it is documents that are paired.
     """
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.linear_model import LogisticRegression
+    features = features or Features()
 
     def usable(ids: Sequence[str]) -> list[str]:
         return [i for i in ids if texts.get(i) and labels.get(i)]
@@ -284,17 +383,9 @@ def train_single_label_classifier(
             f"{len({labels[i] for i in train})} distinct labels; a classifier needs two"
         )
 
-    vectoriser = TfidfVectorizer(
-        sublinear_tf=True, min_df=min_df, max_features=max_features, strip_accents=None
-    )
-    matrix = vectoriser.fit_transform([texts[i] for i in train])
-    model = LogisticRegression(max_iter=2_000, random_state=seed, class_weight=class_weight)
-    model.fit(matrix, [labels[i] for i in train])
-
-    scorer = TfidfLogisticClassifier(
-        vectoriser=vectoriser, model=model, task_name=task_name,
-        fingerprint=_fingerprint(vectoriser, model),
-    )
+    scorer = _fit_classifier(texts, labels, train, task_name=task_name, seed=seed,
+                             features=features, regularisation=regularisation,
+                             class_weight=class_weight)
     offered = sorted({labels[i] for i in list(train) + list(score)})
     correct = sum(scorer.classify(texts[i], offered) == labels[i] for i in score)
     # **The baseline is the majority class, not 1/k.**  §8.3's "near chance on the original" test
@@ -317,6 +408,8 @@ def train_single_label_classifier(
         holdout_score=correct / len(score) if score else 0.0,
         metadata={
             "kind": "single-label",
+            "features": features.describe(),
+            "regularisation": regularisation,
             "unit": "document" if record_ids is None else "section",
             "holdout_metric": "accuracy over the scored units",
             # The runner's per-letter score averages over a letter's sections first; this is the
@@ -328,7 +421,6 @@ def train_single_label_classifier(
             "scored_units": len(score),
             "labels": len(offered),
             "dropped_no_label": len(train_ids) + len(score_ids) - len(train) - len(score),
-            "features": int(matrix.shape[1]),
             "versions": _versions(),
         },
     )
@@ -463,6 +555,34 @@ class TfidfLogisticTagger:
         return [span for span in decode_bio(tokens, tags) if span[2] in allowed]
 
 
+def _fit_tagger(
+    rows: Sequence[str],
+    tags: Sequence[str],
+    *,
+    task_name: str,
+    seed: int,
+    features: Features,
+    regularisation: float,
+) -> TfidfLogisticTagger:
+    """Fit the BIO tagger on per-token feature strings, and freeze it.
+
+    ``class_weight`` is fixed at ``balanced`` here rather than exposed: the classes are BIO tags
+    over tokens, where ``O`` is the overwhelming majority by construction rather than by the
+    corpus, so it is not a judgement call the way it is for a label set.
+    """
+    from sklearn.linear_model import LogisticRegression
+
+    vectoriser = build_vectoriser(features, token_pattern=_FEATURE_TOKEN)
+    matrix = vectoriser.fit_transform(rows)
+    model = LogisticRegression(max_iter=2_000, random_state=seed, C=regularisation,
+                               class_weight="balanced")
+    model.fit(matrix, list(tags))
+    return TfidfLogisticTagger(
+        vectoriser=vectoriser, model=model, task_name=task_name,
+        fingerprint=_fingerprint(vectoriser, model),
+    )
+
+
 def train_span_tagger(
     texts: Mapping[str, str],
     spans: Mapping[str, Sequence[tuple[int, int, str]]],
@@ -473,8 +593,8 @@ def train_span_tagger(
     classes: Sequence[str],
     task_name: str = "medication_ie",
     seed: int = 0,
-    min_df: int = 1,
-    max_features: int = 1_000_000,
+    features: Features | None = None,
+    regularisation: float = 1.0,
 ) -> Artefact:
     """Fit the BIO tagger on the training half of condition A; report held-out span F1.
 
@@ -482,11 +602,9 @@ def train_span_tagger(
     :func:`pseudonymkit.metrics.utility.span_f1`, which is exactly what the runner computes, so the
     number returned here is the instrument's own ceiling in the units the results are reported in.
     """
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.linear_model import LogisticRegression
-
     from ..metrics.utility import span_f1
 
+    features = features or Features(min_df=1, max_features=1_000_000)
     keep = set(classes)
     rows: list[str] = []
     tags: list[str] = []
@@ -502,17 +620,8 @@ def train_span_tagger(
     if len(set(tags)) < 2:
         raise ValueError(f"{task_name}: the training half carries no gold span of any kept class")
 
-    vectoriser = TfidfVectorizer(
-        token_pattern=_FEATURE_TOKEN, sublinear_tf=True, min_df=min_df, max_features=max_features
-    )
-    matrix = vectoriser.fit_transform(rows)
-    model = LogisticRegression(max_iter=2_000, random_state=seed, class_weight="balanced")
-    model.fit(matrix, tags)
-
-    scorer = TfidfLogisticTagger(
-        vectoriser=vectoriser, model=model, task_name=task_name,
-        fingerprint=_fingerprint(vectoriser, model),
-    )
+    scorer = _fit_tagger(rows, tags, task_name=task_name, seed=seed, features=features,
+                         regularisation=regularisation)
     scored_ids = [i for i in score_ids if texts.get(i) and spans.get(i)]
     held = [
         span_f1([s for s in spans[i] if s[2] in keep], scorer.extract(texts[i], list(classes)))
@@ -532,7 +641,233 @@ def train_span_tagger(
             "classes": len(keep),
             "tags": len(set(tags)),
             "train_tokens": len(rows),
-            "features": int(matrix.shape[1]),
+            "features": features.describe(),
+            "regularisation": regularisation,
+            "versions": _versions(),
+        },
+    )
+
+# ------------------------------------------------------------------------------------ cross-fitting
+
+
+def split_folds(
+    doc_ids: Sequence[str], *, k: int = 5, seed: int = 0
+) -> tuple[tuple[str, ...], ...]:
+    """Partition document ids into ``k`` document-disjoint folds.
+
+    Sorted before shuffling, so the folds depend on the seed and the corpus and never on the order
+    the adapter happened to yield.
+    """
+    import random
+
+    if k < 2:
+        raise ValueError(f"cross-fitting needs at least two folds, not {k}")
+    unique = sorted(set(doc_ids))
+    rng = random.Random(seed)
+    rng.shuffle(unique)
+    return tuple(tuple(sorted(unique[index::k])) for index in range(k))
+
+
+@dataclass
+class CrossFit:
+    """One instrument made of ``k`` estimators and the fold each document belongs to.
+
+    **Why cross-fitting rather than one held-out half** (AM, 2026-10-03). A scorer must not be
+    asked to score a document it was fitted on — that measures memorisation, and under B and C it
+    would read as a utility loss the pseudonymisation did not cause. A single 50/50 split obeys
+    that by scoring only half the corpus, which halves *n* for every paired test. Cross-fitting
+    obeys it while scoring **every** document: fold *f* is scored by the estimator fitted on the
+    other *k−1* folds, so no document is ever seen by the model that scores it.
+
+    **It is still one fixed instrument, which is what §8.3 requires.** The section promises "one
+    fixed scorer model named in every result row". A cross-fitted estimator is a single frozen
+    object: *k* sets of weights plus a fold assignment by document id. The assignment depends on
+    the corpus and the seed and **not** on the condition, so the same weights score A, B and C for
+    any given document — which is the property that makes a difference between conditions
+    attributable to the condition. :attr:`name` carries one fingerprint over all *k* estimators,
+    so two rows quoting the same name are quoting the same instrument.
+
+    The port is not implemented here on purpose. ``classify`` and ``extract`` take text and no
+    document id, so a :class:`CrossFit` cannot know which estimator to use; the caller scores
+    fold by fold with :meth:`scorer_for` and concatenates. That is exactly as cheap as one pass,
+    because each fold's estimator only scores its own fold.
+    """
+
+    scorers: tuple[Any, ...]
+    folds: tuple[tuple[str, ...], ...]
+    task_name: str
+    fingerprint: str = ""
+
+    @property
+    def name(self) -> str:
+        return (f"linear:tfidf-lr/{self.task_name}@{len(self.scorers)}fold-"
+                f"{self.fingerprint or 'unfitted'}")
+
+    def scorer_for(self, fold: int) -> Any:
+        return self.scorers[fold]
+
+    def fold_of(self, doc_id: str) -> int:
+        for index, members in enumerate(self.folds):
+            if doc_id in members:
+                return index
+        raise KeyError(f"{doc_id} is in none of the {len(self.folds)} folds")
+
+    def documents(self) -> tuple[str, ...]:
+        return tuple(sorted(d for fold in self.folds for d in fold))
+
+
+def _pooled(scores: Sequence[float]) -> float:
+    return sum(scores) / len(scores) if scores else 0.0
+
+
+def cross_fit_single_label_classifier(
+    texts: Mapping[str, str],
+    labels: Mapping[str, str],
+    *,
+    task_name: str,
+    folds: Sequence[Sequence[str]],
+    corpus: str,
+    seed: int = 0,
+    features: Features | None = None,
+    regularisation: float = 1.0,
+    class_weight: str | None = "balanced",
+    units_of: Any = None,
+) -> Artefact:
+    """Cross-fit a single-label classifier over document folds; score every document out of fold.
+
+    ``folds`` are **document** ids. ``units_of`` maps a set of document ids to the unit keys of
+    ``texts``/``labels`` for those documents, and exists because the unit is not always the
+    document: section classification fits on sections. Without it the unit keys are the document
+    ids themselves.
+
+    The reported score is pooled over every unit, each scored by the estimator that never saw its
+    document — so it covers the whole corpus and is still honest.
+    """
+    features = features or Features()
+    folds = [tuple(f) for f in folds]
+    unit_keys = units_of or (lambda ids: [i for i in ids if i in texts])
+
+    scorers: list[Any] = []
+    offered = sorted({v for v in labels.values() if v})
+    per_unit: list[float] = []
+    gold: list[str] = []
+
+    for index, fold in enumerate(folds):
+        rest = [d for other, members in enumerate(folds) if other != index for d in members]
+        train = [i for i in unit_keys(rest) if texts.get(i) and labels.get(i)]
+        score = [i for i in unit_keys(fold) if texts.get(i) and labels.get(i)]
+        if len({labels[i] for i in train}) < 2:
+            raise ValueError(
+                f"{task_name}: fold {index} leaves "
+                f"{len({labels[i] for i in train})} distinct labels to train on; a classifier "
+                f"needs two"
+            )
+        scorer = _fit_classifier(texts, labels, train, task_name=task_name, seed=seed,
+                                 features=features, regularisation=regularisation,
+                                 class_weight=class_weight)
+        scorers.append(scorer)
+        for key in score:
+            per_unit.append(float(scorer.classify(texts[key], offered) == labels[key]))
+            gold.append(labels[key])
+
+    counts: dict[str, int] = {}
+    for label in gold:
+        counts[label] = counts.get(label, 0) + 1
+    majority = (max(counts.values()) / len(gold)) if gold else 0.0
+
+    cross = CrossFit(scorers=tuple(scorers), folds=tuple(folds), task_name=task_name,
+                     fingerprint=_fingerprint(*scorers))
+    return Artefact(
+        scorer=cross, task=task_name, corpus=corpus, seed=seed,
+        train_doc_ids=(),          # every document trains k-1 of the k estimators; see `folds`
+        score_doc_ids=cross.documents(),
+        holdout_score=_pooled(per_unit),
+        metadata={
+            "kind": "single-label",
+            "cross_fitted": len(folds),
+            "fold_sizes": [len(f) for f in folds],
+            "unit": "document" if units_of is None else "section",
+            "holdout_metric": "out-of-fold accuracy over every scored unit",
+            "chance": 1.0 / len(offered) if offered else 0.0,
+            "majority_baseline": majority,
+            "scored_units": len(per_unit),
+            "labels": len(offered),
+            "features": features.describe(),
+            "regularisation": regularisation,
+            "class_weight": class_weight,
+            "versions": _versions(),
+        },
+    )
+
+
+def cross_fit_span_tagger(
+    texts: Mapping[str, str],
+    spans: Mapping[str, Sequence[tuple[int, int, str]]],
+    *,
+    folds: Sequence[Sequence[str]],
+    corpus: str,
+    classes: Sequence[str],
+    task_name: str = "medication_ie",
+    seed: int = 0,
+    features: Features | None = None,
+    regularisation: float = 1.0,
+) -> Artefact:
+    """Cross-fit the BIO tagger over document folds; score every document out of fold.
+
+    The reported score is the mean of :func:`pseudonymkit.metrics.utility.span_f1` over every
+    document that carries gold, each scored by the estimator that never saw it — the same metric
+    the runner computes, so the number is the instrument's ceiling in the units of the results.
+    """
+    from ..metrics.utility import span_f1
+
+    features = features or Features(min_df=1, max_features=1_000_000)
+    folds = [tuple(f) for f in folds]
+    keep = set(classes)
+    scorers: list[Any] = []
+    held: list[float] = []
+
+    for index, fold in enumerate(folds):
+        rest = [d for other, members in enumerate(folds) if other != index for d in members]
+        rows: list[str] = []
+        tags: list[str] = []
+        for doc_id in rest:
+            text = texts.get(doc_id)
+            if not text:
+                continue
+            tokens = tokenise(text)
+            rows.extend(token_features(tokens, position) for position in range(len(tokens)))
+            tags.extend(bio_tags(tokens, [s for s in spans.get(doc_id, ()) if s[2] in keep]))
+        if len(set(tags)) < 2:
+            raise ValueError(
+                f"{task_name}: fold {index} leaves no gold span of any kept class to train on")
+        scorer = _fit_tagger(rows, tags, task_name=task_name, seed=seed, features=features,
+                             regularisation=regularisation)
+        scorers.append(scorer)
+        del rows, tags
+        for doc_id in fold:
+            text = texts.get(doc_id)
+            gold = [s for s in spans.get(doc_id, ()) if s[2] in keep]
+            if not text or not gold:
+                continue
+            held.append(span_f1(gold, scorer.extract(text, list(classes))))
+
+    cross = CrossFit(scorers=tuple(scorers), folds=tuple(folds), task_name=task_name,
+                     fingerprint=_fingerprint(*scorers))
+    return Artefact(
+        scorer=cross, task=task_name, corpus=corpus, seed=seed,
+        train_doc_ids=(),
+        score_doc_ids=cross.documents(),
+        holdout_score=_pooled(held),
+        metadata={
+            "kind": "bio-tagger",
+            "cross_fitted": len(folds),
+            "fold_sizes": [len(f) for f in folds],
+            "holdout_metric": "mean out-of-fold exact-match span F1",
+            "chance": None,
+            "classes": len(keep),
+            "scored_documents": len(held),
+            "features": features.describe(),
+            "regularisation": regularisation,
             "versions": _versions(),
         },
     )

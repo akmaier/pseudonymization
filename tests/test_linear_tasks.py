@@ -276,3 +276,119 @@ def test_an_artefact_round_trips_through_disk_with_its_provenance_readable(tmp_p
     assert sidecar["scorer"] == artefact.scorer.name
     assert sidecar["scored_on"] == len(artefact.score_doc_ids)
     assert "scikit-learn" in sidecar["versions"]
+
+
+# --------------------------------------------------------------------------------- cross-fitting
+
+
+def test_folds_are_document_disjoint_and_cover_everything() -> None:
+    from pseudonymkit.tasks.linear import split_folds
+
+    ids = [f"d{i}" for i in range(23)]
+    folds = split_folds(ids, k=5, seed=0)
+    assert len(folds) == 5
+    flat = [d for fold in folds for d in fold]
+    assert sorted(flat) == sorted(ids)
+    assert len(flat) == len(set(flat))
+
+
+def test_folds_depend_on_the_seed_not_on_the_input_order() -> None:
+    from pseudonymkit.tasks.linear import split_folds
+
+    ids = [f"d{i}" for i in range(20)]
+    assert split_folds(ids, seed=0) == split_folds(list(reversed(ids)), seed=0)
+    assert split_folds(ids, seed=0) != split_folds(ids, seed=1)
+
+
+def test_one_fold_is_refused_there_is_nothing_to_hold_out() -> None:
+    from pseudonymkit.tasks.linear import split_folds
+
+    with pytest.raises(ValueError, match="at least two folds"):
+        split_folds(["a", "b"], k=1)
+
+
+def test_the_crossfit_name_carries_the_fold_count_and_one_fingerprint() -> None:
+    from pseudonymkit.tasks.linear import CrossFit
+
+    cross = CrossFit(scorers=(1, 2, 3), folds=(("a",), ("b",), ("c",)),
+                     task_name="t", fingerprint="dead99")
+    assert cross.name == "linear:tfidf-lr/t@3fold-dead99"
+    assert cross.documents() == ("a", "b", "c")
+    assert cross.fold_of("b") == 1
+    with pytest.raises(KeyError):
+        cross.fold_of("zzz")
+
+
+def test_a_crossfit_classifier_scores_every_document_out_of_fold() -> None:
+    pytest.importorskip("sklearn", reason="scikit-learn is the optional `tasks` extra")
+    from pseudonymkit.tasks.linear import cross_fit_single_label_classifier, split_folds
+
+    texts = {f"d{i}": ("fieber husten schnupfen" if i % 2 else "ramipril aspirin dosis")
+             for i in range(40)}
+    labels = {f"d{i}": ("anamnese" if i % 2 else "medikation") for i in range(40)}
+    folds = split_folds(list(texts), k=5, seed=0)
+
+    artefact = cross_fit_single_label_classifier(
+        texts, labels, task_name="section_classification", folds=folds, corpus="fixture",
+        features=None, regularisation=1.0,
+    )
+    # Every document is scored, which is the whole reason for cross-fitting.
+    assert len(artefact.score_doc_ids) == 40
+    assert artefact.metadata["scored_units"] == 40
+    assert artefact.metadata["cross_fitted"] == 5
+    assert artefact.holdout_score == 1.0
+    assert artefact.train_doc_ids == ()
+    assert "5fold-" in artefact.scorer.name
+
+
+def test_a_crossfit_tagger_scores_every_document_that_carries_gold() -> None:
+    pytest.importorskip("sklearn", reason="scikit-learn is the optional `tasks` extra")
+    from pseudonymkit.tasks.linear import cross_fit_span_tagger, split_folds
+
+    texts, spans = {}, {}
+    for i in range(40):
+        text = f"Patient {i} nimmt Ramipril taeglich."
+        texts[f"d{i}"] = text
+        start = text.index("Ramipril")
+        spans[f"d{i}"] = [(start, start + len("Ramipril"), "DRUG")]
+    folds = split_folds(list(texts), k=5, seed=0)
+
+    artefact = cross_fit_span_tagger(
+        texts, spans, folds=folds, corpus="fixture", classes=["DRUG"])
+    assert artefact.metadata["scored_documents"] == 40
+    assert artefact.holdout_score == 1.0
+
+
+def test_a_crossfit_artefact_round_trips_and_names_its_features(tmp_path) -> None:
+    pytest.importorskip("sklearn", reason="scikit-learn is the optional `tasks` extra")
+    import json
+
+    from pseudonymkit.tasks.linear import (
+        Features, cross_fit_single_label_classifier, load_artefact, save_artefact, split_folds,
+    )
+
+    texts = {f"d{i}": ("a a a" if i % 2 else "b b b") for i in range(20)}
+    labels = {f"d{i}": ("A" if i % 2 else "B") for i in range(20)}
+    features = Features(word_ngrams=(1, 2), char_ngrams=(3, 4), min_df=1)
+    artefact = cross_fit_single_label_classifier(
+        texts, labels, task_name="t", folds=split_folds(list(texts), k=4, seed=0),
+        corpus="fixture", features=features,
+    )
+    path = save_artefact(artefact, tmp_path / "t.pkl")
+    again = load_artefact(path)
+
+    assert again.scorer.name == artefact.scorer.name
+    assert len(again.scorer.scorers) == 4
+    sidecar = json.loads((tmp_path / "t.json").read_text())
+    assert sidecar["features"] == {"word_ngrams": [1, 2], "char_ngrams": [3, 4], "min_df": 1,
+                                  "max_features": 200_000, "sublinear_tf": True}
+
+
+def test_a_char_ngram_feature_set_unions_two_vectorisers() -> None:
+    pytest.importorskip("sklearn", reason="scikit-learn is the optional `tasks` extra")
+    from pseudonymkit.tasks.linear import Features, build_vectoriser
+
+    word_only = build_vectoriser(Features(min_df=1))
+    both = build_vectoriser(Features(char_ngrams=(3, 4), min_df=1))
+    rows = ["alpha beta", "gamma delta", "alpha gamma"]
+    assert both.fit_transform(rows).shape[1] > word_only.fit_transform(rows).shape[1]
