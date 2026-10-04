@@ -15,6 +15,25 @@ says why, one cause per exposed mention, so the causes add up to the total:
 It also puts the two sides of one ensemble side by side: what the detectors found (sensitivity over
 the union of the ensemble's spans) and what the released text no longer says (the patch set).
 
+Measured on CARDIO:DE, recommended 13-detector union, condition B, 2026-10-04:
+
+    PERSON gold-standard tokens                      4,396
+    detection side, union of the 13               0.999773     1 token never found
+    release   side, the patch set                 0.987261    56 tokens never overwritten
+
+    37 person mentions exposed, by cause
+      31  their PERSON span lost the overlap to an earlier span that misses the name
+          (the winner: ORG 18, MISC 8, DATETIME 5)
+       3  overwritten with their own characters (an unchanged-type replacement)
+       2  partly overwritten
+       1  never detected
+       0  covered only by a CODE span the rule removed (of 455 it removed)
+
+The engine resolves overlaps by keeping the span that starts first. A title, an organisation or a
+date that starts before a longer PERSON span and ends before the name wins, the PERSON span is
+skipped, and the name stays in clear text although twelve detectors found it. This is the threat
+``experiment_plan_operating_point.md`` §12 lists with its "rate currently unknown".
+
 **Two corrections to the first version of this script (2026-10-03), which are part of the record:**
 
 * It reported that the CODE rule accounted for none of the exposed mentions and called that a
