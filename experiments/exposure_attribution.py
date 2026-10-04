@@ -93,6 +93,25 @@ def ensemble_of(tag: str, pool: Sequence[str]) -> tuple[str, ...] | None:
     return None
 
 
+def overlap_losers(spans):
+    """``{skipped span: the span that beat it}`` under the engine's own rule.
+
+    ``Pseudonymiser.pseudonymise`` visits mentions sorted by ``(start, -length)`` and skips any whose
+    start falls before the end of the last one it replaced. Replayed here on the ensemble's spans,
+    because the patch set keeps only a count of skipped mentions, not which ones or why.
+    """
+    losers = {}
+    cursor = 0
+    winner = None
+    for span in sorted(spans, key=lambda s: (s.start, -(s.end - s.start))):
+        if span.start < cursor:
+            losers[span] = winner
+            continue
+        winner = span
+        cursor = span.end
+    return losers
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--corpus', required=True, choices=sorted(SOURCES))
@@ -169,6 +188,7 @@ def main() -> int:
             for e in patch.entries if not changed_text(e, document.text)))
 
         entry_spans = tuple((e.old_start, e.old_end) for e in patch.entries)
+        losers = overlap_losers(detected_spans.get(document.doc_id, ()))
         removed_count = len(removed)
         counts['code_spans_removed_by_the_rule'] += removed_count
 
@@ -197,6 +217,12 @@ def main() -> int:
                 attributed.add(key)
             elif any(s < mention.span.end and mention.span.start < e for s, e in entry_spans):
                 cause = 'an entry overlaps its characters but none of its tokens'
+            elif any(covered_tokens(tokens, (lost,)) & index for lost in losers):
+                cause = 'its detected span lost the overlap to an earlier span that misses the name'
+                for lost, won in losers.items():
+                    if covered_tokens(tokens, (lost,)) & index and won is not None:
+                        counts[f'  winner type: {won.type} ({won.type_src or "-"})'] += 1
+                        break
             elif index & detected_cover:
                 cause = 'detected, but no replacement entry reached it'
             else:
