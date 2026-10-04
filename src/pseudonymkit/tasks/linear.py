@@ -270,10 +270,15 @@ class TfidfLogisticClassifier:
     model: Any
     task_name: str
     fingerprint: str = ""
-    max_chars: int = 12_000
-    """Matches ``_LlmModel.max_chars``.  It is applied identically in every condition, so it cannot
-    bias the comparison, and keeping the two instruments on the same document budget is what lets a
-    linear number be read beside a prompted one."""
+    max_chars: int | None = None
+    """No cap: the whole text is read (2026-10-04).
+
+    The first version copied ``_LlmModel.max_chars = 12_000`` from the prompted scorers, which need
+    it for their prompt budget; a linear model has none. Its docstring claimed the cap "cannot bias
+    the comparison" because it is applied in every condition. That was wrong: B and C change the
+    length of the text, so a fixed cut-off covers different gold-standard spans in each condition.
+    On CARDIO:DE 149 of 400 letters are longer than 12,000 characters and 22.8 % of the gold-standard
+    medication spans start beyond that point, where the instrument could never see them."""
 
     @property
     def name(self) -> str:
@@ -287,7 +292,8 @@ class TfidfLogisticClassifier:
         allowed = [index for index, label in enumerate(known) if label in set(offered)]
         if not allowed:
             return ""
-        scores = self._scores(text[: self.max_chars], len(known))
+        body = text if self.max_chars is None else text[: self.max_chars]
+        scores = self._scores(body, len(known))
         best = max(allowed, key=lambda index: (scores[index], -index))
         return str(known[best])
 
@@ -538,14 +544,15 @@ class TfidfLogisticTagger:
     model: Any
     task_name: str = "medication_ie"
     fingerprint: str = ""
-    max_chars: int = 12_000
+    max_chars: int | None = None
+    """No cap, for the reason given on :class:`TfidfLogisticClassifier`."""
 
     @property
     def name(self) -> str:
         return f"linear:tfidf-lr/{self.task_name}@{self.fingerprint or 'unfitted'}"
 
     def extract(self, text: str, classes: Sequence[str]) -> list[tuple[int, int, str]]:
-        body = text[: self.max_chars]
+        body = text if self.max_chars is None else text[: self.max_chars]
         tokens = tokenise(body)
         if not tokens:
             return []

@@ -15,13 +15,15 @@ Three instruments, each on the corpus that carries its gold:
     cardiode  medication_ie             9 medication classes, a BIO tagger scored by span F1
     enron     folder_classification     the mailbox folder, one label per message
 
-**Nothing is fitted on a document it will later score.** The split is document-disjoint and seeded
-(``split_documents``), the training half is used for fitting and the scoring half is recorded in
-the artefact so every condition is scored on exactly the same documents. Fitting and scoring the
-same text would measure memorisation and would read as a utility loss under B and C that the
-pseudonymisation did not cause. :mod:`pseudonymkit.tasks.linear` states the reasoning in full.
+**Nothing is fitted on a document it will later score, and every document is scored.** The
+instruments are cross-fitted (AM, 2026-10-03): the documents are split into k document-disjoint
+folds (``split_folds``), fold *f* is scored by the estimator fitted on the other *k−1*, and the
+artefact holds all *k* estimators with the fold assignment. The first version scored a single 50/50
+half, which halved *n* for every paired test. Fitting and scoring the same text would measure
+memorisation and read as a utility loss under B and C that the pseudonymisation did not cause.
+:mod:`pseudonymkit.tasks.linear` states the reasoning in full.
 
-**The held-out condition-A score is the point of the run, not a by-product.** §8.3: *"If the frozen
+**The out-of-fold condition-A score is the point of the run, not a by-product.** §8.3: *"If the frozen
 model is near chance on the original, that task's numbers are uninterpretable."* Paper 1 had to drop
 ``medication_ie:in_narrative`` for exactly that reason, after the run rather than before it. Every
 artefact here prints its held-out score beside the chance rate, and a task that does not clear
@@ -48,10 +50,10 @@ from pseudonymkit.adapters.cardiode import (
 )
 from pseudonymkit.serialisation import iter_documents
 from pseudonymkit.tasks.linear import (
+    cross_fit_single_label_classifier,
+    cross_fit_span_tagger,
     save_artefact,
-    split_documents,
-    train_single_label_classifier,
-    train_span_tagger,
+    split_folds,
 )
 from run_utility import SOURCES
 
@@ -127,6 +129,25 @@ def section_units(documents, train_ids, score_ids):
     return texts, labels, keys
 
 
+def all_section_units(documents):
+    """Every derived section of every letter, keyed ``<doc_id>#<index>``, with its letter.
+
+    Cross-fitting needs the units of any set of letters, not of two fixed halves, so the units are
+    built once and selected per fold by the letter they belong to.
+    """
+    texts: dict[str, str] = {}
+    labels: dict[str, str] = {}
+    letter_of: dict[str, str] = {}
+    for document in documents:
+        sections = derive_sections(document.task.get('sections', ()), len(document.text))
+        for index, section in enumerate(sections):
+            key = f'{document.doc_id}#{index}'
+            texts[key] = document.text[section.start:section.end]
+            labels[key] = section.section_type
+            letter_of[key] = document.doc_id
+    return texts, labels, letter_of
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -134,7 +155,10 @@ def main() -> int:
     ap.add_argument('--tasks', nargs='+', default=None,
                     help='default: every instrument the corpus can carry')
     ap.add_argument('--seed', type=int, default=0)
-    ap.add_argument('--train-fraction', type=float, default=0.5)
+    ap.add_argument('--folds', type=int, default=5,
+                    help='cross-fitting folds (AM, 2026-10-03): every document is scored by the '
+                         'estimator fitted on the other k-1 folds, so none is scored by a model '
+                         'that saw it, and all of them are scored')
     ap.add_argument('--limit', type=int, default=0, help='documents, for a smoke run')
     ap.add_argument('--class-weight', default=None, choices=['balanced', 'none'],
                     help='default: per task — balanced for the 14 section types, unweighted for '
@@ -148,10 +172,9 @@ def main() -> int:
         documents = documents[: args.limit]
     log(f'{args.corpus}: {len(documents):,} condition-A documents')
 
-    train_ids, score_ids = split_documents(
-        [d.doc_id for d in documents], seed=args.seed, train_fraction=args.train_fraction)
-    log(f'  split seed={args.seed}: {len(train_ids):,} train / {len(score_ids):,} score, '
-        f'document-disjoint')
+    folds = split_folds([d.doc_id for d in documents], k=args.folds, seed=args.seed)
+    log(f'  {args.folds} document-disjoint folds, seed {args.seed}: '
+        f'{", ".join(str(len(f)) for f in folds)} documents')
 
     by_id = {d.doc_id: d for d in documents}
     args.out.mkdir(parents=True, exist_ok=True)
@@ -165,12 +188,16 @@ def main() -> int:
                                  if task in CLASS_WEIGHT else ''))
 
         if task == 'section_classification':
-            texts, labels, keys = section_units(documents, train_ids, score_ids)
-            log(f'  {len(keys["train"]):,} training sections, {len(keys["score"]):,} to score')
-            artefact = train_single_label_classifier(
-                texts, labels, task_name=task, train_ids=keys['train'], score_ids=keys['score'],
-                corpus=args.corpus, seed=args.seed, class_weight=weight,
-                record_ids=(train_ids, score_ids),
+            texts, labels, letter_of = all_section_units(documents)
+            log(f'  {len(texts):,} derived sections over {len(set(letter_of.values())):,} letters')
+
+            def units_of(ids, _letter_of=letter_of):
+                wanted = set(ids)
+                return [key for key in sorted(_letter_of) if _letter_of[key] in wanted]
+
+            artefact = cross_fit_single_label_classifier(
+                texts, labels, task_name=task, folds=folds, corpus=args.corpus, seed=args.seed,
+                class_weight=weight, units_of=units_of,
             )
             offered = len(SECTION_TYPES)
 
@@ -179,9 +206,9 @@ def main() -> int:
             labels = {d.doc_id: str(d.task.get('label') or '') for d in documents}
             present = sorted({v for v in labels.values() if v})
             log(f'  {len(present):,} distinct folders over {len(texts):,} messages')
-            artefact = train_single_label_classifier(
-                texts, labels, task_name=task, train_ids=train_ids, score_ids=score_ids,
-                corpus=args.corpus, seed=args.seed, class_weight=weight,
+            artefact = cross_fit_single_label_classifier(
+                texts, labels, task_name=task, folds=folds, corpus=args.corpus, seed=args.seed,
+                class_weight=weight,
             )
             offered = len(present)
 
@@ -195,8 +222,8 @@ def main() -> int:
             }
             carrying = sum(1 for v in spans.values() if v)
             log(f'  {carrying:,} of {len(texts):,} letters carry a medication span')
-            artefact = train_span_tagger(
-                texts, spans, train_ids=train_ids, score_ids=score_ids, corpus=args.corpus,
+            artefact = cross_fit_span_tagger(
+                texts, spans, folds=folds, corpus=args.corpus,
                 classes=list(MEDICATION_CLASSES), seed=args.seed,
             )
             offered = len(MEDICATION_CLASSES)
@@ -213,10 +240,10 @@ def main() -> int:
         verdict = ('USABLE' if artefact.holdout_score > reference
                    else 'AT OR BELOW THE FREE BASELINE — cannot measure a loss (§8.3)')
         if chance is None:
-            log(f'  held-out condition A: {artefact.holdout_score:.4f} span F1  '
+            log(f'  out-of-fold condition A: {artefact.holdout_score:.4f} span F1  '
                 f'({offered} classes; exact-match F1 has no free baseline) — {verdict}')
         else:
-            log(f'  held-out condition A: {artefact.holdout_score:.4f}  '
+            log(f'  out-of-fold condition A: {artefact.holdout_score:.4f}  '
                 f'(uniform chance {float(chance):.4f}, majority class {floor:.4f}, '
                 f'{offered} classes) — {verdict}')
         log(f'  fitted in {time.time() - started:.0f}s')
@@ -229,12 +256,12 @@ def main() -> int:
             'uniform_chance': chance, 'majority_baseline': floor,
             'class_weight': weight if task in CLASS_WEIGHT else 'balanced (fixed, BIO)',
             'usable': verdict == 'USABLE',
-            'trained_on': len(artefact.train_doc_ids), 'scored_on': len(artefact.score_doc_ids),
+            'cross_fitted': args.folds, 'scored_on': len(artefact.score_doc_ids),
         })
 
     index = args.out / f'{args.corpus}_instruments.json'
     index.write_text(json.dumps({
-        'corpus': args.corpus, 'seed': args.seed, 'train_fraction': args.train_fraction,
+        'corpus': args.corpus, 'seed': args.seed, 'folds': args.folds,
         'documents': len(documents), 'commit': commit(), 'instruments': summary,
     }, indent=1), encoding='utf-8')
     log(f'wrote {index}')

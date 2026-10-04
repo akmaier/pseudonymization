@@ -45,6 +45,8 @@ sys.path.insert(0, 'experiments')
 
 from pseudonymkit.conditions import Unmodified
 from pseudonymkit.construction import construct, detected_documents, to_pseudonymised_corpus
+from pseudonymkit.engine import PseudonymisedCorpus
+from pseudonymkit.tasks.linear import CrossFit
 from pseudonymkit.detectors.cache import DetectorCache
 from pseudonymkit.domain import Corpus
 from pseudonymkit.metrics.detection import prepare, score_prepared
@@ -111,22 +113,71 @@ def pack(task: str, doc_ids, scores) -> dict[str, object]:
     return out
 
 
+def _run_task(task: str, result, condition: str, scorer, labels) -> dict:
+    """One task over one conditioned corpus with one estimator: ``{vector name: ScoreVector}``."""
+    if task == 'section_classification':
+        return {task: section_classification(result, scorer, condition=condition)}
+    if task == 'medication_ie':
+        return medication_ie(result, scorer, condition=condition)
+    if task == 'folder_classification':
+        return {task: folder_classification(result, scorer, condition=condition, labels=labels)}
+    raise SystemExit(f'unknown task {task!r}')
+
+
 def score_all(result, condition: str, instruments: dict, labels) -> dict[str, dict]:
-    """Every task the corpus carries, over one conditioned corpus."""
+    """Every task the corpus carries, over one conditioned corpus.
+
+    A cross-fitted instrument (AM, 2026-10-03) is scored fold by fold: each fold's documents are
+    handed to the estimator that was fitted without them, and the per-document scores are joined
+    into one vector. That costs one pass, because every estimator scores only its own fold, and it
+    is the reason a document is never scored by a model that saw it.
+    """
     out: dict[str, dict] = {}
     for task, artefact in instruments.items():
-        if task == 'section_classification':
-            vectors = {task: section_classification(result, artefact.scorer, condition=condition)}
-        elif task == 'medication_ie':
-            vectors = medication_ie(result, artefact.scorer, condition=condition)
-        elif task == 'folder_classification':
-            vectors = {task: folder_classification(result, artefact.scorer, condition=condition,
-                                                   labels=labels)}
+        scorer = artefact.scorer
+        if isinstance(scorer, CrossFit):
+            parts: dict[str, tuple[list, list]] = {}
+            for fold, members in enumerate(scorer.folds):
+                wanted = set(members)
+                subset = PseudonymisedCorpus(
+                    documents=tuple(d for d in result.documents
+                                    if d.document.doc_id in wanted),
+                    mapping=result.mapping)
+                if not subset.documents:
+                    continue
+                for key, vector in _run_task(task, subset, condition,
+                                             scorer.scorer_for(fold), labels).items():
+                    ids, scores = parts.setdefault(key, ([], []))
+                    ids.extend(vector.doc_ids)
+                    scores.extend(vector.scores)
+            for key, (ids, scores) in parts.items():
+                order = sorted(range(len(ids)), key=ids.__getitem__)
+                out[key] = pack(key, [ids[i] for i in order], [scores[i] for i in order])
         else:
-            raise SystemExit(f'unknown task {task!r}')
-        for key, vector in vectors.items():
-            out[key] = pack(key, vector.doc_ids, vector.scores)
+            for key, vector in _run_task(task, result, condition, scorer, labels).items():
+                out[key] = pack(key, vector.doc_ids, vector.scores)
     return out
+
+
+def released(documents, patchset):
+    """Every scored document in its released form, in corpus order.
+
+    ``to_pseudonymised_corpus`` omits a document with no patch, and ``detected_documents`` emits no
+    document at all when none of the ensemble's detectors has a usable record for it — a single
+    detector whose reply for that letter was dropped as truncated, say. For an attack that is
+    harmless, since such a document carries no replaced mention to query. For utility it was a
+    selection bias: the first run of this sweep scored 234 of its 4,300 rows on fewer letters than
+    condition A, down to 41 of 193, and compared those means with the full ceiling. Detection
+    scoring already counts such a document as "found nothing", so utility releases it unchanged.
+    """
+    patched = to_pseudonymised_corpus(documents, patchset, check=False)
+    have = {d.document.doc_id: d for d in patched.documents}
+    missing = [d for d in documents if d.doc_id not in have]
+    if missing:
+        for d in Unmodified().pseudonymise_corpus(missing).documents:
+            have[d.document.doc_id] = d
+    return (PseudonymisedCorpus(documents=tuple(have[d.doc_id] for d in documents),
+                                mapping=patched.mapping), len(missing))
 
 
 def main() -> int:
@@ -289,13 +340,14 @@ def main() -> int:
                                 conditions=tuple(args.conditions), inventory=inventory, key=key)
             del detected
             for condition in args.conditions:
-                result = to_pseudonymised_corpus(documents, patches[condition], check=False)
+                result, unchanged = released(documents, patches[condition])
                 row = {
                     **stamp, 'source': label, 'condition': condition, 'rule': rule,
                     'size': len(names),
                     'token_recall': detection['token_recall'],
                     'precision': detection['precision'],
                     'replacements': sum(len(p.entries) for p in patches[condition].patches),
+                    'released_unchanged': unchanged,
                     'tasks': score_all(result, condition, instruments, labels),
                     'seconds': round(time.time() - started, 1),
                 }
