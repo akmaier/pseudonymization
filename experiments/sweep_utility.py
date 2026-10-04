@@ -21,9 +21,10 @@ binary task is stored as a bit per document, which is exact and keeps Enron's ro
 text is the same whatever the detector did; it is the ceiling every B and C score is read against
 and it is written as its own row. This is the same reasoning `run_a4_sample.py` applies to A4.
 
-**The scored documents are the instrument's held-out half and nothing else.** The artefact records
-which documents it was fitted on; scoring those would measure memorisation. The same held-out set
-is used in A, B and C, so the pairing survives (see :mod:`pseudonymkit.tasks.linear`).
+**Every document is scored, and never by an estimator that saw it.** The instruments are
+cross-fitted (AM, 2026-10-03): a document in fold *f* is scored by the estimator fitted on the other
+folds (``score_all``). The same documents are scored in A, B and C, so the pairing survives (see
+:mod:`pseudonymkit.tasks.linear`). The first version scored a single held-out half.
 
 **The surrogate inventory is pinned across the plane** (plan §6): it is compiled once from the
 union over every detector, exactly as `sweep_leakage.py` does, so an entity receives the same
@@ -218,7 +219,7 @@ def main() -> int:
             raise SystemExit(f'no frozen instrument at {path} — run train_linear_tasks.py first')
         artefact = load_artefact(path)
         instruments[task] = artefact
-        log(f'{task}: {artefact.scorer.name}, held-out condition A '
+        log(f'{task}: {artefact.scorer.name}, out-of-fold condition A '
             f'{artefact.holdout_score:.4f}, scores {len(artefact.score_doc_ids)} documents')
 
     # **Union, not intersection.** Each runner already skips a document its task has no gold for

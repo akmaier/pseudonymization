@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Fit the frozen linear utility instruments (plan §8.5). CPU only, no gateway, no GPU.
 #
-# CARDIO:DE fits on the login node in under three minutes and does not need this. Enron does:
-# 58,636 documents, a 176-label folder task, and a multinomial logistic regression whose
-# coefficient array alone is 176 x max_features. score_recommended.py was OOM-killed on the head
-# node on Enron for less, so it goes through Slurm.
+# Every corpus goes through Slurm. CARDIO:DE used to fit on the login node in under three minutes,
+# but the cross-fitted tagger over whole letters (no 12,000-character cap) was killed there without
+# a traceback on 2026-10-04, after the section classifier had been written. Enron: 58,636
+# documents, a 176-label folder task, and a multinomial logistic regression whose coefficient array
+# alone is 176 x max_features; score_recommended.py was OOM-killed on the head node for less.
 #
 #SBATCH --job-name=train_linear
 #SBATCH --ntasks=1
