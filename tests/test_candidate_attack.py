@@ -337,3 +337,116 @@ def test_the_llm_prompt_shows_context_only_in_the_context_arm(corpus):
 
     without = build_items(result, corpus, n_candidates=4, seed=1, with_context=False)
     assert "known from the corpus" not in ranker.prompt(without[0])
+
+
+# ------------------------------------------------------- outcome classes and regimes (§8.4, 2026-10-04)
+
+
+from pseudonymkit.attacks.candidates import OUTCOMES, Abstention, query_key  # noqa: E402
+
+
+class Abstainer:
+    name = "abstainer"
+    allows_abstention = True
+
+    def rank(self, item):
+        return Abstention()
+
+
+class Silent:
+    """A ranker whose reply named nothing — a failed call, not an answer."""
+
+    name = "silent"
+    allows_abstention = True
+
+    def rank(self, item):
+        return []
+
+
+def b_items(corpus, n=3, seed=1):
+    return build_items(condition("B").pseudonymise_corpus(corpus), corpus, n_candidates=n,
+                       seed=seed)
+
+
+def test_a_right_first_choice_is_recovered(corpus):
+    report = score(b_items(corpus), Ranker(always_right), condition="B")
+    assert report.outcome_counts()["recovered"] == len(report.outcomes) > 0
+    assert set(report.outcome_counts()) == set(OUTCOMES)
+
+
+def test_a_wrong_choice_named_like_the_surrogate_is_misled_and_only_under_b(corpus):
+    items = b_items(corpus)
+    item = items[0]
+    wrong = next(i for i in range(len(item.candidates)) if i != item.truth_index)
+    # The surrogate is made to share a name with the wrong candidate, as a gazetteer name can.
+    named = CandidateSet(doc_id=item.doc_id, text=item.text, truth=item.truth,
+                         candidates=item.candidates,
+                         pseudonym=item.candidates[wrong].surface, target=item.target)
+    picks_wrong = Ranker(lambda _: wrong)
+    assert score([named], picks_wrong, condition="B").outcomes[0]["outcome"] == "misled"
+    assert score([named], picks_wrong, condition="C").outcomes[0]["outcome"] == "failed"
+    unrelated = CandidateSet(doc_id=item.doc_id, text=item.text, truth=item.truth,
+                             candidates=item.candidates, pseudonym="Qzxv", target=item.target)
+    assert score([unrelated], picks_wrong, condition="B").outcomes[0]["outcome"] == "failed"
+
+
+def test_an_explicit_abstention_is_its_own_class_and_never_recovers(corpus):
+    report = score(b_items(corpus), Abstainer(), condition="B")
+    assert report.outcome_counts()["abstained"] == len(report.outcomes)
+    assert report.overall.rank1 == 0.0
+    assert all(r["rank"] == len(b_items(corpus)[0].candidates) for r in report.outcomes)
+
+
+def test_an_empty_reply_is_not_an_abstention(corpus):
+    report = score(b_items(corpus), Silent(), condition="B")
+    assert report.outcome_counts()["abstained"] == 0
+    assert report.metadata["unanswered"] == len(report.outcomes)
+
+
+def test_a_forced_ranker_cannot_abstain(corpus):
+    class Forced(Abstainer):
+        allows_abstention = False
+
+    assert score(b_items(corpus), Forced(), condition="B").outcome_counts()["abstained"] == 0
+
+
+def test_the_pairing_key_is_the_same_under_b_and_c_and_carries_no_identity(corpus):
+    b = build_items(condition("B").pseudonymise_corpus(corpus), corpus, n_candidates=3, seed=1)
+    c = build_items(condition("C").pseudonymise_corpus(corpus), corpus, n_candidates=3, seed=1)
+    assert [query_key(i) for i in b] == [query_key(i) for i in c]
+    assert len({query_key(i) for i in b}) == len(b)
+    record = score(b, Ranker(always_right), condition="B")
+    blob = repr(record.per_query()) + repr(record.to_record())
+    for name in ("Weber", "Meyer", "Schulz", "e1", "e2", "e3"):
+        assert name not in blob
+
+
+def test_per_query_columns_line_up(corpus):
+    report = score(b_items(corpus), SecondPlace(), condition="B")
+    columns = report.per_query()
+    assert len(columns["key"]) == len(columns["rank"]) == len(columns["outcome"])
+    assert set(columns["rank"]) == {2}
+    assert set(columns["outcome"]) <= {"m", "f"}
+
+
+def test_the_free_prompt_allows_none_and_reads_an_explicit_empty_array(corpus):
+    item = b_items(corpus)[0]
+    ranker = LlmCandidateRanker(regime="free").use(FakeClient("[]"))
+    assert isinstance(ranker.rank(item), Abstention)
+    assert "may or may not be one of the candidates" in ranker.client.prompts[0][0]
+    assert ranker.name.endswith("/a4-free")
+    prose = LlmCandidateRanker(regime="free").use(FakeClient("I cannot tell."))
+    assert not isinstance(prose.rank(item), Abstention)
+
+
+def test_the_forced_ranker_keeps_its_name_and_prompt(corpus):
+    item = b_items(corpus)[0]
+    ranker = LlmCandidateRanker().use(FakeClient("[]"))
+    assert not isinstance(ranker.rank(item), Abstention)
+    assert ranker.name == "llm:gpt-oss-120b/a4"
+    assert ranker.client.prompts[0][0] == LlmCandidateRanker.SYSTEM
+
+
+def test_an_unknown_regime_is_refused():
+    with pytest.raises(ValueError):
+        LlmCandidateRanker(regime="open")

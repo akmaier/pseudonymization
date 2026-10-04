@@ -61,6 +61,9 @@ __all__ = [
     "LlmCandidateRanker",
     "MARK_OPEN",
     "MARK_CLOSE",
+    "OUTCOMES",
+    "Abstention",
+    "query_key",
 ]
 
 MARK_OPEN = "«"
@@ -97,8 +100,11 @@ class CandidateSet:
     candidates: tuple[Candidate, ...]
     pseudonym: str = ""
     """What the marked occurrence reads as in this condition — the real name under A, a surrogate
-    under B, ``[PERSON]`` under C.  Recorded, never scored against."""
+    under B, ``[PERSON]`` under C.  Never scored against; it decides only whether a wrong choice
+    under B counts as ``misled``."""
     public_figure: bool | None = None
+    target: tuple[int, int] = (-1, -1)
+    """The marked mention's offsets in the condition-A text, for :func:`query_key` only."""
 
     @property
     def truth_index(self) -> int:
@@ -279,6 +285,7 @@ def build_items(
                     public_figure=(
                         None if public_figures is None else truth in public_figures
                     ),
+                    target=(mention.span.start, mention.span.end),
                 )
             )
             taken += 1
@@ -287,6 +294,48 @@ def build_items(
 
 
 # ------------------------------------------------------------------------------------- scoring
+
+
+OUTCOMES = ("recovered", "misled", "failed", "abstained")
+"""The outcome classes of one A4 query: plan §8.4's three, and abstention for the free regime.
+
+* ``recovered`` — the true identity is ranked first.
+* ``misled`` — misled to the surrogate: the first choice is another candidate whose name shares a
+  token with what the marked occurrence reads as. Surrogates are gazetteer names (``build_BC``), and
+  a common one can also be the name of a real person elsewhere in the corpus; a ranker that picks
+  that person has believed the fake name. Under A the marked occurrence is the true name and under
+  C it is ``[PERSON]``, so this is a B outcome; elsewhere such a miss is ``failed``.
+* ``failed`` — any other wrong first choice.
+* ``abstained`` — free regime only: the ranker answered that none of the candidates is the marked
+  mention. Kept apart from the three rather than folded into one of them: under B it may be belief
+  in the surrogate, under A and C it cannot be, and which reading holds is not knowable per query.
+"""
+
+_CODE = {"recovered": "r", "misled": "m", "failed": "f", "abstained": "a"}
+
+
+class Abstention(list):
+    """An explicit "none of them". Only a ranker that :attr:`allows_abstention` may return one, and
+    it is told apart from a reply that named nothing at all, which is a failed call rather than an
+    answer and keeps the neutral completion of :func:`_complete`."""
+_NAME_TOKEN = re.compile(r"[^\W\d_]{2,}", re.UNICODE)
+
+
+def _shares_a_name_token(a: str, b: str) -> bool:
+    ta = {t.casefold() for t in _NAME_TOKEN.findall(a or "")}
+    tb = {t.casefold() for t in _NAME_TOKEN.findall(b or "")}
+    return bool(ta & tb)
+
+
+def query_key(item: "CandidateSet") -> str:
+    """The pairing key of one query (plan §9.5, §10 item 10): the document and the condition-A
+    offsets of the marked mention. B and C are built from one span set, so the same query gets the
+    same key in both and the two can be paired per query. The key is a hash of positions only; no
+    identity, surface or entity id goes into it (§15.1)."""
+    import hashlib
+
+    start, end = item.target
+    return hashlib.sha256(f"{item.doc_id}\x1f{start}\x1f{end}".encode("utf-8")).hexdigest()[:16]
 
 
 @dataclass(frozen=True, slots=True)
@@ -305,6 +354,25 @@ class A4Report:
     private: ReIdResult | None = None
     stratification_note: str = ""
     metadata: Mapping[str, object] = field(default_factory=dict)
+    outcomes: tuple[Mapping[str, object], ...] = ()
+    """One record per query: the pairing key, the truth's rank and the outcome class. No surface,
+    no text, no identity — the key is a hash of positions (see :func:`query_key`)."""
+
+    def outcome_counts(self) -> dict[str, int]:
+        counts = {name: 0 for name in OUTCOMES}
+        for record in self.outcomes:
+            counts[str(record["outcome"])] += 1
+        return counts
+
+    def per_query(self) -> dict[str, object]:
+        """The per-query outcomes as three aligned columns, compact enough to store per cell: the
+        keys, the truth's rank, and one letter per query (``r``ecovered, ``m``isled, ``f``ailed,
+        ``a``bstained)."""
+        return {
+            "key": [str(r["key"]) for r in self.outcomes],
+            "rank": [int(r["rank"]) for r in self.outcomes],
+            "outcome": "".join(_CODE[str(r["outcome"])] for r in self.outcomes),
+        }
 
     def to_record(self) -> dict[str, object]:
         record: dict[str, object] = {
@@ -312,6 +380,7 @@ class A4Report:
             "n_candidates": self.n_candidates,
             "with_context": self.with_context,
             "overall": self.overall.as_dict(),
+            "outcome_counts": self.outcome_counts(),
             "stratification_note": self.stratification_note,
             **dict(self.metadata),
         }
@@ -397,9 +466,37 @@ def score(
 
         with ThreadPoolExecutor(max_workers=concurrency) as pool:
             ranked = list(pool.map(ranker.rank, items, chunksize=1))
-        rankings = [_complete(r, item) for r, item in zip(ranked, items)]
     else:
-        rankings = [_complete(ranker.rank(item), item) for item in items]
+        ranked = [ranker.rank(item) for item in items]
+    # An empty answer is an abstention only where the ranker was allowed to abstain (the free
+    # regime). Under the forced regime it is a ranker that said nothing, and the neutral completion
+    # below is what it has always been.
+    may_abstain = bool(getattr(ranker, "allows_abstention", False))
+    abstained = [may_abstain and isinstance(r, Abstention) for r in ranked]
+    unanswered = sum(1 for r, gave_up in zip(ranked, abstained) if not gave_up and not list(r))
+    rankings = [_complete(r, item) for r, item in zip(ranked, items)]
+    outcomes = []
+    for item, ranking, gave_up in zip(items, rankings, abstained):
+        target = item.truth_index
+        position = ranking.index(target) + 1 if target in ranking else len(item.candidates)
+        if gave_up:
+            outcome, position = "abstained", len(item.candidates)
+        elif position == 1:
+            outcome = "recovered"
+        elif condition == "B" and _shares_a_name_token(item.candidates[ranking[0]].surface,
+                                                       item.pseudonym):
+            outcome = "misled"
+        else:
+            outcome = "failed"
+        outcomes.append({"key": query_key(item), "rank": position, "outcome": outcome})
+    if may_abstain:
+        # Abstentions score as the worst place, so Rank-1, Rank-5 and mAP stay comparable with the
+        # forced regime: an abstention never recovers anyone.
+        rankings = [
+            [i for i in range(len(item.candidates)) if i != item.truth_index] + [item.truth_index]
+            if gave_up else ranking
+            for item, ranking, gave_up in zip(items, rankings, abstained)
+        ]
 
     public = [i for i, item in enumerate(items) if item.public_figure is True]
     private = [i for i, item in enumerate(items) if item.public_figure is False]
@@ -425,7 +522,8 @@ def score(
             else "no public-figure labels were supplied: §8.4's stratification is not available, "
                  "because no corpus in the study carries the annotation"
         ),
-        metadata={"ranker": ranker.name, **dict(metadata or {})},
+        metadata={"ranker": ranker.name, "unanswered": unanswered, **dict(metadata or {})},
+        outcomes=tuple(outcomes),
     )
 
 
@@ -445,6 +543,15 @@ class LlmCandidateRanker:
     config_path: str = "config/llm_api.toml"
     max_chars: int = 12000
     show_context: bool = True
+    regime: str = "forced"
+    """``forced`` (the original prompt: rank every candidate) or ``free`` (the marked person may be
+    none of them, and ``[]`` abstains). Plan §8.4 asks for both because a single-regime A4 number
+    is uninterpretable: rewording the prompt alone moved recovery from 0 % to 50.4 % in Patsakis &
+    Lykousas (Sci Rep 2023).
+
+    The free regime here is the bounded reading of "free guess": the candidate list stays and the
+    answer is still candidate numbers, so neither regime can generate a name (reason 2 above). It
+    differs from the forced one only in allowing "none of them"."""
     _client: Any = field(default=None, init=False, repr=False)
 
     SYSTEM = (
@@ -453,10 +560,26 @@ class LlmCandidateRanker:
         "Rank the candidates by how likely each is the marked mention. "
         "Answer with ONLY a JSON array of candidate numbers, most likely first, no prose."
     )
+    SYSTEM_FREE = (
+        "You are given a document with one mention marked between "
+        f"{MARK_OPEN} and {MARK_CLOSE}, and a numbered list of candidates. "
+        "The marked mention may or may not be one of the candidates. "
+        "Answer with ONLY a JSON array of the numbers of the candidates who could be the marked "
+        "mention, most likely first, no prose. Answer [] if none of them is."
+    )
+
+    def __post_init__(self) -> None:
+        if self.regime not in ("forced", "free"):
+            raise ValueError(f"unknown A4 regime {self.regime!r}; use 'forced' or 'free'")
+
+    @property
+    def allows_abstention(self) -> bool:
+        return self.regime == "free"
 
     @property
     def name(self) -> str:
-        return f"llm:{self.model}/a4"
+        # The forced name is unchanged, so the cells already computed keep their identity.
+        return f"llm:{self.model}/a4" + ("" if self.regime == "forced" else "-free")
 
     @property
     def client(self) -> Any:
@@ -483,11 +606,21 @@ class LlmCandidateRanker:
         )
 
     def rank(self, item: CandidateSet) -> list[int]:
-        reply = self.client.ask(self.SYSTEM, self.prompt(item))
-        return _parse_ranking(reply.text, len(item.candidates))
+        system = self.SYSTEM if self.regime == "forced" else self.SYSTEM_FREE
+        reply = self.client.ask(system, self.prompt(item))
+        ranking = _parse_ranking(reply.text, len(item.candidates))
+        if not ranking and self.allows_abstention and _explicit_empty(reply.text):
+            return Abstention()
+        return ranking
 
 
 _ARRAY = re.compile(r"\[[^\]]*]", re.DOTALL)
+
+
+def _explicit_empty(reply: str | None) -> bool:
+    """Whether the reply's first JSON array is ``[]`` — an answer, not the absence of one."""
+    match = _ARRAY.search(reply or "")
+    return bool(match) and not match.group(0)[1:-1].strip()
 _INT = re.compile(r"-?\d+")
 
 

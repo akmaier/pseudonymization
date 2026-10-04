@@ -99,7 +99,11 @@ def main() -> int:
                    'train': len(train), 'test': len(test),
                    'rank1': result.overall.rank1, 'rank5': result.overall.rank5,
                    'map': result.overall.mean_average_precision, 'n_candidates': result.n_candidates,
-                   'chance': 1.0 / max(result.n_candidates, 1)}
+                   'chance': 1.0 / max(result.n_candidates, 1),
+                   # Same outcome classes and per-query record as the LLM rows (§8.4, §9.5), so
+                   # the twin pairs with them query by query. No name or text is written (§15).
+                   'outcome_counts': result.outcome_counts(),
+                   'per_query': result.per_query()}
             rows.append(row)
             print(f'  [{n}/{len(sample)}] {condition} {point["role"][:22]:22s} '
                   f'Rank-1 {result.overall.rank1:.4f} (chance {row["chance"]:.3f}) '

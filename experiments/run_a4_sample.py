@@ -87,6 +87,10 @@ def main() -> int:
                     help='queries in flight per model. Kept small: the budget is per model, so '
                          'throughput comes from running models side by side, not from hammering '
                          'one of them.')
+    ap.add_argument('--regime', choices=['forced', 'free'], default='forced',
+                    help="plan §8.4's two prompt regimes. forced: rank every candidate (the prompt "
+                         'every cell before 2026-10-04 was run with). free: the marked person may '
+                         'be none of them, and [] abstains. Both answer with candidate numbers.')
     ap.add_argument('--points', type=int, default=0, help='cap points, for a smoke run')
     ap.add_argument('--out', type=Path, default=Path('results/phase1'))
     ap.add_argument('--shard', default=None,
@@ -157,7 +161,9 @@ def main() -> int:
                 row = json.loads(line)
             except ValueError:
                 continue
-            done.add((row['model'], row['condition'], row.get('source') or 'A'))
+            # A row from before the regimes existed was run with the forced prompt.
+            done.add((row['model'], row['condition'], row.get('source') or 'A',
+                      row.get('regime', 'forced')))
     if done:
         log(f'  resuming: {len(done)} cells already recorded across all shards')
     handle = destination.open('a', buffering=1)
@@ -165,13 +171,13 @@ def main() -> int:
     writing = threading.Lock()
 
     def work(model: str) -> None:
-        ranker = LlmCandidateRanker(model=model)
+        ranker = LlmCandidateRanker(model=model, regime=args.regime)
         queue: Queue = Queue()
         for cell in prepared:
             queue.put(cell)
         while not queue.empty():
             condition, point, role, items = queue.get()
-            key = (model, condition, (point or {}).get('source', 'A'))
+            key = (model, condition, (point or {}).get('source', 'A'), args.regime)
             if key in done:
                 continue
             started = time.time()
@@ -184,17 +190,26 @@ def main() -> int:
             row = {
                 'corpus': args.corpus, 'model': model, 'condition': condition,
                 'source': (point or {}).get('source'), 'role': role,
+                'regime': args.regime, 'ranker': ranker.name,
                 'queries': len(items), 'rank1': result.overall.rank1,
                 'rank5': result.overall.rank5,
                 'map': result.overall.mean_average_precision,
                 'n_candidates': result.n_candidates,
                 'chance': 1.0 / max(result.n_candidates, 1),
+                # §8.4's outcome classes and the per-query record §9.5 pairs B and C on. Keys are
+                # hashes of positions; no name, text or entity id is written (§15).
+                'outcome_counts': result.outcome_counts(),
+                'unanswered': result.metadata.get('unanswered', 0),
+                'per_query': result.per_query(),
                 'seconds': round(time.time() - started, 1),
             }
             with writing:
                 handle.write(json.dumps(row) + '\n')
-            log(f'  [{model[:28]:28s}] {condition} {role[:22]:22s} '
-                f'Rank-1 {result.overall.rank1:.3f} in {row["seconds"]:.0f}s')
+            counts = result.outcome_counts()
+            log(f'  [{model[:28]:28s}] {args.regime} {condition} {role[:22]:22s} '
+                f'Rank-1 {result.overall.rank1:.3f} '
+                f'(r {counts["recovered"]} m {counts["misled"]} f {counts["failed"]} '
+                f'a {counts["abstained"]}) in {row["seconds"]:.0f}s')
 
     threads = [threading.Thread(target=work, args=(m,), daemon=False) for m in models]
     for thread in threads:
