@@ -17,8 +17,16 @@ the leakage sweep used, under two splits that differ in exactly one thing:
 and reports, for each:
 
 * the A3 ceiling on unmodified text (paper 1: 0.7198),
-* A3 and A5 on the recommended 13-detector union's release, as fold means (paper 1: 0.0093 and
-  0.0394).
+* A3 (whole query set, and the fold mean) and A5 (fold mean) on the recommended 13-detector union's
+  release (paper 1: 0.0093 and 0.0394, over 19,059 queries).
+
+**The release is built the way the sweep built it, not read from disk.** The first run of this
+script used the stored patch set ``enron_B_union-single0.5-13det-1797ba.patch.jsonl``, which
+``build_BC`` wrote with its own inventory, and the document split then gave A3 0.0102 and A5 0.0418
+instead of paper 1's 0.0093 and 0.0394. ``sweep_leakage`` builds condition B in memory against one
+inventory pinned over the union of every detector, and only that construction can reproduce its
+rows. The document split is therefore the check that this is paper 1's measurement; the body split
+is the one change.
 
 It changes nothing in paper 1 and writes one result file. Enron is public; no names are printed.
 
@@ -49,9 +57,10 @@ from pseudonymkit.attacks import (
     truth_map,
 )
 from pseudonymkit.conditions import Unmodified
-from pseudonymkit.construction import read_patchset, to_pseudonymised_corpus
+from pseudonymkit.construction import construct, detected_documents, to_pseudonymised_corpus
+from pseudonymkit.detectors.cache import DetectorCache
 from pseudonymkit.domain import Corpus
-from pseudonymkit.paths import condition_a_dir, work_dir
+from pseudonymkit.paths import condition_a_dir
 from pseudonymkit.serialisation import iter_documents
 
 T0 = time.time()
@@ -96,6 +105,8 @@ def linkage(corpus, documents, released, reference, query, entity_type, seed, fo
     queries = build_queries(released, entity_type, documents=query)
     truth = truth_map(released, entity_type)
     structural = StructuralLinkage()
+    whole = structural.run(queries, gallery, truth, "deterministic", "hmac")
+    out.update(a3_rank1=whole.rank1, a3_queries=whole.queries)
     partition = structural.folds(queries, gallery, truth, seed=seed, folds=folds)
     a3_folds = [structural.run(queries, gallery, truth, "deterministic", "hmac", subset=keys).rank1
                 for keys in partition]
@@ -114,16 +125,42 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--folds", type=int, default=5)
     ap.add_argument("--out", type=Path, default=Path("results/detection/duplicate_leak_enron.json"))
+    ap.add_argument("--cache", type=Path, default=Path("results/detector_cache"))
+    ap.add_argument("--ensemble", type=Path,
+                    default=Path("results/leakage_sweep/large_ensemble.txt"))
+    ap.add_argument("--key-file", type=Path,
+                    default=Path.home() / ".config" / "pseudonymkit" / "hmac.key")
     args = ap.parse_args()
+
+    from build_BC import inventory_for, read_key
 
     documents = list(iter_documents(condition_a_dir() / "enron_A.jsonl.gz"))
     corpus = Corpus("enron", tuple(documents))
-    patchset = read_patchset(work_dir() / "results/conditions" / f"enron_B_{TAG}.patch.jsonl")
-    released = to_pseudonymised_corpus(documents, patchset, check=False)
-    log(f"paper-1 Enron: {len(documents):,} documents; release {TAG}")
+    cache = DetectorCache(args.cache, "enron")
+    pool = sorted(p.stem.replace("__", "/") for p in cache.root.glob("*.jsonl"))
+    log(f"paper-1 Enron: {len(documents):,} documents; {len(pool)} detectors in the cache")
+    # sweep_leakage.main, step for step: the inventory pinned over the union of every detector.
+    union_detected, _ = detected_documents(documents, cache, pool, "union")
+    cover = {(m.type, d.language) for d in union_detected for m in d.mentions}
+    inventory, _ = inventory_for({d.language for d in documents},
+                                 documents=union_detected, cover=cover)
+    del union_detected
+    # sweep_leakage._one, for the recommended thirteen under union.
+    members = sorted(args.ensemble.read_text().strip().split("+"))
+    detected, _ = detected_documents(documents, cache, members, rule="union")
+    patches = construct(detected, corpus="enron", conditions=("B",), inventory=inventory,
+                        key=read_key(args.key_file))
+    del detected
+    released = to_pseudonymised_corpus(documents, patches["B"], check=False)
+    replaced = sum(len(p.entries) for p in patches["B"].patches)
+    log(f"release: {len(members)} detectors, union, {replaced:,} replacements "
+        f"(paper 1's row: 1,474,386)")
 
     result = {"corpus": "enron (paper 1)", "tag": TAG, "seed": args.seed, "folds": args.folds,
-              "paper_1": {"a3_ceiling_rank1": 0.7198, "a3_rank1": 0.0093, "a5_rank1": 0.0394}}
+              "release": "built in memory as sweep_leakage builds it", "replacements": replaced,
+              "paper_1": {"a3_ceiling_rank1": 0.7198024247867085, "a3_rank1": 0.009286951046749568,
+                          "a5_rank1": 0.039351308949104366, "a3_queries": 19059,
+                          "replacements": 1474386}}
     for name, split in (("document", lambda: disjoint_document_split(corpus, seed=args.seed)),
                         ("body", lambda: body_split(documents, seed=args.seed))):
         reference, query = split()
@@ -136,7 +173,8 @@ def main() -> int:
         row["query_documents_with_a_verbatim_copy_in_the_reference_half"] = copies
         result[name] = row
         log(f"{name:8s} split: copies {copies:,}; A3 ceiling {row['a3_ceiling_rank1']:.4f}; "
-            f"A3 {row['a3_rank1_mean']:.4f} ± {row['a3_rank1_sd']:.4f}; "
+            f"A3 {row['a3_rank1']:.4f} over {row['a3_queries']:,} queries "
+            f"(fold mean {row['a3_rank1_mean']:.4f} ± {row['a3_rank1_sd']:.4f}); "
             f"A5 {row['a5_rank1_mean']:.4f} ± {row['a5_rank1_sd']:.4f}; "
             f"reference population {row['reference_population']:,}")
     args.out.parent.mkdir(parents=True, exist_ok=True)
