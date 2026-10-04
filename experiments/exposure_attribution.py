@@ -1,29 +1,32 @@
 #!/usr/bin/env python3
 """Why a person mention survived — and on which side of the pipeline it was lost.
 
-`exposure_from_release.py` says how many are exposed. This says where they went, and it exists
-because the number did not match the one paper 1 reports. Measured on CARDIO:DE's recommended
-13-detector union, condition B, 2026-10-03:
+`exposure_from_release.py` says how many person mentions the release leaves in clear text. This
+says why, one cause per exposed mention, so the causes add up to the total:
 
-    PERSON gold tokens                                4,396
-    DETECTION side, union of the 13                0.999773     1 token never found
-    RELEASE   side, the patch set published        0.987261    56 tokens never overwritten
-    detected mentions skipped by the overlap rule     13,440
+* partly overwritten — a shorter replacement covered some of its tokens and not the rest;
+* overwritten with its own characters — an unchanged-type replacement (DATETIME, QUANTITY, MISC)
+  wrote the same text back (plan §8.2);
+* covered only by a CODE span the CODE rule removed (plan §8.6);
+* an entry overlaps its characters but none of its tokens;
+* detected, but no replacement entry reached it;
+* never detected.
 
-**Both numbers are right and they measure different things.** 0.9998 is what the detectors found;
-0.9873 is what the released text no longer says. The gap is the engine's own rule: a detected
-mention that overlaps one already replaced is skipped (``Patch.skipped``), so a span that wins the
-overlap can leave the name it overlapped standing while the patch set still records a replacement
-in that region. ``experiment_plan_operating_point.md`` §12 lists this as a threat whose *"rate
-currently unknown"*; this is the rate.
+It also puts the two sides of one ensemble side by side: what the detectors found (sensitivity over
+the union of the ensemble's spans) and what the released text no longer says (the patch set).
 
-Two candidate causes were tested and are **not** it:
+**Two corrections to the first version of this script (2026-10-03), which are part of the record:**
 
-  * the survival rule (§8.2, corrected 2026-10-03) — a token overlapped only by a replacement that
-    wrote the same characters back is no longer counted as caught. Worth 3 of the 37 mentions.
-  * the CODE sanity rule (§8.6) — **zero**. No exposed person mention is overlapped by a CODE span
-    the rule removed, so filtering degenerate CODE spans uncovered none of them. The hypothesis was
-    mine and the measurement refutes it.
+* It reported that the CODE rule accounted for none of the exposed mentions and called that a
+  refutation. The test could not have found anything: the CODE rule runs inside
+  ``detected_documents``, before combination, so the spans it compared against had already lost
+  every CODE span the rule removes. The rule is now measured on the spans from *before* it.
+* It explained the whole gap between the two sides as the engine's overlap rule without measuring
+  that, and it labelled as "no overlapping entry at all" a count that never tested for entries.
+
+Paper 1's project page had in fact already reported both routes — route one, the release, and route
+two, the detectors (``docs/build_site.py``) — with CARDIO:DE route one at 28 of 1,957
+person-document pairs, so the size of the gap was never new.
 
 Read-only over the span cache. No span surface is printed or stored: the CARDIO:DE cache holds
 DUA-restricted clinical text, so the artefact carries counts only.
@@ -124,10 +127,24 @@ def main() -> int:
               f'{[n for n in pool if n not in members]}', flush=True)
         derived_detection = True
     detected, _ = detected_documents(documents, cache, list(members), rule='union')
-    raw_code = {d.doc_id: tuple(m.span for m in d.mentions if m.span.type == 'CODE')
-                for d in detected}
     detected_spans = {d.doc_id: tuple(m.span for m in d.mentions) for d in detected}
     del detected
+    # **The spans before the CODE rule, which is the only place it can be measured.** The rule runs
+    # inside ``detected_documents`` (construction.py, before combination), so the spans that call
+    # returns have already lost every CODE span it removes. The first version of this script took
+    # its "removed" set from them and so could never find anything; it reported zero and called
+    # that a refutation. Here the filter is switched off for one call, the union is rebuilt from the
+    # same cache, and the removed set is what the real filter drops from it.
+    import pseudonymkit.construction as construction
+    real_filter = construction.code_filter
+    construction.code_filter = lambda spans: tuple(spans)
+    try:
+        unfiltered, _ = detected_documents(documents, cache, list(members), rule='union')
+    finally:
+        construction.code_filter = real_filter
+    raw_code = {d.doc_id: tuple(m.span for m in d.mentions if m.span.type == 'CODE')
+                for d in unfiltered}
+    del unfiltered
 
     patches = {p.doc_id: p for p in patchset.patches}
     counts: dict[str, int] = defaultdict(int)
@@ -151,6 +168,10 @@ def main() -> int:
             Span(e.old_start, e.old_end, '', e.entity_type)
             for e in patch.entries if not changed_text(e, document.text)))
 
+        entry_spans = tuple((e.old_start, e.old_end) for e in patch.entries)
+        removed_count = len(removed)
+        counts['code_spans_removed_by_the_rule'] += removed_count
+
         for mention in document.mentions:
             if mention.type != args.entity_type:
                 continue
@@ -161,26 +182,26 @@ def main() -> int:
             gold_tokens += len(index)
             detected_tokens += len(index & detected_cover)
             released_tokens += len(index & effective)
-            survives = bool(index - effective)
-            if not survives:
+            if not (index - effective):
                 continue
             counts['mentions_exposed'] += 1
             key = (document.doc_id, mention.gold_entity_id or mention.mention_id)
             exposed_pairs.add(key)
-            # Which step left it. Not exclusive by accident: a mention can be overlapped by a
-            # removed CODE span *and* by a pass-through entry, so the order states the precedence
-            # and the overlap is counted too.
-            by_code = bool(index & removed_cover)
-            by_identical = bool(index & same)
-            if by_code:
-                counts['exposed_overlapped_by_a_removed_CODE_span'] += 1
+            # One category per exposed mention, tested in this order, so they add up to the total.
+            if index & effective:
+                cause = 'partly overwritten (clipped by a shorter replacement)'
+            elif index & same:
+                cause = 'overwritten with its own characters (an unchanged-type replacement)'
+            elif index & removed_cover:
+                cause = 'covered only by a CODE span the rule removed'
                 attributed.add(key)
-            if by_identical:
-                counts['exposed_overlapped_by_an_identical_replacement'] += 1
-            if by_code and by_identical:
-                counts['exposed_by_both'] += 1
-            if not by_code and not by_identical:
-                counts['exposed_with_no_overlapping_entry_at_all'] += 1
+            elif any(s < mention.span.end and mention.span.start < e for s, e in entry_spans):
+                cause = 'an entry overlaps its characters but none of its tokens'
+            elif index & detected_cover:
+                cause = 'detected, but no replacement entry reached it'
+            else:
+                cause = 'never detected'
+            counts[f'exposed: {cause}'] += 1
 
     result = {
         'corpus': args.corpus, 'condition': args.condition, 'tag': args.tag,
@@ -218,8 +239,8 @@ def main() -> int:
         print(f'  {key:52s} {value:>7,}')
     print(f'  exposed entity-document pairs                        '
           f'{len(exposed_pairs):>7,}')
-    print(f'  of which a removed CODE span had overlapped          '
-          f'{len(attributed):>7,}')
+    print(f'  of which only a CODE span the rule removed had covered '
+          f'{len(attributed):>5,}')
     print(f'wrote {destination}')
     return 0
 
