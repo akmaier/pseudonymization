@@ -34,7 +34,7 @@ try:                                    # Python >= 3.11
     import tomllib
 except ModuleNotFoundError:             # 3.10, which is what the cluster runs
     import tomli as tomllib             # type: ignore[no-redef]
-from typing import Sequence
+from typing import Iterable, Sequence
 
 from ..domain import Document, Span
 from .budget import DEFAULT_CONTEXT, TokenBudget
@@ -58,6 +58,55 @@ _SYSTEM = (
 _JSON_RE = re.compile(r"\[.*]", re.DOTALL)
 
 
+STREAMED_MODELS: frozenset[str] = frozenset({
+    "deepseek-ai/DeepSeek-V4-Flash-0731",
+})
+"""Models whose replies are requested as a stream (AM, 2026-10-04: raise the limits that truncate
+DeepSeek).
+
+The gateway cuts a request that sends nothing for about ten minutes — ``HTTP 408 litellm.Timeout``
+from LiteLLM, or ``502 Proxy Error`` from the proxy in front of it. Measured 2026-10-04
+(``experiments/probes/deepseek_limits.py``): of nine CARDIO:DE and ENRON 2.0 windows that had
+truncated, re-sent unstreamed with a 131,072-token cap and an hour's client timeout, none reached
+the cap and six were killed at ten minutes. Streamed (``deepseek_stream.py``), the reply arrives as it
+is generated, the connection is never silent for more than a few seconds, and replies ran past
+fifteen minutes. A model that answers inside ten minutes gains nothing from this, which is every
+other model in the pool, so they are left as they were run."""
+
+
+def _assemble_stream(lines: Iterable[bytes]) -> dict:
+    """Server-sent events → the one response object a non-streamed call would have returned.
+
+    Content and reasoning are concatenated in order, the last ``finish_reason`` wins, and the usage
+    comes from the final event (``stream_options.include_usage``). Returning the ordinary shape
+    keeps everything downstream — parsing, truncation accounting, the cache record — unchanged.
+    """
+    content: list[str] = []
+    reasoning: list[str] = []
+    finish: str | None = None
+    usage: dict = {}
+    for raw in lines:
+        line = raw.decode("utf-8", "replace").strip() if isinstance(raw, bytes) else raw.strip()
+        if not line.startswith("data:"):
+            continue
+        data = line[5:].strip()
+        if data == "[DONE]":
+            break
+        event = json.loads(data)
+        if event.get("usage"):
+            usage = event["usage"]
+        for choice in event.get("choices") or []:
+            delta = choice.get("delta") or {}
+            if delta.get("content"):
+                content.append(delta["content"])
+            if delta.get("reasoning_content"):
+                reasoning.append(delta["reasoning_content"])
+            if choice.get("finish_reason"):
+                finish = choice["finish_reason"]
+    message = {"content": "".join(content) or None, "reasoning_content": "".join(reasoning) or None}
+    return {"choices": [{"message": message, "finish_reason": finish}], "usage": usage}
+
+
 class LlmDetector:
     """One gateway model, prompted for span extraction."""
 
@@ -74,8 +123,10 @@ class LlmDetector:
         max_retries: int = 40,
         max_tokens: int | None = None,
         context: int | None = None,
+        stream: bool | None = None,
     ) -> None:
         self.model = model
+        self._stream = (model in STREAMED_MODELS) if stream is None else stream
         self.name = f"llm:{model}"
         self._types = tuple(types)
         # The window and the cap are derived from each other and from the model's family, because
@@ -104,8 +155,15 @@ class LlmDetector:
         The gateway can take minutes on a large request, so a fixed short timeout would abort calls
         that were about to succeed; ``timeout_seconds`` from the config is treated as the floor.
         """
+        if self._stream:
+            payload = {**payload, "stream": True, "stream_options": {"include_usage": True}}
         blob = json.dumps(payload).encode()
         read_timeout = max(self._timeout, 15 + len(blob) / 1024)
+        if self._stream:
+            # Per read, not per reply: chunks arrive every few seconds once generation starts, and
+            # the first one may wait in the gateway's queue. The proxy gives up on a silent request
+            # at about ten minutes, so the client waits longer than that and lets the gateway decide.
+            read_timeout = max(read_timeout, 900)
         request = urllib.request.Request(
             f"{self._base}/chat/completions",
             data=blob,
@@ -113,6 +171,8 @@ class LlmDetector:
         )
         try:
             with urllib.request.urlopen(request, timeout=read_timeout) as response:
+                if self._stream:
+                    return response.status, json.dumps(_assemble_stream(response))
                 return response.status, response.read().decode("utf-8", "replace")
         except urllib.error.HTTPError as exc:
             return exc.code, exc.read().decode("utf-8", "replace")
@@ -276,5 +336,6 @@ class LlmDetector:
             "prompt_tokens": prompt_tokens,
             "max_chars": self._max_chars,
             "budget": self._budget.describe(),
+            "stream": self._stream,
         }
         return DetectorOutput(document.doc_id, self.name, tuple(spans)), meta

@@ -47,7 +47,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Mapping
 
-__all__ = ["Family", "CONTEXT", "RATIO", "MODEL_RATIO", "REASONING_MODELS",
+__all__ = ["Family", "CONTEXT", "RATIO", "MODEL_RATIO", "MODEL_CAP", "REASONING_MODELS",
            "SCRIPT_CHARS_PER_TOKEN",
            "FAMILY_FLOOR", "TokenBudget", "chars_per_token", "family_of", "fit_ratio"]
 
@@ -84,6 +84,26 @@ whatever cap it is given, so a larger cap rescues no letters and only lets the r
 the tokens. That is the model's behaviour on this prompt, not the budget's, and the family cap is the
 protocol every other reasoning model is measured under.
 """
+
+MODEL_CAP: Mapping[str, int] = {
+    "deepseek-ai/DeepSeek-V4-Flash-0731": 131_072,
+}
+"""A fixed output cap per window, for a model whose reply length does not scale with its input.
+
+AM, 2026-10-04: *"the limits are too low and need to be increased to stop the truncation."* Measured
+the same day on windows that had truncated at the family cap (``experiments/probes/
+deepseek_limits.py`` and ``deepseek_stream.py``): given time — a streamed request, so the gateway's
+ten-minute silence limit does not cut it — six of nine finished, at 10,691 to 23,412 tokens, which
+is inside the family cap: the same window needs very different lengths on different runs, and the
+family cap catches the long draws. Two of the nine were still generating at 131,072 tokens.
+
+131,072 is the largest cap probed. It does not promise every window an end — the two runaways show
+it cannot — but it bounds what a runaway costs, at about fifteen minutes a window. The cap is used
+with streaming (``llm.STREAMED_MODELS``); without it a reply this long dies at ten minutes.
+
+A ratio cannot express this: a model whose reasoning is a near-fixed cost per window needs room
+regardless of how short the window is, which is the same observation that set
+:data:`FAMILY_FLOOR`."""
 
 REASONING_MODELS: frozenset[str] = frozenset({
     "gpt-oss-120b",
@@ -231,6 +251,8 @@ class TokenBudget:
     context: int = DEFAULT_CONTEXT
     reserve: int = 1024
     """Held back for the system prompt, the instructions and the gateway's own overhead."""
+    cap: int | None = None
+    """A fixed per-window cap from :data:`MODEL_CAP`, replacing the ratio when set."""
 
     @classmethod
     def for_model(
@@ -247,6 +269,7 @@ class TokenBudget:
             family=family,
             ratio=ratio or MODEL_RATIO.get(model) or RATIO[family],
             context=context or CONTEXT.get(model, DEFAULT_CONTEXT),
+            cap=MODEL_CAP.get(model),
         )
 
     @property
@@ -273,7 +296,7 @@ class TokenBudget:
         rate = chars_per_token(text) if text is not None else CHARS_PER_TOKEN
         prompt_tokens = max(1, math.ceil(prompt_chars / rate))
         floor = FAMILY_FLOOR.get(self.family, FLOOR)
-        want = max(floor, math.ceil(prompt_tokens * self.ratio) + FLOOR)
+        want = self.cap if self.cap else max(floor, math.ceil(prompt_tokens * self.ratio) + FLOOR)
         headroom = self.context - self.reserve - prompt_tokens
         return max(FLOOR, min(want, headroom))
 
@@ -281,6 +304,7 @@ class TokenBudget:
         return {
             "family": self.family,
             "ratio": self.ratio,
+            "cap": self.cap,
             "context": self.context,
             "max_prompt_tokens": self.max_prompt_tokens,
             "max_chars": self.max_chars,
