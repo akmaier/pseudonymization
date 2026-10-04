@@ -387,7 +387,9 @@ def external_priors(corpus: str, entity_type: str):
     out = []
     gazetteers = shared_corpora() / "gazetteers"
     try:
-        if corpus in ("tab", "ontonotes", "enron"):
+        # English corpora. ENRON 2.0 is English e-mail like paper 1's Enron; without it here its
+        # sweep would report the realistic adversary as unmeasurable for want of a list.
+        if corpus in ("tab", "ontonotes", "enron", "enron2"):
             surnames = load_census_surnames(gazetteers / "Names_2010Census.csv")
             out.append(build_prior(surnames, entity_type, label="US Census 2010 surnames",
                                    provenance="US Census 2010, 162,253 surnames covering 90 % of "
