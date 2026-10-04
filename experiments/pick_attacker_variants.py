@@ -14,7 +14,10 @@ import argparse
 import json
 from pathlib import Path
 
-CONST = {'cardiode': (120701, 885059), 'enron': (3648256, 15507925)}
+CONST = {'cardiode': (120701, 885059), 'enron': (3648256, 15507925),
+         # ENRON 2.0, measured 2026-10-04: the plane's gold row (17,491 gold tokens, PERSON 9,569 and
+         # CODE 7,922) and metrics.detection.tokenise over the 5,003 messages (886,468 tokens).
+         'enron2': (17491, 886468)}
 
 
 def main() -> int:

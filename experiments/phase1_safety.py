@@ -24,7 +24,10 @@ import argparse
 import json
 from pathlib import Path
 
-CONST = {'cardiode': (120701, 885059), 'enron': (3648256, 15507925)}
+CONST = {'cardiode': (120701, 885059), 'enron': (3648256, 15507925),
+         # ENRON 2.0, measured 2026-10-04: the plane's gold row (17,491 gold tokens, PERSON 9,569 and
+         # CODE 7,922) and metrics.detection.tokenise over the 5,003 messages (886,468 tokens).
+         'enron2': (17491, 886468)}
 VARIANTS = ('union13', 'union3', 'balanced', 'maxspec3')
 
 
@@ -48,11 +51,14 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--corpus', required=True)
     ap.add_argument('--query-floor', type=int, default=30)
+    ap.add_argument('--plane', type=Path, default=Path('results/detection_filtered'),
+                    help='the detection plane. ENRON 2.0 has only results/detection, which was '
+                         'computed with the CODE rule already in force')
     ap.add_argument('--out', type=Path, default=Path('results/phase1'))
     args = ap.parse_args()
 
     gold, total = CONST[args.corpus]
-    det = load_detection(Path(f'results/detection_filtered/{args.corpus}.jsonl'), gold, total)
+    det = load_detection(args.plane / f'{args.corpus}.jsonl', gold, total)
     space = {}
     for path in sorted(Path('results/phase1').glob(f'{args.corpus}_[0-9]*.jsonl')):
         for line in path.open():

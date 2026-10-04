@@ -37,6 +37,11 @@ def main() -> int:
                          'like any other, and any label it holds that the detection plane does not '
                          '-- the 13-detector recommended rules, which the size-3 enumeration never '
                          'reaches -- is added as an extra source so it is swept too.')
+    ap.add_argument('--recommended', type=Path,
+                    default=Path('results/leakage_sweep/large_ensemble.txt'),
+                    help='the recommended 13-detector ensemble. Its four rules are in the primary '
+                         'set (plan §5, §9.7) but beyond the size-3 enumeration, so they are added '
+                         'here when no earlier result already carries them. Empty path: skip.')
     ap.add_argument('--carry-done', action='store_true',
                     help='seed each new shard destination with rows already computed for its '
                          'labels, gathered from every existing shard. Re-sharding otherwise '
@@ -78,6 +83,16 @@ def main() -> int:
         for label in extra:
             print(f'    {label.split("|")[-1]:14s} {len(label.split("|")[0].split("+"))} detectors')
         labels = labels + extra
+
+    # A corpus with no earlier results (ENRON 2.0) has no hand-run 13-detector rows to carry, so the
+    # primary set's recommended ensemble would be missing from its sweep without this.
+    if args.recommended and str(args.recommended) and args.recommended.exists():
+        names = '+'.join(sorted(args.recommended.read_text().strip().split('+')))
+        wanted = [f'{names}|{rule}' for rule in ('union', 'intersection', 'vote2', 'vote3')]
+        added = [label for label in wanted if label not in labels]
+        if added:
+            print(f'adding the recommended ensemble under {len(added)} rules')
+            labels = labels + added
 
     args.out.mkdir(parents=True, exist_ok=True)
     shards = [[] for _ in range(args.shards)]
