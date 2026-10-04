@@ -170,6 +170,12 @@ def released(documents, patchset):
     selection bias: the first run of this sweep scored 234 of its 4,300 rows on fewer letters than
     condition A, down to 41 of 193, and compared those means with the full ceiling. Detection
     scoring already counts such a document as "found nothing", so utility releases it unchanged.
+
+    That bias did **not** cause medication IE to score above the ceiling, although commit db7414e
+    says it did. Of the 2,542 rows above the ceiling in that run, 2,370 were on the full 193 letters
+    (1,820 of them under C, largest excess +0.0256), and section classification showed the same in
+    1,837 full-n rows (largest +0.0044). Pseudonymised text scoring slightly above unmodified text
+    is a property of the linear instruments, not of the row selection.
     """
     patched = to_pseudonymised_corpus(documents, patchset, check=False)
     have = {d.document.doc_id: d for d in patched.documents}
