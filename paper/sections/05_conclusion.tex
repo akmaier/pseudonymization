@@ -4,10 +4,7 @@ Safe sharing of clinical data needs both modalities protected: a guarded image d
 for a report that names the patient. This study measures the text half; the image half is a separate
 literature.
 Artificial intelligence makes both possible at scale, but its failures must be measured where data
-are released. For text we priced detection, utility and re-identification on the same documents. A
-large union ensemble replaces almost every person mention and holds both attacks near their chance
-rates. Detector precision governs
-utility more than the choice between surrogates and placeholders, and sensitivity understates
+are released. For text we priced detection, utility and re-identification on the same documents. The 13-detector ensemble replaces almost every person mention; linkage is reduced by about two orders of magnitude from unmodified text but remains \SI{3.94}{\percent} for a trained e-mail attacker. Detector configuration governs utility more than replacement form, and sensitivity understates
 exposure per document, case and language. There is therefore no single anonymisation score: a
 release should state its operating point, per-language errors, surviving cases, attacker knowledge
 and stability. Our operating points and measurements are released with acceptance of this paper.

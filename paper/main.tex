@@ -10,7 +10,7 @@
 %   * turns on line numbers, which ACCV requires for review and removes at camera-ready;
 %   * prints the paper ID on every page, which is mandatory — replace ***** once OpenReview issues it.
 \documentclass[runningheads]{llncs}
-\usepackage[review,year=2026,ID=*****]{accv}
+\usepackage[year=2026,ID=10]{accv}
 
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -22,8 +22,7 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta}
 \usepackage{microtype}
-% pagebackref is recommended for the review version and explicitly not for camera-ready.
-\usepackage[pagebackref,breaklinks,colorlinks,citecolor=blue]{hyperref}
+\usepackage[breaklinks,colorlinks,citecolor=blue]{hyperref}
 
 % Draft-only marker: every result that is not final must remain conspicuous.
 \newcommand{\provisional}[1]{%
@@ -35,10 +34,18 @@
 
 \title{The Text Beside the Image: Detection, Utility and Leakage
   for Trustworthy Multimodal Medical Data and Beyond}
+\titlerunning{The Text Beside the Image}
+\authorrunning{A.\ Maier et al.}
 
-% Anonymised automatically by accv.sty in `review` mode — do not fill these in for the submission.
-\author{}
-\institute{}
+\author{Andreas Maier\inst{1} \and
+  Monica Hinrichs-Mayer\inst{1} \and
+  Franziska Weber\inst{1} \and
+  Niklas Andre Lackner\inst{1,2} \and
+  Matthias Stefan May\inst{2} \and
+  Bernhard Kainz\inst{1} \and
+  Siming Bayer\inst{1}}
+\institute{Friedrich-Alexander-Universit\"at Erlangen-N\"urnberg, Germany \and
+  University Hospital Erlangen, Germany}
 
 \maketitle
 
@@ -47,16 +54,12 @@ Medical images are released with the reports that describe them, and protecting 
 not protect the report. This paper measures the text component of such releases. We measure identifier detection, downstream utility and residual identity
 leakage on the same documents, with the pseudonymisation policy as the variable under test: 15
 detectors, three release conditions and four corpora of medical reports, legal judgments, news and
-other genres, and e-mail, in German, English, Chinese and Arabic. A fixed 13-detector union
-reaches a person sensitivity of \num{0.9998} at specificity \num{0.8686} on the medical reports,
-\num{0.9958} at \num{0.8504} on the legal judgments, \num{0.9352} at \num{0.9318} on news and
-other genres, and \num{0.9906} at \num{0.6235} on e-mail. With this ensemble, frequency matching
+other genres, and e-mail, in German, English, Chinese and Arabic. Across CARDIO:DE, TAB, OntoNotes and Enron, the same fixed 13-detector ensemble yields person sensitivity $\geq\num{0.9352}$ at specificity \num{0.6235}--\num{0.9318}. With this ensemble, frequency matching
 with a public name list recovers zero identities by alignment across the four corpora; the names it
 got right were ones the detector missed, left in clear text. Cross-document linkage ranks the
 correct person first for \SI{0.93}{\percent} of e-mail queries without training and
 \SI{3.94}{\percent} with it, against $1/3697$ chance and \SI{71.98}{\percent} on unmodified text.
-On the medical reports it recovers nothing without training and \SI{0.71}{\percent} of 138 queries
-with it, against $1/207$ chance and a \SI{2.73}{\percent} ceiling on unmodified text.
+On CARDIO:DE, linkage recovers zero without training and \SI{0.71}{\percent} with training. These rates are in line with corpus properties.
 \end{abstract}
 
 \begin{keywords}
@@ -69,7 +72,8 @@ pseudonymisation \and clinical text \and text in multimodal releases \and privac
 \input{sections/04_discussion}
 \input{sections/05_conclusion}
 
-% No acknowledgements in the review copy: ACCV requires them omitted for anonymity.
+\subsubsection*{Acknowledgements.}
+We gratefully acknowledge compute resources provided by NHR@FAU through the AI-BAY-HEALTH project, funded by the Bayerisches Staatsministerium f\"ur Wissenschaft und Kunst (StMWK) under the Hightech-Agenda Bayern. We thank Christoph Dieterich and Raphael Richter-Pechanski (Heidelberg University Hospital) for providing access to CARDIO:DE under a Data Use Agreement.
 
 \bibliographystyle{splncs04}
 \bibliography{references}
